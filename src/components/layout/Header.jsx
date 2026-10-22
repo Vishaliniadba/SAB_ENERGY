@@ -17,19 +17,28 @@ export const Header = ({ activeTab }) => {
     switch (activeTab) {
       case 'dashboard':
         return 'Dashboard';
+      case 'devices':
       case 'gateways':
-        return 'Gateways';
+        return 'Devices (ThingsBoard)';
       case 'asset-mapping':
         return 'Asset Mapping';
       case 'meter-profile':
       case 'meter-profiles':
         return 'Meter Profile';
+      case 'meter-make':
       case 'make-master':
-        return 'Make Master';
+        return 'Meter Master — Make';
+      case 'meter-model':
       case 'model-master':
-        return 'Model Master';
+        return 'Meter Master — Model';
+      case 'gateway-make':
+      case 'gateway-make-master':
+        return 'Gateway Master — Make';
+      case 'gateway-model':
+      case 'gateway-model-master':
+        return 'Gateway Master — Model';
       case 'parameter-dictionary':
-        return 'Parameter Dictionary';
+        return 'Parameter Master';
       default:
         return 'SaB Energy';
     }

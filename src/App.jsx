@@ -3,11 +3,13 @@ import { EnergyDataProvider } from './context/EnergyDataContext';
 import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
 import { DashboardView } from './views/dashboard/DashboardView';
-import { GatewaysView } from './views/masters/GatewaysView';
+import { DeviceMasterView } from './views/masters/DeviceMasterView';
 import { AssetMappingView } from './views/mapping/AssetMappingView';
 import { MeterProfilesView } from './views/profiles/MeterProfilesView';
 import { MakeMasterView } from './views/profiles/MakeMasterView';
 import { ModelMasterView } from './views/profiles/ModelMasterView';
+import { GatewayMakeMasterView } from './views/masters/GatewayMakeMasterView';
+import { GatewayModelMasterView } from './views/masters/GatewayModelMasterView';
 import { ParameterDictionaryView } from './views/profiles/ParameterDictionaryView';
 
 function AppContent() {
@@ -17,17 +19,26 @@ function AppContent() {
     switch (activeTab) {
       case 'dashboard':
         return <DashboardView />;
+      case 'devices':
       case 'gateways':
-        return <GatewaysView />;
+        return <DeviceMasterView />;
       case 'asset-mapping':
         return <AssetMappingView />;
       case 'meter-profiles':
       case 'meter-profile':
         return <MeterProfilesView />;
+      case 'meter-make':
       case 'make-master':
         return <MakeMasterView />;
+      case 'meter-model':
       case 'model-master':
         return <ModelMasterView />;
+      case 'gateway-make':
+      case 'gateway-make-master':
+        return <GatewayMakeMasterView />;
+      case 'gateway-model':
+      case 'gateway-model-master':
+        return <GatewayModelMasterView />;
       case 'parameter-dictionary':
         return <ParameterDictionaryView />;
       default:

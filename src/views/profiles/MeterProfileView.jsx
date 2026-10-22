@@ -91,7 +91,7 @@ export const MeterProfileView = () => {
         display_name: 'Watts Total',
         address: 40101,
         datatype: 'float32',
-        scale: 1.0,
+        multiplier: 1.0,
         unit: 'W',
       },
     ]);
@@ -119,7 +119,7 @@ export const MeterProfileView = () => {
         display_name: p.display_name || '',
         address: p.address || 40101,
         datatype: p.datatype || 'float32',
-        scale: p.scale !== undefined ? p.scale : 1.0,
+        multiplier: p.multiplier !== undefined ? p.multiplier : (p.scale !== undefined ? p.scale : 1.0),
         unit: p.unit || '',
       }))
     );
@@ -177,22 +177,46 @@ export const MeterProfileView = () => {
       display_name: '',
       address: nextAddr,
       datatype: 'float32',
-      scale: 1.0,
+      multiplier: 1.0,
       unit: '',
     };
     setParameterRows((prev) => [...prev, newRow]);
     setActiveEditingIndex(parameterRows.length);
   };
 
-  // Handle row field change
+  // Handle row field change with Key-Value Master auto-fill
   const handleRowChange = (index, field, value) => {
     setParameterRows((prev) => {
       const updated = [...prev];
       const row = { ...updated[index], [field]: value };
 
+      // Key-Value Auto Lookup: When key changes, if it matches a standard key (e.g. energy_active_import),
+      // auto-fill display_name, datatype, multiplier, and unit from Key-Value Master
+      if (field === 'key') {
+        const found = standardParameters.find(
+          (p) => p.key.toLowerCase().trim() === value.toLowerCase().trim()
+        );
+        if (found) {
+          row.display_name = found.display_name;
+          row.datatype = found.datatype || 'float32';
+          row.multiplier = found.multiplier !== undefined ? found.multiplier : (found.scale !== undefined ? found.scale : 1.0);
+          row.unit = found.unit || '';
+        }
+      }
+
       // Auto-generate key if typing display name and key was empty or auto-generated
-      if (field === 'display_name' && (!row.key || row.key === updated[index].display_name.toLowerCase().replace(/[^a-z0-9]/g, '_'))) {
-        row.key = value.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_');
+      if (field === 'display_name') {
+        const foundByName = standardParameters.find(
+          (p) => p.display_name.toLowerCase().trim() === value.toLowerCase().trim()
+        );
+        if (foundByName) {
+          row.key = foundByName.key;
+          row.datatype = foundByName.datatype || row.datatype || 'float32';
+          row.multiplier = foundByName.multiplier !== undefined ? foundByName.multiplier : 1.0;
+          row.unit = foundByName.unit || '';
+        } else if (!row.key || row.key === updated[index].display_name.toLowerCase().replace(/[^a-z0-9]/g, '_')) {
+          row.key = value.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_');
+        }
       }
 
       updated[index] = row;
@@ -222,7 +246,7 @@ export const MeterProfileView = () => {
           key: found.key,
           display_name: found.display_name,
           datatype: found.datatype || 'float32',
-          scale: found.scale || 1.0,
+          multiplier: found.multiplier !== undefined ? found.multiplier : (found.scale || 1.0),
           unit: found.unit || '',
         };
         return updated;
@@ -250,7 +274,7 @@ export const MeterProfileView = () => {
         display_name: r.display_name.trim() || r.key.trim(),
         address: Number(r.address) || 40101,
         datatype: r.datatype || 'float32',
-        scale: Number(r.scale) !== undefined ? Number(r.scale) : 1.0,
+        multiplier: (r.multiplier !== undefined && r.multiplier !== '') ? Number(r.multiplier) : 1.0,
         unit: r.unit.trim(),
       }));
 
@@ -424,7 +448,7 @@ export const MeterProfileView = () => {
                 <th style={{ padding: '12px 16px' }}>Model</th>
                 <th style={{ padding: '12px 16px', textAlign: 'center' }}>Version</th>
                 <th style={{ padding: '12px 16px', textAlign: 'center' }}>Address Offset</th>
-                <th style={{ padding: '12px 16px', textAlign: 'center' }}>Function Code</th>
+                <th style={{ padding: '12px 16px', textAlign: 'center' }}>Holding Register</th>
                 <th style={{ padding: '12px 16px', textAlign: 'center' }}>Byte Order</th>
                 <th style={{ padding: '12px 16px', textAlign: 'center' }}>Registers Count</th>
                 <th style={{ padding: '12px 16px', textAlign: 'center', width: '120px' }}>Actions</th>
@@ -480,10 +504,10 @@ export const MeterProfileView = () => {
                       {p.address_offset}
                     </td>
 
-                    {/* Function Code */}
+                    {/* Holding Register */}
                     <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                      <span style={{ fontSize: '0.74rem', backgroundColor: '#f1f5f9', color: '#475569', padding: '2px 7px', borderRadius: '4px', fontFamily: 'monospace', fontWeight: 600 }}>
-                        {String(p.function_code || '3').length === 1 ? `0${p.function_code}` : p.function_code}
+                      <span style={{ fontSize: '0.74rem', backgroundColor: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', padding: '2px 8px', borderRadius: '4px', fontFamily: 'monospace', fontWeight: 700 }}>
+                        {Number(p.function_code) === 3 ? '03 - Holding Reg' : (Number(p.function_code) === 4 ? '04 - Input Reg' : `FC 0${p.function_code || 3}`)}
                       </span>
                     </td>
 
@@ -688,16 +712,19 @@ export const MeterProfileView = () => {
             />
           </div>
 
-          {/* Function code */}
+          {/* Holding Register */}
           <div>
-            <label style={labelStyle}>Function code</label>
-            <input
-              type="text"
+            <label style={labelStyle}>Holding Register</label>
+            <select
               value={profileForm.function_code}
-              onChange={(e) => setProfileForm({ ...profileForm, function_code: e.target.value })}
-              placeholder="e.g. 3 or 03"
-              style={inputStyle}
-            />
+              onChange={(e) => setProfileForm({ ...profileForm, function_code: Number(e.target.value) })}
+              style={selectStyle}
+            >
+              <option value={3}>Holding Register (03 — Read Holding Registers)</option>
+              <option value={4}>Input Register (04 — Read Input Registers)</option>
+              <option value={1}>Coil Status (01 — Read Coils)</option>
+              <option value={2}>Input Status (02 — Read Discrete Inputs)</option>
+            </select>
           </div>
 
           {/* byte order */}
@@ -794,7 +821,7 @@ export const MeterProfileView = () => {
                 <th style={{ padding: '10px 12px', width: '22%' }}>Display Name</th>
                 <th style={{ padding: '10px 12px', width: '13%' }}>Address</th>
                 <th style={{ padding: '10px 12px', width: '15%' }}>Data Type</th>
-                <th style={{ padding: '10px 12px', width: '10%' }}>Scale</th>
+                <th style={{ padding: '10px 12px', width: '10%' }}>Multiplier</th>
                 <th style={{ padding: '10px 12px', width: '10%' }}>Unit</th>
                 <th style={{ padding: '10px 12px', textAlign: 'center', width: '90px', borderRadius: '0 6px 6px 0' }}>Actions</th>
               </tr>
@@ -823,56 +850,52 @@ export const MeterProfileView = () => {
                         {index + 1}
                       </td>
 
-                      {/* key */}
+                      {/* Key dropdown */}
                       <td style={{ padding: '8px 12px' }}>
-                        <input
-                          type="text"
+                        <select
                           value={row.key}
-                          onChange={(e) => handleRowChange(index, 'key', e.target.value)}
-                          placeholder="e.g. power_active_total"
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === '__custom__') {
+                              const custom = window.prompt('Enter custom telemetry key (e.g. custom_energy_total):');
+                              if (custom && custom.trim()) {
+                                handleRowChange(index, 'key', custom.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_'));
+                              }
+                            } else {
+                              handleRowChange(index, 'key', val);
+                            }
+                          }}
                           style={{
                             ...tableInputStyle,
                             fontFamily: 'monospace',
                             color: '#0284c7',
                             fontWeight: 600,
+                            cursor: 'pointer',
+                            backgroundColor: '#ffffff',
                           }}
-                        />
+                        >
+                          <option value="">-- Select Key --</option>
+                          {standardParameters.map((sp) => (
+                            <option key={sp.key} value={sp.key}>
+                              {sp.key}
+                            </option>
+                          ))}
+                          {row.key && !standardParameters.some((sp) => sp.key === row.key) && (
+                            <option value={row.key}>{row.key}</option>
+                          )}
+                          <option value="__custom__">➕ Custom Key...</option>
+                        </select>
                       </td>
 
                       {/* display name */}
                       <td style={{ padding: '8px 12px' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                          <input
-                            type="text"
-                            value={row.display_name}
-                            onChange={(e) => handleRowChange(index, 'display_name', e.target.value)}
-                            placeholder="e.g. Watts Total"
-                            style={{ ...tableInputStyle, fontWeight: 600, color: '#0f172a' }}
-                          />
-                          {/* Quick catalog helper */}
-                          <select
-                            defaultValue=""
-                            onChange={(e) => {
-                              if (e.target.value) handleFillFromCatalog(index, e.target.value);
-                            }}
-                            style={{
-                              fontSize: '0.68rem',
-                              border: 'none',
-                              color: '#94a3b8',
-                              backgroundColor: 'transparent',
-                              cursor: 'pointer',
-                              outline: 'none',
-                              padding: '0',
-                            }}
-                          >
-                            <option value="" disabled>💡 Pick from Standard Catalog...</option>
-                            {standardParameters.map((sp) => (
-                              <option key={sp.key} value={sp.key}>
-                                {sp.display_name} ({sp.unit || 'unit'})
-                              </option>
-                            ))}
-                          </select>
-                        </div>
+                        <input
+                          type="text"
+                          value={row.display_name}
+                          onChange={(e) => handleRowChange(index, 'display_name', e.target.value)}
+                          placeholder="e.g. Watts Total"
+                          style={{ ...tableInputStyle, fontWeight: 600, color: '#0f172a' }}
+                        />
                       </td>
 
                       {/* address */}
@@ -912,13 +935,13 @@ export const MeterProfileView = () => {
                         </select>
                       </td>
 
-                      {/* scale */}
+                      {/* Multiplier (float value) */}
                       <td style={{ padding: '8px 12px' }}>
                         <input
                           type="number"
                           step="any"
-                          value={row.scale}
-                          onChange={(e) => handleRowChange(index, 'scale', e.target.value)}
+                          value={row.multiplier !== undefined ? row.multiplier : (row.scale !== undefined ? row.scale : 1.0)}
+                          onChange={(e) => handleRowChange(index, 'multiplier', e.target.value === '' ? '' : e.target.value)}
                           placeholder="1.0"
                           style={{ ...tableInputStyle, textAlign: 'center', fontFamily: 'monospace' }}
                         />
@@ -991,7 +1014,14 @@ export const MeterProfileView = () => {
           </table>
         </div>
 
-
+        {/* Standard Parameters Key Autocomplete Datalist */}
+        <datalist id="param-standard-keys">
+          {standardParameters.map((sp) => (
+            <option key={sp.key} value={sp.key}>
+              {sp.display_name} ({sp.unit || 'unitless'}) — Mult: {sp.multiplier !== undefined ? sp.multiplier : 1.0}
+            </option>
+          ))}
+        </datalist>
       </div>
 
       {/* ── BOTTOM ACTIONS BAR ── */}
