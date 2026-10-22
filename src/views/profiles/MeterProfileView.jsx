@@ -730,13 +730,30 @@ export const MeterProfileView = () => {
           {/* byte order */}
           <div>
             <label style={labelStyle}>Byte order</label>
-            <input
-              type="text"
+            <select
               value={profileForm.byte_order}
-              onChange={(e) => setProfileForm({ ...profileForm, byte_order: e.target.value })}
-              placeholder="e.g. CDAB, ABCD"
-              style={inputStyle}
-            />
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === '__custom__') {
+                  const custom = window.prompt('Enter byte order (e.g. CDAB, ABCD, BADC, DCBA):');
+                  if (custom && custom.trim()) {
+                    setProfileForm({ ...profileForm, byte_order: custom.trim().toUpperCase() });
+                  }
+                } else {
+                  setProfileForm({ ...profileForm, byte_order: val });
+                }
+              }}
+              style={selectStyle}
+            >
+              <option value="CDAB">CDAB (Little-endian with byte swap · Standard)</option>
+              <option value="ABCD">ABCD (Big-endian)</option>
+              <option value="BADC">BADC (Mid-Little-endian)</option>
+              <option value="DCBA">DCBA (Little-endian)</option>
+              {profileForm.byte_order && !['CDAB', 'ABCD', 'BADC', 'DCBA'].includes(profileForm.byte_order) && (
+                <option value={profileForm.byte_order}>{profileForm.byte_order}</option>
+              )}
+              <option value="__custom__">➕ Custom Byte Order...</option>
+            </select>
           </div>
         </div>
       </div>
@@ -877,7 +894,7 @@ export const MeterProfileView = () => {
                           <option value="">-- Select Key --</option>
                           {standardParameters.map((sp) => (
                             <option key={sp.key} value={sp.key}>
-                              {sp.key}
+                              {sp.key}{sp.unit ? ` (${sp.unit})` : ''}
                             </option>
                           ))}
                           {row.key && !standardParameters.some((sp) => sp.key === row.key) && (
@@ -947,15 +964,53 @@ export const MeterProfileView = () => {
                         />
                       </td>
 
-                      {/* unit */}
+                      {/* unit dropdown (populated from Parameter Master) */}
                       <td style={{ padding: '8px 12px' }}>
-                        <input
-                          type="text"
-                          value={row.unit}
-                          onChange={(e) => handleRowChange(index, 'unit', e.target.value)}
-                          placeholder="W"
-                          style={{ ...tableInputStyle, textAlign: 'center', fontWeight: 600 }}
-                        />
+                        <select
+                          value={row.unit || ''}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === '__custom__') {
+                              const custom = window.prompt('Enter custom unit (e.g. kV, MWh, °C):');
+                              if (custom !== null && custom.trim()) {
+                                handleRowChange(index, 'unit', custom.trim());
+                              }
+                            } else {
+                              handleRowChange(index, 'unit', val);
+                            }
+                          }}
+                          style={{
+                            ...tableInputStyle,
+                            textAlign: 'center',
+                            fontWeight: 700,
+                            color: '#0f172a',
+                            cursor: 'pointer',
+                            backgroundColor: '#ffffff'
+                          }}
+                        >
+                          <option value="">— Select Unit —</option>
+                          {/* Units dynamically extracted from Parameter Master */}
+                          {(() => {
+                            const masterUnits = Array.from(
+                              new Set(
+                                standardParameters
+                                  .map((p) => p.unit)
+                                  .filter((u) => u && typeof u === 'string' && u.trim().length > 0)
+                              )
+                            ).sort();
+
+                            return masterUnits.map((u) => (
+                              <option key={u} value={u}>
+                                {u}
+                              </option>
+                            ));
+                          })()}
+                          {row.unit &&
+                            !standardParameters.some((p) => p.unit === row.unit) && (
+                              <option value={row.unit}>{row.unit}</option>
+                            )}
+                          <option value="__custom__">➕ Other / Custom Unit...</option>
+                        </select>
                       </td>
 
                       {/* edit & delete button */}

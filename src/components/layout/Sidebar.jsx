@@ -28,6 +28,7 @@ export const Sidebar = ({ activeTab, setActiveTab }) => {
     { id: 'devices', label: 'Gateway', icon: Server },
     { id: 'asset-mapping', label: 'Asset Mapping', icon: Activity },
     { id: 'meter-profile', label: 'Meter Profile', icon: Layers },
+    { id: 'communication-config', label: 'Communication Config', icon: Radio },
   ];
 
   // Meter sub-items
@@ -46,6 +47,7 @@ export const Sidebar = ({ activeTab, setActiveTab }) => {
   const isTabActive = (id) => {
     if (id === 'devices') return activeTab === 'devices' || activeTab === 'gateways';
     if (id === 'meter-profile') return activeTab === 'meter-profile' || activeTab === 'meter-profiles';
+    if (id === 'communication-config') return activeTab === 'communication-config' || activeTab === 'comm-config' || activeTab === 'config';
     if (id === 'meter-make') return activeTab === 'meter-make' || activeTab === 'make-master';
     if (id === 'meter-model') return activeTab === 'meter-model' || activeTab === 'model-master';
     if (id === 'gateway-make') return activeTab === 'gateway-make' || activeTab === 'gateway-make-master';

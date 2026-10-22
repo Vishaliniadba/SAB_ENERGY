@@ -39,10 +39,18 @@ export const Header = ({ activeTab }) => {
         return 'Gateway Master — Model';
       case 'parameter-dictionary':
         return 'Parameter Master';
+      case 'communication-config':
+      case 'comm-config':
+      case 'config':
+        return 'Communication Config';
       default:
         return 'SaB Energy';
     }
   };
+
+  const pollingDisplay = config.polling_interval_unit === 'minutes'
+    ? `${config.polling_interval_value || Math.round((config.polling_interval_seconds || 60) / 60) || 1}m (${config.polling_interval_seconds}s)`
+    : `${config.polling_interval_seconds}s`;
 
   return (
     <header
@@ -82,7 +90,7 @@ export const Header = ({ activeTab }) => {
           }}
         >
           <span className="pulse-dot" style={{ backgroundColor: '#059669' }} />
-          <span>Polling: {config.polling_interval_seconds}s</span>
+          <span>Polling: {pollingDisplay}</span>
         </div>
 
         {/* Backend Indicator */}

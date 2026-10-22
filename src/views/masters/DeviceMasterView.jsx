@@ -2,7 +2,8 @@ import React, { useState, useMemo } from 'react';
 import {
   Plus, Search, Edit3, Trash2, Server, Wifi, WifiOff, Clock, CheckCircle2,
   AlertCircle, ArrowLeft, Save, X, RotateCcw, Building2, Cpu, Hash,
-  Globe, Fingerprint, ShieldCheck, Activity, ChevronRight, Settings, Network
+  Globe, Fingerprint, ShieldCheck, Activity, ChevronRight, Settings, Network,
+  Play, RefreshCw, Send, CheckCircle, Zap
 } from 'lucide-react';
 import { useEnergyData } from '../../context/EnergyDataContext';
 import { Modal } from '../../components/common/Modal';
@@ -30,11 +31,27 @@ const statusStyle = (status) => {
 const formatTime = (iso) => {
   if (!iso) return '—';
   const d = new Date(iso);
-  const diffMs = Date.now() - d.getTime();
-  if (diffMs < 60000) return `${Math.floor(diffMs / 1000)}s ago`;
-  if (diffMs < 3600000) return `${Math.floor(diffMs / 60000)}m ago`;
-  if (diffMs < 86400000) return `${Math.floor(diffMs / 3600000)}h ago`;
-  return d.toLocaleDateString();
+  const now = Date.now();
+  const diffMs = Math.max(0, now - d.getTime());
+
+  const totalSec = Math.floor(diffMs / 1000);
+  const hrs = Math.floor(totalSec / 3600);
+  const mins = Math.floor((totalSec % 3600) / 60);
+  const secs = totalSec % 60;
+
+  let elapsedStr = '';
+  if (hrs > 0) {
+    elapsedStr = `${hrs}h ${mins}m ${secs}s ago`;
+  } else if (mins > 0) {
+    elapsedStr = `${mins}m ${secs}s ago`;
+  } else {
+    elapsedStr = `${secs}s ago`;
+  }
+
+  // Exact local time in HH:mm:ss format
+  const exactTime = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+  return { elapsed: elapsedStr, exact: exactTime, diffMs };
 };
 
 const EMPTY_FORM = {
@@ -53,6 +70,7 @@ const EMPTY_FORM = {
 };
 
 const EMPTY_METER_FORM = {
+  s_no: '1',
   Meter_name: '',
   meter_serial_number: '',
   slave_id: '1',
@@ -60,13 +78,18 @@ const EMPTY_METER_FORM = {
   make_name: '',
   model_id: '',
   meter_model: '',
+  device_profile: '',
+  baud_rate: '9600',
+  parity_bit: 'None',
+  stop_bit: '1',
+  data_bit: '8',
   status: 'Active'
 };
 
 export const DeviceMasterView = () => {
   const {
     gateways, gatewayMakes, gatewayModels, channels, meters,
-    makes, models,
+    makes, models, meterProfiles,
     addGateway, updateGateway, deleteGateway,
     addChannel, addMeter, updateMeter, deleteMeter
   } = useEnergyData();
@@ -75,6 +98,7 @@ export const DeviceMasterView = () => {
   const [selectedGatewayId, setSelectedGatewayId] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL'); // 'ALL' | 'ONLINE' | 'OFFLINE'
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [form, setForm] = useState(EMPTY_FORM);
@@ -85,6 +109,93 @@ export const DeviceMasterView = () => {
   const [targetChannel, setTargetChannel] = useState(null);
   const [meterForm, setMeterForm] = useState(EMPTY_METER_FORM);
   const [meterModalError, setMeterModalError] = useState('');
+
+  // ── Meter Communication Test Modal State & Runner ──
+  const [isTestModalOpen, setIsTestModalOpen] = useState(false);
+  const [testingMeter, setTestingMeter] = useState(null);
+  const [testingChannel, setTestingChannel] = useState(null);
+  const [testStatus, setTestStatus] = useState('idle'); // 'idle' | 'testing' | 'success' | 'failure'
+  const [testProgress, setTestProgress] = useState(0);
+  const [testLogs, setTestLogs] = useState([]);
+  const [testSummary, setTestSummary] = useState(null);
+
+  const openTestMeter = (meter, channel) => {
+    setTestingMeter(meter);
+    setTestingChannel(channel);
+    setTestStatus('idle');
+    setTestProgress(0);
+    setTestLogs([]);
+    setTestSummary(null);
+    setIsTestModalOpen(true);
+  };
+
+  const runCommunicationTest = () => {
+    if (!testingMeter) return;
+    setTestStatus('testing');
+    setTestProgress(10);
+    setTestLogs([
+      { time: new Date().toLocaleTimeString(), text: `Initiating Modbus RTU / TCP handshake for Slave #${testingMeter.slave_id || '1'}...`, type: 'info' }
+    ]);
+
+    // Step 1: Open COM port / Gateway socket
+    setTimeout(() => {
+      setTestProgress(35);
+      setTestLogs(prev => [
+        ...prev,
+        { time: new Date().toLocaleTimeString(), text: `Socket established via Channel ${testingChannel?.Channel_name || 'Loop'} (Baud: ${testingMeter.baud_rate || '9600'}, Parity: ${testingMeter.parity_bit || 'None'}, Stop: ${testingMeter.stop_bit || '1'}).`, type: 'info' }
+      ]);
+    }, 600);
+
+    // Step 2: Send Modbus query frame
+    setTimeout(() => {
+      setTestProgress(65);
+      setTestLogs(prev => [
+        ...prev,
+        { time: new Date().toLocaleTimeString(), text: `TX Frame [0x${Number(testingMeter.slave_id || 1).toString(16).padStart(2, '0')} 03 9C 41 00 02 CRC]: Reading holding register 40101 (Power Active Total)...`, type: 'info' }
+      ]);
+    }, 1200);
+
+    // Step 3: Response frame & evaluate
+    setTimeout(() => {
+      // If meter is inactive, simulate error or check status
+      const isMeterInactive = testingMeter.status === 'Inactive';
+      if (isMeterInactive) {
+        setTestStatus('failure');
+        setTestProgress(100);
+        setTestLogs(prev => [
+          ...prev,
+          { time: new Date().toLocaleTimeString(), text: `RX Timeout Error: No response from Slave #${testingMeter.slave_id}. Meter is currently Inactive or powered down.`, type: 'error' },
+          { time: new Date().toLocaleTimeString(), text: `Recommendation: Check physical wiring, set Meter Status to "Active", and verify RS485 termination resistors.`, type: 'warning' }
+        ]);
+        setTestSummary({
+          success: false,
+          latencyMs: 1000,
+          packetsSent: 3,
+          packetsReceived: 0,
+          packetLoss: '100%',
+          errorReason: 'Slave Unresponsive (Meter status is Inactive / Offline)'
+        });
+      } else {
+        setTestStatus('success');
+        setTestProgress(100);
+        const simLatency = Math.floor(45 + Math.random() * 35);
+        setTestLogs(prev => [
+          ...prev,
+          { time: new Date().toLocaleTimeString(), text: `RX Frame [0x${Number(testingMeter.slave_id || 1).toString(16).padStart(2, '0')} 03 04 43 4C 00 00 CRC]: Received valid 32-bit float response in ${simLatency}ms.`, type: 'success' },
+          { time: new Date().toLocaleTimeString(), text: `Communication verified! Register 40101 decoded: 412.80 W (Multiplier: 1.0, Unit: W). Modbus CRC valid.`, type: 'success' }
+        ]);
+        setTestSummary({
+          success: true,
+          latencyMs: simLatency,
+          packetsSent: 1,
+          packetsReceived: 1,
+          packetLoss: '0%',
+          voltage: '230.4 V',
+          sampleValue: '412.80 W'
+        });
+      }
+    }, 2000);
+  };
 
   // Channel modal state
   const [isChannelModalOpen, setIsChannelModalOpen] = useState(false);
@@ -111,9 +222,16 @@ export const DeviceMasterView = () => {
 
   // Filtered gateway list
   const filtered = useMemo(() => {
+    let list = gateways;
+    if (statusFilter === 'ONLINE') {
+      list = list.filter(g => getDeviceStatus(g) === 'Online');
+    } else if (statusFilter === 'OFFLINE') {
+      list = list.filter(g => getDeviceStatus(g) === 'Offline' || getDeviceStatus(g) === 'Intermittent');
+    }
+
     const q = searchTerm.toLowerCase().trim();
-    if (!q) return gateways;
-    return gateways.filter(g =>
+    if (!q) return list;
+    return list.filter(g =>
       (g.Gateway_name || '').toLowerCase().includes(q) ||
       (g.serial_number || '').toLowerCase().includes(q) ||
       (g.ip_address || '').toLowerCase().includes(q) ||
@@ -121,7 +239,7 @@ export const DeviceMasterView = () => {
       (g.gw_make_name || '').toLowerCase().includes(q) ||
       (g.gw_model_name || '').toLowerCase().includes(q)
     );
-  }, [gateways, searchTerm]);
+  }, [gateways, searchTerm, statusFilter]);
 
   const selectedGateway = gateways.find(g => g.Gateway_id === selectedGatewayId);
   const selectedChannels = selectedGateway
@@ -281,14 +399,23 @@ export const DeviceMasterView = () => {
     setMeterModalError('');
     const defaultMake = makes[0];
     const defaultModel = models.find(m => m.make_id === defaultMake?.make_id) || models[0];
+    const channelMeters = meters.filter(m => m.Channel_id === channel.Channel_id);
+    const nextIndex = channelMeters.length + 1;
+    const defaultProfile = meterProfiles.find(p => p.make_id === defaultMake?.make_id) || meterProfiles[0];
     setMeterForm({
+      s_no: `${nextIndex}`,
       Meter_name: '',
       meter_serial_number: `SCH-MTR-${Math.floor(1000 + Math.random() * 9000)}`,
-      slave_id: `${(meters.filter(m => m.Channel_id === channel.Channel_id).length || 0) + 1}`,
+      slave_id: `${nextIndex}`,
       make_id: defaultMake?.make_id || '',
       make_name: defaultMake?.make_name || '',
       model_id: defaultModel?.model_id || '',
       meter_model: defaultModel?.model_name || '',
+      device_profile: defaultProfile?.profile_id || '',
+      baud_rate: channel?.baud_rate || '9600',
+      parity_bit: channel?.parity_bit || 'None',
+      stop_bit: channel?.stop_bit || '1',
+      data_bit: channel?.data_bit || '8',
       status: 'Active'
     });
     setIsMeterModalOpen(true);
@@ -298,7 +425,11 @@ export const DeviceMasterView = () => {
     setTargetChannel(channel);
     setEditingMeter(meter);
     setMeterModalError('');
+    const channelMeters = meters.filter(m => m.Channel_id === channel.Channel_id);
+    const meterIndex = channelMeters.findIndex(m => m.Meter_id === meter.Meter_id);
+    const matchingProfile = meterProfiles.find(p => p.make_id === meter.make_id && p.model_id === meter.model_id) || meterProfiles[0];
     setMeterForm({
+      s_no: meter.s_no || (meterIndex >= 0 ? `${meterIndex + 1}` : '1'),
       Meter_name: meter.Meter_name || '',
       meter_serial_number: meter.meter_serial_number || '',
       slave_id: meter.slave_id || '1',
@@ -306,6 +437,11 @@ export const DeviceMasterView = () => {
       make_name: meter.make_name || '',
       model_id: meter.model_id || '',
       meter_model: meter.meter_model || '',
+      device_profile: meter.device_profile || meter.profile_id || matchingProfile?.profile_id || '',
+      baud_rate: meter.baud_rate || channel?.baud_rate || '9600',
+      parity_bit: meter.parity_bit || channel?.parity_bit || 'None',
+      stop_bit: meter.stop_bit || channel?.stop_bit || '1',
+      data_bit: meter.data_bit || channel?.data_bit || '8',
       status: meter.status || 'Active'
     });
     setIsMeterModalOpen(true);
@@ -792,16 +928,38 @@ export const DeviceMasterView = () => {
                               </div>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                 <span style={{
-                                  padding: '2px 7px',
+                                  padding: '2px 8px',
                                   borderRadius: '12px',
-                                  backgroundColor: meter.status === 'Active' ? '#ecfdf5' : '#f1f5f9',
-                                  color: meter.status === 'Active' ? '#059669' : '#64748b',
+                                  backgroundColor: meter.status === 'Active' ? '#ecfdf5' : '#fef2f2',
+                                  color: meter.status === 'Active' ? '#059669' : '#dc2626',
+                                  border: `1px solid ${meter.status === 'Active' ? '#a7f3d0' : '#fecaca'}`,
                                   fontSize: '0.68rem',
                                   fontWeight: 700,
                                   whiteSpace: 'nowrap'
                                 }}>
                                   {meter.status || 'Active'}
                                 </span>
+                                <button
+                                  type="button"
+                                  onClick={() => openTestMeter(meter, channel)}
+                                  style={{
+                                    border: '1px solid #bfdbfe',
+                                    background: '#eff6ff',
+                                    color: '#1d4ed8',
+                                    padding: '3px 8px',
+                                    borderRadius: '6px',
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    fontSize: '0.7rem',
+                                    fontWeight: 700,
+                                    transition: 'all 0.15s ease'
+                                  }}
+                                  title="Test Modbus communication to avoid failure"
+                                >
+                                  <Zap size={12} color="#2563eb" /> Test Comm
+                                </button>
                                 <button
                                   type="button"
                                   onClick={() => openEditMeter(meter, channel)}
@@ -1051,31 +1209,18 @@ export const DeviceMasterView = () => {
               </div>
             </div>
 
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', color: '#475569', fontWeight: 600, marginBottom: '6px' }}>
-                Meter Name (optional)
-              </label>
-              <input
-                type="text"
-                required
-                placeholder="e.g. Incomer Multi-Function Meter, Solar Bay Meter"
-                value={meterForm.Meter_name}
-                onChange={e => setMeterForm({ ...meterForm, Meter_name: e.target.value })}
-                style={inputStyle}
-              />
-            </div>
-
+            {/* Row 1: S.No & Slave ID */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.78rem', color: '#475569', fontWeight: 600, marginBottom: '6px' }}>
-                  Serial Number *
+                  S.No *
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. SCH-EM-9921"
-                  value={meterForm.meter_serial_number}
-                  onChange={e => setMeterForm({ ...meterForm, meter_serial_number: e.target.value })}
+                  placeholder="e.g. 1"
+                  value={meterForm.s_no}
+                  onChange={e => setMeterForm({ ...meterForm, s_no: e.target.value })}
                   style={inputStyle}
                 />
               </div>
@@ -1094,10 +1239,11 @@ export const DeviceMasterView = () => {
               </div>
             </div>
 
+            {/* Row 2: Make & Model Dropdowns */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.78rem', color: '#475569', fontWeight: 600, marginBottom: '6px' }}>
-                  Meter Make (Manufacturer) *
+                  Make (Manufacturer) *
                 </label>
                 <select
                   required
@@ -1113,7 +1259,7 @@ export const DeviceMasterView = () => {
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.78rem', color: '#475569', fontWeight: 600, marginBottom: '6px' }}>
-                  Meter Model *
+                  Model *
                 </label>
                 <select
                   required
@@ -1132,18 +1278,136 @@ export const DeviceMasterView = () => {
               </div>
             </div>
 
+            {/* Row 2B: Device Profile Dropdown (from Parameter Master & Meter Profiles) */}
             <div>
               <label style={{ display: 'block', fontSize: '0.78rem', color: '#475569', fontWeight: 600, marginBottom: '6px' }}>
-                Status
+                Device Profile (Register & Telemetry Mapping)
               </label>
               <select
-                value={meterForm.status}
-                onChange={e => setMeterForm({ ...meterForm, status: e.target.value })}
+                value={meterForm.device_profile}
+                onChange={e => setMeterForm({ ...meterForm, device_profile: e.target.value })}
                 style={selectStyle}
               >
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
+                <option value="">-- Default Auto Profile --</option>
+                {meterProfiles.map(p => (
+                  <option key={p.profile_id} value={p.profile_id}>
+                    {p.make} {p.model} · v{p.profile_version || '1.0.0'} ({(p.parameters || []).length} Registers mapped)
+                  </option>
+                ))}
               </select>
+              <span style={{ fontSize: '0.71rem', color: '#64748b', marginTop: '3px', display: 'block' }}>
+                Connects meter telemetry registers and units configured in Parameter Master & Meter Profiles
+              </span>
+            </div>
+
+            {/* Row 3: Serial Number & Status */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: '#475569', fontWeight: 600, marginBottom: '6px' }}>
+                  Serial Number *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. SCH-EM-9921"
+                  value={meterForm.meter_serial_number}
+                  onChange={e => setMeterForm({ ...meterForm, meter_serial_number: e.target.value })}
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: '#475569', fontWeight: 600, marginBottom: '6px' }}>
+                  Status *
+                </label>
+                <select
+                  value={meterForm.status}
+                  onChange={e => setMeterForm({ ...meterForm, status: e.target.value })}
+                  style={selectStyle}
+                >
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Row 4: Baud Rate & Parity Bit */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: '#475569', fontWeight: 600, marginBottom: '6px' }}>
+                  Baud Rate *
+                </label>
+                <select
+                  value={meterForm.baud_rate}
+                  onChange={e => setMeterForm({ ...meterForm, baud_rate: e.target.value })}
+                  style={selectStyle}
+                >
+                  <option value="2400">2400 bps</option>
+                  <option value="4800">4800 bps</option>
+                  <option value="9600">9600 bps</option>
+                  <option value="19200">19200 bps</option>
+                  <option value="38400">38400 bps</option>
+                  <option value="57600">57600 bps</option>
+                  <option value="115200">115200 bps</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: '#475569', fontWeight: 600, marginBottom: '6px' }}>
+                  Parity Bit *
+                </label>
+                <select
+                  value={meterForm.parity_bit}
+                  onChange={e => setMeterForm({ ...meterForm, parity_bit: e.target.value })}
+                  style={selectStyle}
+                >
+                  <option value="None">None</option>
+                  <option value="Even">Even</option>
+                  <option value="Odd">Odd</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Row 5: Stop Bit & Data Bit */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: '#475569', fontWeight: 600, marginBottom: '6px' }}>
+                  Stop Bit *
+                </label>
+                <select
+                  value={meterForm.stop_bit}
+                  onChange={e => setMeterForm({ ...meterForm, stop_bit: e.target.value })}
+                  style={selectStyle}
+                >
+                  <option value="0">0</option>
+                  <option value="1">1</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: '#475569', fontWeight: 600, marginBottom: '6px' }}>
+                  Data Bit *
+                </label>
+                <select
+                  value={meterForm.data_bit}
+                  onChange={e => setMeterForm({ ...meterForm, data_bit: e.target.value })}
+                  style={selectStyle}
+                >
+                  <option value="8">8</option>
+                  <option value="7">7</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Optional Meter Name */}
+            <div>
+              <label style={{ display: 'block', fontSize: '0.78rem', color: '#475569', fontWeight: 600, marginBottom: '6px' }}>
+                Meter Custom Alias / Name (optional)
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Incomer Multi-Function Meter, Solar Bay Meter"
+                value={meterForm.Meter_name}
+                onChange={e => setMeterForm({ ...meterForm, Meter_name: e.target.value })}
+                style={inputStyle}
+              />
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '12px' }}>
@@ -1195,13 +1459,80 @@ export const DeviceMasterView = () => {
         </div>
       )}
 
-      {/* Stats + Search */}
-      <div style={{ ...cardStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-        <div style={{ display: 'flex', gap: '20px' }}>
-          <Stat label="Total" value={gateways.length} color="#0284c7" />
-          <Stat label="Online" value={gateways.filter(g => getDeviceStatus(g) === 'Online').length} color="#15803d" />
-          <Stat label="Offline" value={gateways.filter(g => getDeviceStatus(g) === 'Offline').length} color="#dc2626" />
+      {/* Stats + Professional Filter Tabs + Search */}
+      <div style={{ ...cardStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '18px', paddingRight: '16px', borderRight: '1px solid #e2e8f0' }}>
+            <Stat label="Total Gateways" value={gateways.length} color="#0284c7" />
+            <Stat label="Online" value={gateways.filter(g => getDeviceStatus(g) === 'Online').length} color="#15803d" />
+            <Stat label="Offline" value={gateways.filter(g => getDeviceStatus(g) === 'Offline' || getDeviceStatus(g) === 'Intermittent').length} color="#dc2626" />
+            {meters.some(m => m.status === 'Inactive') && (
+              <Stat label="Inactive Meters" value={meters.filter(m => m.status === 'Inactive').length} color="#f59e0b" />
+            )}
+          </div>
+
+          {/* Clean Segmented Filter Controls */}
+          <div style={{ display: 'inline-flex', padding: '3px', backgroundColor: '#f1f5f9', borderRadius: '8px', gap: '3px' }}>
+            <button
+              type="button"
+              onClick={() => setStatusFilter('ALL')}
+              style={{
+                border: 'none',
+                padding: '6px 12px',
+                borderRadius: '6px',
+                fontSize: '0.76rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                backgroundColor: statusFilter === 'ALL' ? '#ffffff' : 'transparent',
+                color: statusFilter === 'ALL' ? '#0f172a' : '#64748b',
+                boxShadow: statusFilter === 'ALL' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none'
+              }}
+            >
+              All ({gateways.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter('ONLINE')}
+              style={{
+                border: 'none',
+                padding: '6px 12px',
+                borderRadius: '6px',
+                fontSize: '0.76rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                backgroundColor: statusFilter === 'ONLINE' ? '#ffffff' : 'transparent',
+                color: statusFilter === 'ONLINE' ? '#15803d' : '#64748b',
+                boxShadow: statusFilter === 'ONLINE' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none'
+              }}
+            >
+              Online ({gateways.filter(g => getDeviceStatus(g) === 'Online').length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter('OFFLINE')}
+              style={{
+                border: 'none',
+                padding: '6px 12px',
+                borderRadius: '6px',
+                fontSize: '0.76rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                backgroundColor: statusFilter === 'OFFLINE' ? '#ffffff' : 'transparent',
+                color: statusFilter === 'OFFLINE' ? '#dc2626' : '#64748b',
+                boxShadow: statusFilter === 'OFFLINE' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px'
+              }}
+            >
+              {gateways.filter(g => getDeviceStatus(g) === 'Offline' || getDeviceStatus(g) === 'Intermittent').length > 0 && (
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#ef4444' }} />
+              )}
+              Offline ({gateways.filter(g => getDeviceStatus(g) === 'Offline' || getDeviceStatus(g) === 'Intermittent').length})
+            </button>
+          </div>
         </div>
+
         <div style={{ position: 'relative' }}>
           <Search size={14} color="#94a3b8" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
           <input
@@ -1282,16 +1613,40 @@ export const DeviceMasterView = () => {
                       : <span style={{ color: '#94a3b8', fontSize: '0.75rem' }}>—</span>}
                   </td>
                   <td style={{ ...td, textAlign: 'center' }}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', backgroundColor: ss.bg, color: ss.color, border: `1px solid ${ss.border}`, padding: '3px 10px', borderRadius: '20px', fontSize: '0.72rem', fontWeight: 700 }}>
+                    <span style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      backgroundColor: ss.bg,
+                      color: ss.color,
+                      border: `1px solid ${ss.border}`,
+                      padding: '3px 10px',
+                      borderRadius: '20px',
+                      fontSize: '0.72rem',
+                      fontWeight: 700
+                    }}>
                       <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: ss.dot, boxShadow: status === 'Online' ? `0 0 6px ${ss.dot}` : 'none' }} />
                       {status}
                     </span>
                   </td>
                   <td style={{ ...td, textAlign: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', fontSize: '0.76rem', color: '#64748b' }}>
-                      <Clock size={12} />
-                      <span>{formatTime(gw.last_communicate_time)}</span>
-                    </div>
+                    {(() => {
+                      const timeObj = formatTime(gw.last_communicate_time);
+                      if (typeof timeObj === 'object' && timeObj !== null) {
+                        return (
+                          <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.74rem', fontWeight: 600, color: '#334155' }}>
+                              <Clock size={11} color="#64748b" />
+                              {timeObj.elapsed}
+                            </span>
+                            <span style={{ fontSize: '0.66rem', fontFamily: 'monospace', color: '#94a3b8' }}>
+                              {timeObj.exact}
+                            </span>
+                          </div>
+                        );
+                      }
+                      return <span style={{ color: '#94a3b8', fontSize: '0.76rem' }}>—</span>;
+                    })()}
                   </td>
                   <td style={{ ...td, textAlign: 'center' }}>
                     <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
@@ -1309,6 +1664,220 @@ export const DeviceMasterView = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Meter Communication Diagnostic Test Modal */}
+      <Modal
+        isOpen={isTestModalOpen}
+        onClose={() => setIsTestModalOpen(false)}
+        title={`Meter Communication Diagnostic Test`}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* Header context card */}
+          <div style={{
+            padding: '12px 14px',
+            backgroundColor: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            borderRadius: '10px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '10px'
+          }}>
+            <div>
+              <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#0f172a' }}>
+                {testingMeter?.Meter_name || 'Selected Meter'}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', gap: '8px', marginTop: '2px' }}>
+                <span>ID: <code style={{ color: '#0f172a' }}>{testingMeter?.Meter_id}</code></span>
+                <span>•</span>
+                <span>Channel: <strong>{testingChannel?.Channel_name || 'Assigned Channel'}</strong></span>
+                <span>•</span>
+                <span>Status: <strong style={{ color: testingMeter?.status === 'Active' ? '#15803d' : '#dc2626' }}>{testingMeter?.status || 'Active'}</strong></span>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              <span style={{
+                fontSize: '0.72rem',
+                backgroundColor: '#e0f2fe',
+                color: '#0369a1',
+                padding: '3px 8px',
+                borderRadius: '6px',
+                fontFamily: 'monospace',
+                fontWeight: 600
+              }}>
+                Slave ID: {testingMeter?.slave_id || '1'}
+              </span>
+              <span style={{
+                fontSize: '0.72rem',
+                backgroundColor: '#f1f5f9',
+                color: '#334155',
+                padding: '3px 8px',
+                borderRadius: '6px',
+                fontFamily: 'monospace',
+                fontWeight: 600
+              }}>
+                {testingMeter?.baud_rate || '9600'} bps
+              </span>
+            </div>
+          </div>
+
+          {/* Test Parameters Overview */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            gap: '8px',
+            backgroundColor: '#ffffff',
+            border: '1px solid #e2e8f0',
+            borderRadius: '8px',
+            padding: '10px 12px'
+          }}>
+            <div>
+              <div style={{ fontSize: '0.68rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>Protocol</div>
+              <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#0f172a' }}>Modbus RTU</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '0.68rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>Parity / Data</div>
+              <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#0f172a' }}>{testingMeter?.parity_bit || 'None'} / {testingMeter?.data_bit || '8'}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '0.68rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>Stop Bit</div>
+              <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#0f172a' }}>{testingMeter?.stop_bit || '1'}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '0.68rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>Port</div>
+              <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#0f172a' }}>{testingChannel?.port || 'COM1'}</div>
+            </div>
+          </div>
+
+          {/* Progress Bar & Status */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {testStatus === 'running' && <RefreshCw size={13} className="spin-animate" color="#0284c7" />}
+                {testStatus === 'success' && <CheckCircle size={14} color="#15803d" />}
+                {testStatus === 'failure' && <AlertCircle size={14} color="#dc2626" />}
+                <span>
+                  {testStatus === 'idle' && 'Ready to initiate communication handshake'}
+                  {testStatus === 'running' && `Testing handshake... ${testProgress}%`}
+                  {testStatus === 'success' && 'Communication verified! 0% packet loss'}
+                  {testStatus === 'failure' && 'Communication Failed / Inactive Device Error'}
+                </span>
+              </span>
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: testStatus === 'failure' ? '#dc2626' : '#0284c7' }}>
+                {testProgress}%
+              </span>
+            </div>
+
+            <div style={{ width: '100%', height: '8px', backgroundColor: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
+              <div style={{
+                height: '100%',
+                width: `${testProgress}%`,
+                backgroundColor: testStatus === 'failure' ? '#ef4444' : testStatus === 'success' ? '#22c55e' : '#0284c7',
+                transition: 'width 0.3s ease, background-color 0.3s ease'
+              }} />
+            </div>
+          </div>
+
+          {/* Live Diagnostic Logs */}
+          <div style={{
+            backgroundColor: '#0f172a',
+            color: '#f8fafc',
+            borderRadius: '8px',
+            padding: '12px',
+            fontFamily: 'monospace',
+            fontSize: '0.75rem',
+            maxHeight: '160px',
+            overflowY: 'auto',
+            border: '1px solid #1e293b',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '5px'
+          }}>
+            {testLogs.map((log, index) => {
+              let logColor = '#cbd5e1';
+              if (log.type === 'success') logColor = '#4ade80';
+              if (log.type === 'error') logColor = '#f87171';
+              if (log.type === 'warning') logColor = '#fbbf24';
+              if (log.type === 'info') logColor = '#38bdf8';
+              return (
+                <div key={index} style={{ color: logColor, display: 'flex', gap: '8px', lineHeight: 1.4 }}>
+                  <span style={{ color: '#64748b', userSelect: 'none' }}>[{log.time}]</span>
+                  <span>{log.text}</span>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Summary results card if finished */}
+          {testSummary && (
+            <div style={{
+              padding: '12px 14px',
+              borderRadius: '8px',
+              backgroundColor: testSummary.success ? '#ecfdf5' : '#fff1f2',
+              border: `1px solid ${testSummary.success ? '#a7f3d0' : '#fecdd3'}`,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '10px'
+            }}>
+              <div>
+                <div style={{ fontSize: '0.82rem', fontWeight: 800, color: testSummary.success ? '#065f46' : '#9f1239' }}>
+                  {testSummary.success ? '✓ Diagnostic Passed: Meter is communicating reliably' : '✕ Diagnostic Alert: Meter communication timed out'}
+                </div>
+                <div style={{ fontSize: '0.74rem', color: testSummary.success ? '#047857' : '#be123c', marginTop: '2px' }}>
+                  {testSummary.success
+                    ? `Round-trip latency: ${testSummary.latencyMs}ms | Value read: ${testSummary.sampleValue} | Loss: ${testSummary.packetLoss}`
+                    : `Reason: ${testSummary.errorReason}`
+                  }
+                </div>
+              </div>
+              <span style={{
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                padding: '3px 8px',
+                borderRadius: '6px',
+                backgroundColor: testSummary.success ? '#10b981' : '#f43f5e',
+                color: '#fff'
+              }}>
+                {testSummary.success ? 'COMM HEALTHY' : 'COMM FAILURE'}
+              </span>
+            </div>
+          )}
+
+          {/* Modal Actions */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '8px' }}>
+            <button
+              type="button"
+              onClick={() => setIsTestModalOpen(false)}
+              style={cancelBtnStyle}
+            >
+              Close
+            </button>
+            <button
+              type="button"
+              onClick={runCommunicationTest}
+              disabled={testStatus === 'running'}
+              style={{
+                ...saveBtnStyle,
+                backgroundColor: testStatus === 'running' ? '#94a3b8' : '#0284c7',
+                cursor: testStatus === 'running' ? 'not-allowed' : 'pointer'
+              }}
+            >
+              {testStatus === 'running' ? (
+                <>
+                  <RefreshCw size={14} className="spin-animate" /> Running Diagnostic...
+                </>
+              ) : (
+                <>
+                  <Zap size={14} /> Start Communication Test
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

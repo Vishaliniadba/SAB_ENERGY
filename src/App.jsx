@@ -11,6 +11,7 @@ import { ModelMasterView } from './views/profiles/ModelMasterView';
 import { GatewayMakeMasterView } from './views/masters/GatewayMakeMasterView';
 import { GatewayModelMasterView } from './views/masters/GatewayModelMasterView';
 import { ParameterDictionaryView } from './views/profiles/ParameterDictionaryView';
+import { CommunicationConfigView } from './views/config/CommunicationConfigView';
 
 function AppContent() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -41,6 +42,10 @@ function AppContent() {
         return <GatewayModelMasterView />;
       case 'parameter-dictionary':
         return <ParameterDictionaryView />;
+      case 'communication-config':
+      case 'comm-config':
+      case 'config':
+        return <CommunicationConfigView />;
       default:
         return <DashboardView />;
     }

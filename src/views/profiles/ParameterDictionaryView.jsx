@@ -9,6 +9,7 @@ export const ParameterDictionaryView = () => {
   const [editingKey, setEditingKey] = useState(null);
   const [formKey, setFormKey] = useState('');
   const [formDisplayName, setFormDisplayName] = useState('');
+  const [formUnit, setFormUnit] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
@@ -17,7 +18,7 @@ export const ParameterDictionaryView = () => {
     const q = searchTerm.toLowerCase().trim();
     if (!q) return standardParameters;
     return standardParameters.filter(
-      (p) => (p.key || '').toLowerCase().includes(q) || (p.display_name || '').toLowerCase().includes(q)
+      (p) => (p.key || '').toLowerCase().includes(q) || (p.display_name || '').toLowerCase().includes(q) || (p.unit || '').toLowerCase().includes(q)
     );
   }, [standardParameters, searchTerm]);
 
@@ -25,6 +26,7 @@ export const ParameterDictionaryView = () => {
     setEditingKey(null);
     setFormKey('');
     setFormDisplayName('');
+    setFormUnit('');
     setErrorMsg('');
     setIsModalOpen(true);
   };
@@ -33,6 +35,7 @@ export const ParameterDictionaryView = () => {
     setEditingKey(param.key);
     setFormKey(param.key);
     setFormDisplayName(param.display_name || '');
+    setFormUnit(param.unit || '');
     setErrorMsg('');
     setIsModalOpen(true);
   };
@@ -42,6 +45,7 @@ export const ParameterDictionaryView = () => {
     setEditingKey(null);
     setFormKey('');
     setFormDisplayName('');
+    setFormUnit('');
     setErrorMsg('');
   };
 
@@ -51,6 +55,7 @@ export const ParameterDictionaryView = () => {
 
     const trimmedKey = formKey.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_');
     const trimmedDisplayName = formDisplayName.trim();
+    const trimmedUnit = formUnit.trim();
 
     if (!trimmedKey) {
       setErrorMsg('Please enter a Key.');
@@ -66,6 +71,7 @@ export const ParameterDictionaryView = () => {
         updateStandardParameter(editingKey, {
           key: trimmedKey,
           display_name: trimmedDisplayName,
+          unit: trimmedUnit,
         });
       }
       setSuccessMsg(`✓ Parameter "${trimmedDisplayName}" updated.`);
@@ -79,6 +85,7 @@ export const ParameterDictionaryView = () => {
       addStandardParameter({
         key: trimmedKey,
         display_name: trimmedDisplayName,
+        unit: trimmedUnit,
       });
       setSuccessMsg(`✓ Added Parameter "${trimmedDisplayName}"`);
     }
@@ -188,13 +195,14 @@ export const ParameterDictionaryView = () => {
               <th style={{ padding: '12px 18px', width: '50px', textAlign: 'left' }}>#</th>
               <th style={{ padding: '12px 18px', textAlign: 'left' }}>Key</th>
               <th style={{ padding: '12px 18px', textAlign: 'left' }}>Display Name</th>
+              <th style={{ padding: '12px 18px', textAlign: 'center', width: '100px' }}>Unit</th>
               <th style={{ padding: '12px 18px', textAlign: 'center', width: '130px' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {filteredParams.length === 0 ? (
               <tr>
-                <td colSpan={4} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
+                <td colSpan={5} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
                   No parameters found. Click <strong>"Add Parameter"</strong> to create one.
                 </td>
               </tr>
@@ -214,6 +222,23 @@ export const ParameterDictionaryView = () => {
                   </td>
                   <td style={{ padding: '11px 18px', fontWeight: 700, color: '#0f172a' }}>
                     {param.display_name}
+                  </td>
+                  <td style={{ padding: '11px 18px', textAlign: 'center' }}>
+                    {param.unit ? (
+                      <span style={{
+                        padding: '3px 8px',
+                        borderRadius: '6px',
+                        backgroundColor: '#f1f5f9',
+                        color: '#334155',
+                        fontWeight: 700,
+                        fontFamily: 'monospace',
+                        fontSize: '0.74rem'
+                      }}>
+                        {param.unit}
+                      </span>
+                    ) : (
+                      <span style={{ color: '#94a3b8', fontSize: '0.75rem' }}>—</span>
+                    )}
                   </td>
                   <td style={{ padding: '11px 18px', textAlign: 'center' }}>
                     <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
@@ -311,6 +336,19 @@ export const ParameterDictionaryView = () => {
                   onChange={(e) => setFormDisplayName(e.target.value)}
                   placeholder="e.g. Watts Total, VLL average"
                 />
+              </div>
+
+              <div>
+                <label style={lbl}>Unit</label>
+                <input
+                  style={inp}
+                  value={formUnit}
+                  onChange={(e) => setFormUnit(e.target.value)}
+                  placeholder="e.g. W, kW, V, A, VAR, VA, Hz, kWh"
+                />
+                <span style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
+                  Measurement unit (will auto-populate in Meter Profiles)
+                </span>
               </div>
 
               {/* Modal Footer */}
