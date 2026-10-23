@@ -93,7 +93,7 @@ export const GatewayModelMasterView = () => {
   // ─── FORM VIEW (ONLY MAKE AND MODEL NAME) ──────────────────────────────────
   if (viewMode === 'form') {
     return (
-      <div style={{ maxWidth: '640px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+      <div style={{ width: '100%', maxWidth: '700px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
         {/* Header */}
         <div style={card}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
@@ -118,9 +118,6 @@ export const GatewayModelMasterView = () => {
                 <h2 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: '#0f172a' }}>
                   {editingId ? 'Edit Gateway Model' : 'Add Gateway Model'}
                 </h2>
-                <p style={{ margin: '2px 0 0', fontSize: '0.74rem', color: '#64748b' }}>
-                  Assign model name against the selected gateway make
-                </p>
               </div>
             </div>
           </div>
@@ -182,7 +179,7 @@ export const GatewayModelMasterView = () => {
 
   // ─── LIST VIEW ─────────────────────────────────────────────────────────────
   return (
-    <div style={{ maxWidth: '960px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '18px' }}>
       {/* Top Header Card */}
       <div
         style={{
@@ -200,22 +197,19 @@ export const GatewayModelMasterView = () => {
               width: '42px',
               height: '42px',
               borderRadius: '10px',
-              background: 'linear-gradient(135deg, #8b5cf6, #6d28d9)',
+              background: 'linear-gradient(135deg, #0284c7, #0369a1)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 4px 10px rgba(109, 40, 217, 0.2)',
+              boxShadow: '0 4px 12px var(--primary-cyan-glow)',
             }}
           >
             <Cpu size={20} color="#fff" />
           </div>
           <div>
-            <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: '#0f172a' }}>
+            <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-primary)' }}>
               Gateway Model Master
             </h2>
-            <p style={{ margin: '2px 0 0', fontSize: '0.76rem', color: '#64748b' }}>
-              Gateway models configured against manufacturer makes
-            </p>
           </div>
         </div>
         <button onClick={openAdd} style={saveBtn}>
@@ -225,7 +219,7 @@ export const GatewayModelMasterView = () => {
 
       {successMsg && (
         <div style={succBox}>
-          <CheckCircle2 size={14} color="#059669" /> {successMsg}
+          <CheckCircle2 size={14} color="var(--accent-emerald)" /> {successMsg}
         </div>
       )}
 
@@ -241,8 +235,8 @@ export const GatewayModelMasterView = () => {
         }}
       >
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <span style={{ fontSize: '0.8rem', color: '#475569', fontWeight: 600 }}>
-            Total Models: <strong style={{ color: '#6d28d9' }}>{gatewayModels.length}</strong>
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+            Total Models: <strong style={{ color: 'var(--primary-cyan)' }}>{gatewayModels.length}</strong>
           </span>
           <select
             style={{ ...inp, width: '180px', fontSize: '0.8rem' }}
@@ -261,7 +255,7 @@ export const GatewayModelMasterView = () => {
         <div style={{ position: 'relative' }}>
           <Search
             size={13}
-            color="#94a3b8"
+            color="var(--text-dim)"
             style={{ position: 'absolute', left: '9px', top: '50%', transform: 'translateY(-50%)' }}
           />
           <input
@@ -276,20 +270,20 @@ export const GatewayModelMasterView = () => {
       {/* Table */}
       <div
         style={{
-          backgroundColor: '#fff',
+          backgroundColor: 'var(--bg-card)',
           borderRadius: '12px',
-          border: '1px solid #e2e8f0',
+          border: '1px solid var(--border-subtle)',
           overflow: 'hidden',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+          boxShadow: 'var(--shadow-card)',
         }}
       >
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84rem' }}>
           <thead>
             <tr
               style={{
-                backgroundColor: '#f8fafc',
-                borderBottom: '1px solid #e2e8f0',
-                color: '#475569',
+                backgroundColor: 'var(--bg-table-header)',
+                borderBottom: '1px solid var(--border-subtle)',
+                color: 'var(--text-muted)',
                 fontSize: '0.74rem',
                 textTransform: 'uppercase',
                 letterSpacing: '0.04em',
@@ -304,8 +298,8 @@ export const GatewayModelMasterView = () => {
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={4} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
-                  No models found. Click <strong>"Add Model"</strong> to create one.
+                <td colSpan={4} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  No models found. Click <strong style={{ color: 'var(--primary-cyan)' }}>"Add Model"</strong> to create one.
                 </td>
               </tr>
             ) : (
@@ -314,22 +308,22 @@ export const GatewayModelMasterView = () => {
                 return (
                   <tr
                     key={m.gw_model_id}
-                    style={{ borderBottom: '1px solid #f1f5f9', transition: 'background-color 0.15s' }}
-                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f8fafc')}
+                    style={{ borderBottom: '1px solid var(--border-subtle)', transition: 'background-color 0.15s' }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-table-row-hover)')}
                     onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                   >
-                    <td style={{ padding: '11px 16px', color: '#94a3b8', fontWeight: 600, fontSize: '0.78rem' }}>
+                    <td style={{ padding: '11px 16px', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
                       {i + 1}
                     </td>
-                    <td style={{ padding: '11px 16px', fontWeight: 600, color: '#334155' }}>
+                    <td style={{ padding: '11px 16px', color: 'var(--text-primary)' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-                        <Building2 size={14} color="#0284c7" />
+                        <Building2 size={14} color="var(--text-muted)" />
                         <span>{makeName}</span>
                       </div>
                     </td>
-                    <td style={{ padding: '11px 16px', fontWeight: 700, color: '#0f172a' }}>
+                    <td style={{ padding: '11px 16px', color: 'var(--text-primary)' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-                        <Cpu size={14} color="#6d28d9" />
+                        <Cpu size={14} color="var(--text-muted)" />
                         <span>{m.gw_model_name}</span>
                       </div>
                     </td>
@@ -355,35 +349,35 @@ export const GatewayModelMasterView = () => {
 };
 
 const card = {
-  backgroundColor: '#fff',
+  backgroundColor: 'var(--bg-card)',
   borderRadius: '12px',
-  border: '1px solid #e2e8f0',
+  border: '1px solid var(--border-subtle)',
   padding: '18px 22px',
-  boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+  boxShadow: 'var(--shadow-card)',
 };
 const lbl = {
   display: 'block',
   fontSize: '0.82rem',
-  color: '#334155',
+  color: 'var(--text-secondary)',
   fontWeight: 700,
   marginBottom: '6px',
 };
 const inp = {
   width: '100%',
   padding: '9px 12px',
-  border: '1px solid #cbd5e1',
+  border: '1px solid var(--border-subtle)',
   borderRadius: '8px',
   fontSize: '0.86rem',
-  color: '#0f172a',
+  color: 'var(--text-primary)',
   outline: 'none',
   boxSizing: 'border-box',
-  backgroundColor: '#fff',
+  backgroundColor: 'var(--bg-input)',
 };
 const saveBtn = {
   display: 'flex',
   alignItems: 'center',
   gap: '6px',
-  backgroundColor: '#6d28d9',
+  backgroundColor: 'var(--primary-cyan-deep)',
   color: '#fff',
   border: 'none',
   borderRadius: '8px',
@@ -391,15 +385,15 @@ const saveBtn = {
   fontSize: '0.82rem',
   fontWeight: 700,
   cursor: 'pointer',
-  boxShadow: '0 2px 6px rgba(109,40,217,0.25)',
+  boxShadow: 'var(--shadow-glow)',
 };
 const cancelBtn = {
   display: 'flex',
   alignItems: 'center',
   gap: '5px',
-  backgroundColor: '#fff',
-  border: '1px solid #cbd5e1',
-  color: '#334155',
+  backgroundColor: 'var(--bg-card-secondary)',
+  border: '1px solid var(--border-subtle)',
+  color: 'var(--text-secondary)',
   borderRadius: '8px',
   padding: '7px 14px',
   fontSize: '0.8rem',
@@ -413,8 +407,9 @@ const backBtn = {
   width: '34px',
   height: '34px',
   borderRadius: '8px',
-  border: '1px solid #cbd5e1',
-  backgroundColor: '#fff',
+  border: '1px solid var(--border-subtle)',
+  backgroundColor: 'var(--bg-card)',
+  color: 'var(--text-secondary)',
   cursor: 'pointer',
 };
 const editBtnSt = {
@@ -423,9 +418,9 @@ const editBtnSt = {
   gap: '4px',
   padding: '4px 9px',
   borderRadius: '6px',
-  border: '1px solid #ddd6fe',
-  backgroundColor: '#f5f3ff',
-  color: '#6d28d9',
+  border: '1px solid var(--primary-cyan-border)',
+  backgroundColor: 'var(--primary-cyan-glow)',
+  color: 'var(--primary-cyan)',
   cursor: 'pointer',
   fontSize: '0.74rem',
   fontWeight: 600,
@@ -435,17 +430,17 @@ const delBtnSt = {
   alignItems: 'center',
   padding: '4px 7px',
   borderRadius: '6px',
-  border: '1px solid #fecdd3',
-  backgroundColor: '#fff1f2',
-  color: '#e11d48',
+  border: '1px solid var(--accent-rose-border)',
+  backgroundColor: 'var(--accent-rose-glow)',
+  color: 'var(--accent-rose)',
   cursor: 'pointer',
 };
 const succBox = {
   padding: '10px 14px',
-  backgroundColor: '#ecfdf5',
-  border: '1px solid #a7f3d0',
+  backgroundColor: 'rgba(16, 185, 129, 0.12)',
+  border: '1px solid var(--accent-emerald-border)',
   borderRadius: '8px',
-  color: '#065f46',
+  color: 'var(--accent-emerald)',
   fontSize: '0.82rem',
   display: 'flex',
   alignItems: 'center',
@@ -453,10 +448,10 @@ const succBox = {
 };
 const errBox = {
   padding: '10px 14px',
-  backgroundColor: '#fff1f2',
-  border: '1px solid #fecdd3',
+  backgroundColor: 'rgba(244, 63, 94, 0.12)',
+  border: '1px solid var(--accent-rose-border)',
   borderRadius: '8px',
-  color: '#9f1239',
+  color: 'var(--accent-rose)',
   fontSize: '0.82rem',
   display: 'flex',
   alignItems: 'center',

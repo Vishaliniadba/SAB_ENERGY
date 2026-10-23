@@ -92,18 +92,15 @@ export const DashboardView = () => {
         }}
       >
         {/* Active Asset Meter Feed Table */}
-        <div className="glass-panel" style={{ padding: '24px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px' }}>
+        <div className="glass-panel" style={{ padding: '24px', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: '14px', boxShadow: 'var(--shadow-card)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
             <div>
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 600, color: '#0f172a' }}>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em', margin: 0 }}>
                 Asset Telemetry & CT/PT Calculation
               </h3>
-              <p style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '2px' }}>
-                Formula: Real Energy (kWh) = Meter Reading × CT/PT Multiplier Factor
-              </p>
             </div>
-            <span style={{ fontSize: '0.75rem', color: '#059669', display: 'flex', alignItems: 'center', gap: '5px', fontWeight: 600, backgroundColor: '#ecfdf5', padding: '4px 10px', borderRadius: '20px', border: '1px solid #a7f3d0' }}>
-              <span className="pulse-dot" style={{ backgroundColor: '#059669' }} />
+            <span style={{ fontSize: '0.75rem', color: 'var(--accent-emerald)', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, backgroundColor: 'var(--accent-emerald-glow)', padding: '4px 11px', borderRadius: '20px', border: '1px solid var(--accent-emerald-border)' }}>
+              <span className="pulse-dot" style={{ backgroundColor: 'var(--accent-emerald)' }} />
               Live Stream
             </span>
           </div>
@@ -111,7 +108,7 @@ export const DashboardView = () => {
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
               <thead>
-                <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#64748b' }}>
+                <tr style={{ backgroundColor: 'var(--bg-table-header)', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-muted)', fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   <th style={{ padding: '12px 14px', borderRadius: '6px 0 0 6px' }}>Asset</th>
                   <th style={{ padding: '12px 14px' }}>Type</th>
                   <th style={{ padding: '12px 14px' }}>Assigned Meter</th>
@@ -131,31 +128,31 @@ export const DashboardView = () => {
                     <tr
                       key={asset.Asset_id}
                       style={{
-                        borderBottom: '1px solid #f1f5f9',
-                        transition: 'background-color 0.15s'
+                        borderBottom: '1px solid var(--border-subtle)',
+                        transition: 'background-color 0.15s ease'
                       }}
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-table-row-hover)'}
                       onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                     >
-                      <td style={{ padding: '14px 12px', fontWeight: 600, color: '#0f172a' }}>
+                      <td style={{ padding: '14px 12px', color: 'var(--text-primary)' }}>
                         {asset.Asset_name}
-                        <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 400 }}>{asset.Asset_id}</div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{asset.Asset_id}</div>
                       </td>
-                      <td style={{ padding: '14px 12px', color: '#475569' }}>{asset.asset_type}</td>
+                      <td style={{ padding: '14px 12px', color: 'var(--text-secondary)' }}>{asset.asset_type}</td>
                       <td style={{ padding: '14px 12px' }}>
                         {meter ? (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <Cpu size={14} color="#0284c7" />
-                            <span style={{ color: '#0f172a', fontWeight: 500 }}>{meter.Meter_name}</span>
+                            <Cpu size={14} color="var(--text-muted)" />
+                            <span style={{ color: 'var(--text-primary)' }}>{meter.Meter_name}</span>
                           </div>
                         ) : (
-                          <span style={{ color: '#d97706', fontSize: '0.75rem', fontWeight: 500 }}>No Meter Mapped</span>
+                          <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>No Meter Mapped</span>
                         )}
                       </td>
-                      <td style={{ padding: '14px 12px', textAlign: 'right', fontWeight: 600, color: '#0284c7' }}>
+                      <td style={{ padding: '14px 12px', textAlign: 'right', color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
                         {mapping ? `${factor}x` : '—'}
                       </td>
-                      <td style={{ padding: '14px 12px', textAlign: 'right', fontWeight: 700, color: '#059669' }}>
+                      <td style={{ padding: '14px 12px', textAlign: 'right', color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
                         {mapping ? `${estimatedKw} kW` : '0 kW'}
                       </td>
                       <td style={{ padding: '14px 12px', textAlign: 'center' }}>
@@ -170,39 +167,39 @@ export const DashboardView = () => {
         </div>
 
         {/* Real-Time Grid / SCADA Metrics Panel */}
-        <div className="glass-panel" style={{ padding: '24px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
-          <h3 style={{ fontSize: '1.05rem', fontWeight: 600, color: '#0f172a' }}>
+        <div className="glass-panel" style={{ padding: '24px', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: '14px', boxShadow: 'var(--shadow-card)', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+          <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
             Grid Telemetry
           </h3>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <div style={{ padding: '14px', borderRadius: '10px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#475569', fontWeight: 500 }}>
+            <div style={{ padding: '14px', borderRadius: '10px', backgroundColor: 'var(--bg-card-secondary)', border: '1px solid var(--border-subtle)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
                 <span>Live Active Power</span>
-                <span style={{ color: '#0284c7', fontWeight: 700 }}>{telemetry.activePower} kW</span>
+                <span style={{ color: 'var(--primary-cyan)', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{telemetry.activePower} kW</span>
               </div>
-              <div style={{ height: '7px', width: '100%', backgroundColor: '#e2e8f0', borderRadius: '4px', marginTop: '8px', overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${Math.min(100, (telemetry.activePower / 600) * 100)}%`, backgroundColor: '#0284c7', borderRadius: '4px' }} />
+              <div style={{ height: '7px', width: '100%', backgroundColor: 'var(--bg-input)', borderRadius: '4px', marginTop: '8px', overflow: 'hidden', border: '1px solid var(--border-subtle)' }}>
+                <div style={{ height: '100%', width: `${Math.min(100, (telemetry.activePower / 600) * 100)}%`, backgroundColor: 'var(--primary-cyan)', borderRadius: '4px' }} />
               </div>
             </div>
 
-            <div style={{ padding: '14px', borderRadius: '10px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#475569', fontWeight: 500 }}>
+            <div style={{ padding: '14px', borderRadius: '10px', backgroundColor: 'var(--bg-card-secondary)', border: '1px solid var(--border-subtle)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
                 <span>Power Factor (cos φ)</span>
-                <span style={{ color: '#059669', fontWeight: 700 }}>{telemetry.powerFactor}</span>
+                <span style={{ color: 'var(--accent-emerald)', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{telemetry.powerFactor}</span>
               </div>
-              <div style={{ height: '7px', width: '100%', backgroundColor: '#e2e8f0', borderRadius: '4px', marginTop: '8px', overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${telemetry.powerFactor * 100}%`, backgroundColor: '#059669', borderRadius: '4px' }} />
+              <div style={{ height: '7px', width: '100%', backgroundColor: 'var(--bg-input)', borderRadius: '4px', marginTop: '8px', overflow: 'hidden', border: '1px solid var(--border-subtle)' }}>
+                <div style={{ height: '100%', width: `${telemetry.powerFactor * 100}%`, backgroundColor: 'var(--accent-emerald)', borderRadius: '4px' }} />
               </div>
             </div>
 
-            <div style={{ padding: '14px', borderRadius: '10px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#475569', fontWeight: 500 }}>
+            <div style={{ padding: '14px', borderRadius: '10px', backgroundColor: 'var(--bg-card-secondary)', border: '1px solid var(--border-subtle)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
                 <span>Grid Frequency</span>
-                <span style={{ color: '#d97706', fontWeight: 700 }}>{telemetry.gridFrequency} Hz</span>
+                <span style={{ color: 'var(--accent-amber)', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{telemetry.gridFrequency} Hz</span>
               </div>
-              <div style={{ height: '7px', width: '100%', backgroundColor: '#e2e8f0', borderRadius: '4px', marginTop: '8px', overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${((telemetry.gridFrequency - 49) / 2) * 100}%`, backgroundColor: '#d97706', borderRadius: '4px' }} />
+              <div style={{ height: '7px', width: '100%', backgroundColor: 'var(--bg-input)', borderRadius: '4px', marginTop: '8px', overflow: 'hidden', border: '1px solid var(--border-subtle)' }}>
+                <div style={{ height: '100%', width: `${((telemetry.gridFrequency - 49) / 2) * 100}%`, backgroundColor: 'var(--accent-amber)', borderRadius: '4px' }} />
               </div>
             </div>
           </div>
@@ -212,15 +209,15 @@ export const DashboardView = () => {
               marginTop: 'auto',
               padding: '12px 14px',
               borderRadius: '8px',
-              backgroundColor: '#f0f9ff',
-              border: '1px solid #bae6fd',
+              backgroundColor: 'var(--primary-cyan-glow)',
+              border: '1px solid var(--primary-cyan-border)',
               display: 'flex',
               alignItems: 'center',
               gap: '10px'
             }}
           >
-            <CheckCircle2 size={18} color="#0284c7" />
-            <span style={{ fontSize: '0.78rem', color: '#0369a1', fontWeight: 500 }}>
+            <CheckCircle2 size={18} color="var(--primary-cyan)" />
+            <span style={{ fontSize: '0.78rem', color: 'var(--primary-cyan)', fontWeight: 600 }}>
               All {channels.filter(c => c.status === 'Active').length} communication channels transmitting telemetry normally.
             </span>
           </div>

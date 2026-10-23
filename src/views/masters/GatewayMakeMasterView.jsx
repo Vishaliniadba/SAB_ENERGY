@@ -71,7 +71,7 @@ export const GatewayMakeMasterView = () => {
   // ─── FORM VIEW (ONLY MAKE NAME) ─────────────────────────────────────────────
   if (viewMode === 'form') {
     return (
-      <div style={{ maxWidth: '640px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+      <div style={{ width: '100%', maxWidth: '700px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
         {/* Header */}
         <div style={card}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
@@ -96,9 +96,6 @@ export const GatewayMakeMasterView = () => {
                 <h2 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: '#0f172a' }}>
                   {editingId ? 'Edit Gateway Make' : 'Add Gateway Make'}
                 </h2>
-                <p style={{ margin: '2px 0 0', fontSize: '0.74rem', color: '#64748b' }}>
-                  {editingId ? 'Update manufacturer name' : 'Enter the manufacturer name for gateways'}
-                </p>
               </div>
             </div>
           </div>
@@ -142,7 +139,7 @@ export const GatewayMakeMasterView = () => {
 
   // ─── LIST VIEW ─────────────────────────────────────────────────────────────
   return (
-    <div style={{ maxWidth: '900px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '18px' }}>
       {/* Top Header Card */}
       <div
         style={{
@@ -173,9 +170,6 @@ export const GatewayMakeMasterView = () => {
             <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: '#0f172a' }}>
               Gateway Make Master
             </h2>
-            <p style={{ margin: '2px 0 0', fontSize: '0.76rem', color: '#64748b' }}>
-              Manufacturers of IoT edge gateway devices
-            </p>
           </div>
         </div>
         <button onClick={openAdd} style={saveBtn}>
@@ -254,12 +248,12 @@ export const GatewayMakeMasterView = () => {
                     onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f8fafc')}
                     onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                   >
-                    <td style={{ padding: '11px 16px', color: '#94a3b8', fontWeight: 600, fontSize: '0.78rem' }}>
+                    <td style={{ padding: '11px 16px', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
                       {i + 1}
                     </td>
-                    <td style={{ padding: '11px 16px', fontWeight: 700, color: '#0f172a' }}>
+                    <td style={{ padding: '11px 16px', color: 'var(--text-primary)' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Building2 size={15} color="#0284c7" />
+                        <Building2 size={15} color="var(--text-muted)" />
                         <span>{m.gw_make_name}</span>
                       </div>
                     </td>
@@ -269,10 +263,10 @@ export const GatewayMakeMasterView = () => {
                           fontSize: '0.75rem',
                           padding: '2px 9px',
                           borderRadius: '12px',
-                          backgroundColor: linkedCount > 0 ? '#f0f9ff' : '#f8fafc',
-                          color: linkedCount > 0 ? '#0284c7' : '#94a3b8',
-                          border: `1px solid ${linkedCount > 0 ? '#bae6fd' : '#e2e8f0'}`,
-                          fontWeight: 600,
+                          backgroundColor: 'var(--bg-card-secondary)',
+                          color: 'var(--text-secondary)',
+                          border: '1px solid var(--border-subtle)',
+                          fontWeight: 500,
                         }}
                       >
                         {linkedCount} {linkedCount === 1 ? 'model' : 'models'}
@@ -300,51 +294,51 @@ export const GatewayMakeMasterView = () => {
 };
 
 const card = {
-  backgroundColor: '#fff',
-  borderRadius: '12px',
-  border: '1px solid #e2e8f0',
+  backgroundColor: 'var(--bg-card)',
+  borderRadius: '14px',
+  border: '1px solid var(--border-subtle)',
   padding: '18px 22px',
-  boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+  boxShadow: 'var(--shadow-card)',
 };
 const lbl = {
   display: 'block',
   fontSize: '0.82rem',
-  color: '#334155',
+  color: 'var(--text-secondary)',
   fontWeight: 700,
   marginBottom: '6px',
 };
 const inp = {
   width: '100%',
   padding: '9px 12px',
-  border: '1px solid #cbd5e1',
+  border: '1px solid var(--border-subtle)',
   borderRadius: '8px',
   fontSize: '0.86rem',
-  color: '#0f172a',
+  color: 'var(--text-primary)',
   outline: 'none',
   boxSizing: 'border-box',
-  backgroundColor: '#fff',
+  backgroundColor: 'var(--bg-input)',
 };
 const saveBtn = {
   display: 'flex',
   alignItems: 'center',
   gap: '6px',
-  backgroundColor: '#0284c7',
+  background: 'var(--primary-cyan-gradient)',
   color: '#fff',
-  border: 'none',
+  border: '1px solid rgba(56, 189, 248, 0.4)',
   borderRadius: '8px',
   padding: '8px 16px',
   fontSize: '0.82rem',
   fontWeight: 700,
   cursor: 'pointer',
-  boxShadow: '0 2px 6px rgba(2,132,199,0.25)',
+  boxShadow: '0 4px 14px rgba(2, 132, 199, 0.35)',
 };
 const cancelBtn = {
   display: 'flex',
   alignItems: 'center',
   gap: '5px',
-  backgroundColor: '#fff',
-  border: '1px solid #cbd5e1',
-  color: '#334155',
+  backgroundColor: 'var(--bg-card-secondary)',
+  border: '1px solid var(--border-subtle)',
+  color: 'var(--text-secondary)',
   borderRadius: '8px',
   padding: '7px 14px',
   fontSize: '0.8rem',
@@ -358,19 +352,20 @@ const backBtn = {
   width: '34px',
   height: '34px',
   borderRadius: '8px',
-  border: '1px solid #cbd5e1',
-  backgroundColor: '#fff',
+  border: '1px solid var(--border-subtle)',
+  backgroundColor: 'var(--bg-card-secondary)',
+  color: 'var(--text-primary)',
   cursor: 'pointer',
 };
 const editBtnSt = {
   display: 'flex',
   alignItems: 'center',
   gap: '4px',
-  padding: '4px 9px',
+  padding: '5px 10px',
   borderRadius: '6px',
-  border: '1px solid #bae6fd',
-  backgroundColor: '#f0f9ff',
-  color: '#0284c7',
+  border: '1px solid rgba(56, 189, 248, 0.35)',
+  backgroundColor: 'rgba(2, 132, 199, 0.15)',
+  color: 'var(--primary-cyan)',
   cursor: 'pointer',
   fontSize: '0.74rem',
   fontWeight: 600,
@@ -378,31 +373,33 @@ const editBtnSt = {
 const delBtnSt = {
   display: 'flex',
   alignItems: 'center',
-  padding: '4px 7px',
+  padding: '5px 8px',
   borderRadius: '6px',
-  border: '1px solid #fecdd3',
-  backgroundColor: '#fff1f2',
-  color: '#e11d48',
+  border: '1px solid rgba(244, 63, 94, 0.35)',
+  backgroundColor: 'rgba(225, 29, 72, 0.15)',
+  color: 'var(--accent-rose)',
   cursor: 'pointer',
 };
 const succBox = {
   padding: '10px 14px',
-  backgroundColor: '#ecfdf5',
-  border: '1px solid #a7f3d0',
+  backgroundColor: 'var(--accent-emerald-glow)',
+  border: '1px solid var(--accent-emerald-border)',
   borderRadius: '8px',
-  color: '#065f46',
+  color: 'var(--accent-emerald)',
   fontSize: '0.82rem',
+  fontWeight: 600,
   display: 'flex',
   alignItems: 'center',
   gap: '7px',
 };
 const errBox = {
   padding: '10px 14px',
-  backgroundColor: '#fff1f2',
-  border: '1px solid #fecdd3',
+  backgroundColor: 'var(--accent-rose-glow)',
+  border: '1px solid var(--accent-rose-border)',
   borderRadius: '8px',
-  color: '#9f1239',
+  color: 'var(--accent-rose)',
   fontSize: '0.82rem',
+  fontWeight: 600,
   display: 'flex',
   alignItems: 'center',
   gap: '7px',

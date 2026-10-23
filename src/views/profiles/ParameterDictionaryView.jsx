@@ -103,7 +103,7 @@ export const ParameterDictionaryView = () => {
   };
 
   return (
-    <div style={{ maxWidth: '960px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '18px' }}>
       {/* Page Header */}
       <div
         style={{
@@ -134,9 +134,6 @@ export const ParameterDictionaryView = () => {
             <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, color: '#0f172a' }}>
               Parameter Master
             </h2>
-            <p style={{ margin: '2px 0 0', fontSize: '0.76rem', color: '#64748b' }}>
-              Define standard telemetry keys and display names for meter register mapping
-            </p>
           </div>
         </div>
         <button onClick={handleOpenAdd} style={saveBtn}>
@@ -173,23 +170,23 @@ export const ParameterDictionaryView = () => {
       {/* Table of Parameters */}
       <div
         style={{
-          backgroundColor: '#fff',
-          borderRadius: '12px',
-          border: '1px solid #e2e8f0',
+          backgroundColor: 'var(--bg-card)',
+          borderRadius: '14px',
+          border: '1px solid var(--border-subtle)',
           overflow: 'hidden',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+          boxShadow: 'var(--shadow-card)',
         }}
       >
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84rem' }}>
           <thead>
             <tr
               style={{
-                backgroundColor: '#f8fafc',
-                borderBottom: '1px solid #e2e8f0',
-                color: '#475569',
+                backgroundColor: 'var(--bg-table-header)',
+                borderBottom: '1px solid var(--border-subtle)',
+                color: 'var(--text-muted)',
                 fontSize: '0.74rem',
                 textTransform: 'uppercase',
-                letterSpacing: '0.04em',
+                letterSpacing: '0.05em',
               }}
             >
               <th style={{ padding: '12px 18px', width: '50px', textAlign: 'left' }}>#</th>
@@ -202,25 +199,25 @@ export const ParameterDictionaryView = () => {
           <tbody>
             {filteredParams.length === 0 ? (
               <tr>
-                <td colSpan={5} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
-                  No parameters found. Click <strong>"Add Parameter"</strong> to create one.
+                <td colSpan={5} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  No parameters found. Click <strong style={{ color: 'var(--primary-cyan)' }}>"Add Parameter"</strong> to create one.
                 </td>
               </tr>
             ) : (
               filteredParams.map((param, idx) => (
                 <tr
                   key={param.key}
-                  style={{ borderBottom: '1px solid #f1f5f9', transition: 'background-color 0.15s' }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f8fafc')}
+                  style={{ borderBottom: '1px solid var(--border-subtle)', transition: 'background-color 0.15s ease' }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-table-row-hover)')}
                   onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                 >
-                  <td style={{ padding: '11px 18px', color: '#94a3b8', fontWeight: 600, fontSize: '0.78rem' }}>
+                  <td style={{ padding: '11px 18px', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
                     {idx + 1}
                   </td>
-                  <td style={{ padding: '11px 18px', fontFamily: 'monospace', color: '#0284c7', fontWeight: 600 }}>
+                  <td style={{ padding: '11px 18px', fontFamily: 'var(--font-mono)', color: 'var(--primary-cyan)', fontSize: '0.84rem' }}>
                     {param.key}
                   </td>
-                  <td style={{ padding: '11px 18px', fontWeight: 700, color: '#0f172a' }}>
+                  <td style={{ padding: '11px 18px', color: 'var(--text-primary)' }}>
                     {param.display_name}
                   </td>
                   <td style={{ padding: '11px 18px', textAlign: 'center' }}>
@@ -228,16 +225,17 @@ export const ParameterDictionaryView = () => {
                       <span style={{
                         padding: '3px 8px',
                         borderRadius: '6px',
-                        backgroundColor: '#f1f5f9',
-                        color: '#334155',
-                        fontWeight: 700,
-                        fontFamily: 'monospace',
+                        backgroundColor: 'var(--bg-card-secondary)',
+                        color: 'var(--text-secondary)',
+                        border: '1px solid var(--border-subtle)',
+                        fontWeight: 500,
+                        fontFamily: 'var(--font-mono)',
                         fontSize: '0.74rem'
                       }}>
                         {param.unit}
                       </span>
                     ) : (
-                      <span style={{ color: '#94a3b8', fontSize: '0.75rem' }}>—</span>
+                      <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>—</span>
                     )}
                   </td>
                   <td style={{ padding: '11px 18px', textAlign: 'center' }}>
@@ -369,51 +367,51 @@ export const ParameterDictionaryView = () => {
 };
 
 const card = {
-  backgroundColor: '#fff',
-  borderRadius: '12px',
-  border: '1px solid #e2e8f0',
+  backgroundColor: 'var(--bg-card)',
+  borderRadius: '14px',
+  border: '1px solid var(--border-subtle)',
   padding: '18px 22px',
-  boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+  boxShadow: 'var(--shadow-card)',
 };
 const lbl = {
   display: 'block',
   fontSize: '0.82rem',
-  color: '#334155',
+  color: 'var(--text-secondary)',
   fontWeight: 700,
   marginBottom: '6px',
 };
 const inp = {
   width: '100%',
   padding: '9px 12px',
-  border: '1px solid #cbd5e1',
+  border: '1px solid var(--border-subtle)',
   borderRadius: '8px',
   fontSize: '0.86rem',
-  color: '#0f172a',
+  color: 'var(--text-primary)',
   outline: 'none',
   boxSizing: 'border-box',
-  backgroundColor: '#fff',
+  backgroundColor: 'var(--bg-input)',
 };
 const saveBtn = {
   display: 'flex',
   alignItems: 'center',
   gap: '6px',
-  backgroundColor: '#0284c7',
+  background: 'var(--primary-cyan-gradient)',
   color: '#fff',
-  border: 'none',
+  border: '1px solid rgba(56, 189, 248, 0.4)',
   borderRadius: '8px',
   padding: '8px 16px',
   fontSize: '0.82rem',
   fontWeight: 700,
   cursor: 'pointer',
-  boxShadow: '0 2px 6px rgba(2,132,199,0.25)',
+  boxShadow: '0 4px 14px rgba(2, 132, 199, 0.35)',
 };
 const cancelBtn = {
   display: 'flex',
   alignItems: 'center',
   gap: '5px',
-  backgroundColor: '#fff',
-  border: '1px solid #cbd5e1',
-  color: '#334155',
+  backgroundColor: 'var(--bg-card-secondary)',
+  border: '1px solid var(--border-subtle)',
+  color: 'var(--text-secondary)',
   borderRadius: '8px',
   padding: '7px 14px',
   fontSize: '0.8rem',
@@ -424,11 +422,11 @@ const editBtnSt = {
   display: 'flex',
   alignItems: 'center',
   gap: '4px',
-  padding: '4px 9px',
+  padding: '5px 10px',
   borderRadius: '6px',
-  border: '1px solid #bae6fd',
-  backgroundColor: '#f0f9ff',
-  color: '#0284c7',
+  border: '1px solid rgba(56, 189, 248, 0.35)',
+  backgroundColor: 'rgba(2, 132, 199, 0.15)',
+  color: 'var(--primary-cyan)',
   cursor: 'pointer',
   fontSize: '0.74rem',
   fontWeight: 600,
@@ -436,31 +434,33 @@ const editBtnSt = {
 const delBtnSt = {
   display: 'flex',
   alignItems: 'center',
-  padding: '4px 7px',
+  padding: '5px 8px',
   borderRadius: '6px',
-  border: '1px solid #fecdd3',
-  backgroundColor: '#fff1f2',
-  color: '#e11d48',
+  border: '1px solid rgba(244, 63, 94, 0.35)',
+  backgroundColor: 'rgba(225, 29, 72, 0.15)',
+  color: 'var(--accent-rose)',
   cursor: 'pointer',
 };
 const succBox = {
   padding: '10px 14px',
-  backgroundColor: '#ecfdf5',
-  border: '1px solid #a7f3d0',
+  backgroundColor: 'var(--accent-emerald-glow)',
+  border: '1px solid var(--accent-emerald-border)',
   borderRadius: '8px',
-  color: '#065f46',
+  color: 'var(--accent-emerald)',
   fontSize: '0.82rem',
+  fontWeight: 600,
   display: 'flex',
   alignItems: 'center',
   gap: '7px',
 };
 const errBox = {
   padding: '10px 14px',
-  backgroundColor: '#fff1f2',
-  border: '1px solid #fecdd3',
+  backgroundColor: 'var(--accent-rose-glow)',
+  border: '1px solid var(--accent-rose-border)',
   borderRadius: '8px',
-  color: '#9f1239',
+  color: 'var(--accent-rose)',
   fontSize: '0.82rem',
+  fontWeight: 600,
   display: 'flex',
   alignItems: 'center',
   gap: '7px',

@@ -87,18 +87,18 @@ export const MakeMasterView = () => {
   }, [makes, searchTerm]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '1000px', margin: '0 auto' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', width: '100%' }}>
       {/* Page Header */}
       <div
         style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          backgroundColor: '#ffffff',
+          backgroundColor: 'var(--bg-card)',
           padding: '18px 24px',
-          borderRadius: '12px',
-          border: '1px solid #e2e8f0',
-          boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+          borderRadius: '14px',
+          border: '1px solid var(--border-subtle)',
+          boxShadow: 'var(--shadow-card)',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -107,24 +107,22 @@ export const MakeMasterView = () => {
               width: '40px',
               height: '40px',
               borderRadius: '10px',
-              background: 'linear-gradient(135deg, #0284c7, #0369a1)',
+              background: 'var(--primary-cyan-gradient)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               color: '#ffffff',
+              boxShadow: '0 4px 14px rgba(2,132,199,0.35)',
             }}
           >
             <Building2 size={20} />
           </div>
-          <h2 style={{ fontSize: '1.3rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+          <h2 style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
             Make Master
           </h2>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{ fontSize: '0.84rem', color: '#64748b', fontWeight: 600 }}>
-            Total Makes: <strong style={{ color: '#0284c7' }}>{makes.length}</strong>
-          </div>
+        <div>
           <button onClick={handleOpenAdd} style={btnPrimaryStyle}>
             <Plus size={16} />
             <span>Add Make</span>
@@ -134,7 +132,7 @@ export const MakeMasterView = () => {
 
       {/* Success Notification */}
       {successMsg && (
-        <div style={{ padding: '12px 18px', backgroundColor: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '10px', color: '#065f46', fontSize: '0.84rem', fontWeight: 600 }}>
+        <div style={{ padding: '12px 18px', backgroundColor: 'var(--accent-emerald-glow)', border: '1px solid var(--accent-emerald-border)', borderRadius: '10px', color: 'var(--accent-emerald)', fontSize: '0.84rem', fontWeight: 600 }}>
           {successMsg}
         </div>
       )}
@@ -143,32 +141,32 @@ export const MakeMasterView = () => {
       <div
         style={{
           display: 'flex',
-          justifyContent: 'space-between',
+          justifyContent: 'flex-end',
           alignItems: 'center',
-          backgroundColor: '#ffffff',
-          padding: '12px 20px',
-          borderRadius: '10px',
-          border: '1px solid #e2e8f0',
+          backgroundColor: 'var(--bg-card)',
+          padding: '14px 20px',
+          borderRadius: '12px',
+          border: '1px solid var(--border-subtle)',
+          boxShadow: 'var(--shadow-card)',
         }}
       >
-        <span style={{ fontSize: '0.82rem', color: '#64748b' }}>
-          Showing <strong>{filteredMakes.length}</strong> makes
-        </span>
 
         <div style={{ position: 'relative' }}>
-          <Search size={14} color="#94a3b8" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+          <Search size={14} color="var(--text-muted)" style={{ position: 'absolute', left: '11px', top: '50%', transform: 'translateY(-50%)' }} />
           <input
             type="text"
             placeholder="Search make name..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{
-              padding: '6px 12px 6px 30px',
-              border: '1px solid #cbd5e1',
-              borderRadius: '6px',
-              fontSize: '0.82rem',
+              padding: '8px 12px 8px 34px',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: '8px',
+              fontSize: '0.84rem',
               outline: 'none',
-              width: '220px',
+              width: '230px',
+              backgroundColor: 'var(--bg-input)',
+              color: 'var(--text-primary)',
             }}
           />
         </div>
@@ -177,16 +175,16 @@ export const MakeMasterView = () => {
       {/* Table of Makes (Shown First) */}
       <div
         style={{
-          backgroundColor: '#ffffff',
-          borderRadius: '12px',
-          border: '1px solid #e2e8f0',
+          backgroundColor: 'var(--bg-card)',
+          borderRadius: '14px',
+          border: '1px solid var(--border-subtle)',
           overflow: 'hidden',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+          boxShadow: 'var(--shadow-card)',
         }}
       >
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84rem', textAlign: 'left' }}>
           <thead>
-            <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontSize: '0.76rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <tr style={{ backgroundColor: 'var(--bg-table-header)', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-muted)', fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               <th style={{ padding: '12px 18px', width: '50px' }}>#</th>
               <th style={{ padding: '12px 18px' }}>Make Name</th>
               <th style={{ padding: '12px 18px', textAlign: 'center', width: '180px' }}>Linked Models</th>
@@ -196,8 +194,8 @@ export const MakeMasterView = () => {
           <tbody>
             {filteredMakes.length === 0 ? (
               <tr>
-                <td colSpan={4} style={{ padding: '36px', textAlign: 'center', color: '#94a3b8' }}>
-                  No makes found. Click <strong>"Add Make"</strong> to create one.
+                <td colSpan={4} style={{ padding: '36px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  No makes found. Click <strong style={{ color: 'var(--primary-cyan)' }}>"Add Make"</strong> to create one.
                 </td>
               </tr>
             ) : (
@@ -208,19 +206,19 @@ export const MakeMasterView = () => {
                   <tr
                     key={m.make_id}
                     style={{
-                      borderBottom: '1px solid #f1f5f9',
+                      borderBottom: '1px solid var(--border-subtle)',
                       transition: 'background-color 0.15s ease',
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f8fafc')}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-table-row-hover)')}
                     onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                   >
-                    <td style={{ padding: '12px 18px', color: '#94a3b8', fontWeight: 600, fontSize: '0.78rem' }}>
+                    <td style={{ padding: '12px 18px', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
                       {idx + 1}
                     </td>
 
-                    <td style={{ padding: '12px 18px', fontWeight: 700, color: '#0f172a', fontSize: '0.92rem' }}>
+                    <td style={{ padding: '12px 18px', color: 'var(--text-primary)' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Building2 size={16} color="#0284c7" />
+                        <Building2 size={16} color="var(--text-muted)" />
                         <span>{m.make_name}</span>
                       </div>
                     </td>
@@ -229,10 +227,10 @@ export const MakeMasterView = () => {
                       <span
                         style={{
                           fontSize: '0.76rem',
-                          fontWeight: 700,
-                          backgroundColor: '#f0f9ff',
-                          color: '#0284c7',
-                          border: '1px solid #bae6fd',
+                          fontWeight: 500,
+                          backgroundColor: 'var(--bg-card-secondary)',
+                          color: 'var(--text-secondary)',
+                          border: '1px solid var(--border-subtle)',
                           padding: '3px 10px',
                           borderRadius: '12px',
                         }}
@@ -246,11 +244,11 @@ export const MakeMasterView = () => {
                         <button
                           onClick={() => handleOpenEdit(m)}
                           style={{
-                            padding: '5px 10px',
-                            borderRadius: '6px',
-                            border: '1px solid #bae6fd',
-                            backgroundColor: '#f0f9ff',
-                            color: '#0284c7',
+                            padding: '6px 11px',
+                            borderRadius: '7px',
+                            border: '1px solid rgba(56, 189, 248, 0.35)',
+                            backgroundColor: 'rgba(2, 132, 199, 0.15)',
+                            color: 'var(--primary-cyan)',
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
@@ -407,25 +405,26 @@ const btnPrimaryStyle = {
   display: 'flex',
   alignItems: 'center',
   gap: '6px',
-  backgroundColor: '#0284c7',
+  background: 'var(--primary-cyan-gradient)',
   color: '#ffffff',
-  border: 'none',
+  border: '1px solid rgba(56, 189, 248, 0.4)',
   borderRadius: '8px',
   padding: '8px 16px',
   fontSize: '0.82rem',
   fontWeight: 700,
   cursor: 'pointer',
-  boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
+  boxShadow: '0 4px 14px rgba(2, 132, 199, 0.35)',
   whiteSpace: 'nowrap',
+  transition: 'all 0.18s ease',
 };
 
 const btnSecondaryStyle = {
   display: 'flex',
   alignItems: 'center',
   gap: '6px',
-  backgroundColor: '#ffffff',
-  border: '1px solid #cbd5e1',
-  color: '#334155',
+  backgroundColor: 'var(--bg-card-secondary)',
+  border: '1px solid var(--border-subtle)',
+  color: 'var(--text-secondary)',
   borderRadius: '8px',
   padding: '8px 16px',
   fontSize: '0.82rem',

@@ -79,7 +79,7 @@ export const AssetsView = () => {
       {/* Top Action Bar */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
         <div style={{ position: 'relative', width: '320px' }}>
-          <Search size={16} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+          <Search size={16} color="var(--text-dim)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
           <input
             type="text"
             placeholder="Search assets by name, type, location..."
@@ -88,10 +88,10 @@ export const AssetsView = () => {
             style={{
               width: '100%',
               padding: '9px 12px 9px 36px',
-              backgroundColor: '#ffffff',
-              border: '1px solid #cbd5e1',
+              backgroundColor: 'var(--bg-input)',
+              border: '1px solid var(--border-subtle)',
               borderRadius: '8px',
-              color: '#0f172a',
+              color: 'var(--text-primary)',
               fontSize: '0.85rem',
               outline: 'none',
               boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
@@ -105,7 +105,7 @@ export const AssetsView = () => {
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            backgroundColor: '#0284c7',
+            backgroundColor: 'var(--primary-cyan-deep)',
             color: '#ffffff',
             border: 'none',
             borderRadius: '8px',
@@ -113,7 +113,7 @@ export const AssetsView = () => {
             fontWeight: 600,
             fontSize: '0.85rem',
             cursor: 'pointer',
-            boxShadow: '0 2px 6px rgba(2, 132, 199, 0.3)'
+            boxShadow: 'var(--shadow-glow)'
           }}
         >
           <Plus size={16} />
@@ -122,11 +122,11 @@ export const AssetsView = () => {
       </div>
 
       {/* Assets Table */}
-      <div className="glass-panel" style={{ padding: '0', overflow: 'hidden', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px' }}>
+      <div className="glass-panel" style={{ padding: '0', overflow: 'hidden', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: '12px' }}>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
             <thead>
-              <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#64748b' }}>
+              <tr style={{ backgroundColor: 'var(--bg-table-header)', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
                 <th style={{ padding: '14px 18px' }}>Asset ID & Name</th>
                 <th style={{ padding: '14px 18px' }}>Type</th>
                 <th style={{ padding: '14px 18px' }}>Location</th>
@@ -139,7 +139,7 @@ export const AssetsView = () => {
             <tbody>
               {filteredAssets.length === 0 ? (
                 <tr>
-                  <td colSpan="7" style={{ padding: '32px', textAlign: 'center', color: '#64748b' }}>
+                  <td colSpan="7" style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)' }}>
                     No assets found.
                   </td>
                 </tr>
@@ -148,33 +148,33 @@ export const AssetsView = () => {
                   <tr
                     key={ast.Asset_id}
                     style={{
-                      borderBottom: '1px solid #f1f5f9',
+                      borderBottom: '1px solid var(--border-subtle)',
                       transition: 'background-color 0.15s'
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-table-row-hover)'}
                     onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                   >
                     <td style={{ padding: '14px 18px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <div style={{ padding: '7px', borderRadius: '8px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                        <div style={{ padding: '7px', borderRadius: '8px', backgroundColor: 'rgba(56, 189, 248, 0.1)', border: '1px solid var(--border-subtle)' }}>
                           {getAssetIcon(ast.asset_type)}
                         </div>
                         <div>
-                          <div style={{ fontWeight: 600, color: '#0f172a' }}>{ast.Asset_name}</div>
-                          <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{ast.Asset_id}</div>
+                          <div style={{ color: 'var(--text-primary)' }}>{ast.Asset_name}</div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>{ast.Asset_id}</div>
                         </div>
                       </div>
                     </td>
-                    <td style={{ padding: '14px 18px', color: '#334155' }}>
+                    <td style={{ padding: '14px 18px', color: 'var(--text-secondary)' }}>
                       {ast.asset_type}
                     </td>
-                    <td style={{ padding: '14px 18px', color: '#64748b' }}>
+                    <td style={{ padding: '14px 18px', color: 'var(--text-muted)' }}>
                       {ast.location}
                     </td>
-                    <td style={{ padding: '14px 18px', color: '#059669', fontWeight: 700 }}>
+                    <td style={{ padding: '14px 18px', color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
                       {ast.capacity}
                     </td>
-                    <td style={{ padding: '14px 18px', color: '#64748b', fontSize: '0.78rem', maxWidth: '240px' }}>
+                    <td style={{ padding: '14px 18px', color: 'var(--text-muted)', fontSize: '0.78rem', maxWidth: '240px' }}>
                       {ast.description}
                     </td>
                     <td style={{ padding: '14px 18px', textAlign: 'center' }}>
@@ -185,20 +185,20 @@ export const AssetsView = () => {
                         <button
                           onClick={() => handleOpenEdit(ast)}
                           style={{
-                            background: '#ffffff',
-                            border: '1px solid #cbd5e1',
+                            background: 'var(--bg-card-secondary)',
+                            border: '1px solid var(--border-subtle)',
                             borderRadius: '6px',
-                            color: '#475569',
+                            color: 'var(--text-secondary)',
                             padding: '6px 8px',
                             cursor: 'pointer'
                           }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.color = '#0284c7';
-                            e.currentTarget.style.borderColor = '#0284c7';
+                            e.currentTarget.style.color = 'var(--primary-cyan)';
+                            e.currentTarget.style.borderColor = 'var(--primary-cyan)';
                           }}
                           onMouseLeave={(e) => {
-                            e.currentTarget.style.color = '#475569';
-                            e.currentTarget.style.borderColor = '#cbd5e1';
+                            e.currentTarget.style.color = 'var(--text-secondary)';
+                            e.currentTarget.style.borderColor = 'var(--border-subtle)';
                           }}
                           title="Edit Asset"
                         >
@@ -211,20 +211,20 @@ export const AssetsView = () => {
                             }
                           }}
                           style={{
-                            background: '#ffffff',
-                            border: '1px solid #cbd5e1',
+                            background: 'var(--bg-card-secondary)',
+                            border: '1px solid var(--border-subtle)',
                             borderRadius: '6px',
-                            color: '#475569',
+                            color: 'var(--text-secondary)',
                             padding: '6px 8px',
                             cursor: 'pointer'
                           }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.color = '#e11d48';
-                            e.currentTarget.style.borderColor = '#e11d48';
+                            e.currentTarget.style.color = 'var(--accent-rose)';
+                            e.currentTarget.style.borderColor = 'var(--accent-rose)';
                           }}
                           onMouseLeave={(e) => {
-                            e.currentTarget.style.color = '#475569';
-                            e.currentTarget.style.borderColor = '#cbd5e1';
+                            e.currentTarget.style.color = 'var(--text-secondary)';
+                            e.currentTarget.style.borderColor = 'var(--border-subtle)';
                           }}
                           title="Delete Asset"
                         >
@@ -331,9 +331,9 @@ export const AssetsView = () => {
               style={{
                 padding: '8px 16px',
                 borderRadius: '6px',
-                border: '1px solid #cbd5e1',
-                backgroundColor: '#ffffff',
-                color: '#64748b',
+                border: '1px solid var(--border-subtle)',
+                backgroundColor: 'var(--bg-card-secondary)',
+                color: 'var(--text-secondary)',
                 cursor: 'pointer'
               }}
             >
@@ -345,10 +345,11 @@ export const AssetsView = () => {
                 padding: '8px 18px',
                 borderRadius: '6px',
                 border: 'none',
-                backgroundColor: '#0284c7',
+                backgroundColor: 'var(--primary-cyan-deep)',
                 color: '#ffffff',
                 fontWeight: 600,
-                cursor: 'pointer'
+                cursor: 'pointer',
+                boxShadow: 'var(--shadow-glow)'
               }}
             >
               {editingAsset ? 'Save Changes' : 'Create Asset'}
@@ -363,10 +364,10 @@ export const AssetsView = () => {
 const inputStyle = {
   width: '100%',
   padding: '8px 12px',
-  backgroundColor: '#ffffff',
-  border: '1px solid #cbd5e1',
+  backgroundColor: 'var(--bg-input)',
+  border: '1px solid var(--border-subtle)',
   borderRadius: '6px',
-  color: '#0f172a',
+  color: 'var(--text-primary)',
   fontSize: '0.85rem',
   outline: 'none'
 };

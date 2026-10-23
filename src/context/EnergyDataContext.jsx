@@ -35,17 +35,27 @@ export const EnergyDataProvider = ({ children }) => {
   const [meterProfiles, setMeterProfiles] = useState(() => {
     const saved = localStorage.getItem('sab_meter_profiles');
     if (saved) {
-      const parsed = JSON.parse(saved);
-      return parsed.map(p => {
-        // Migrate legacy scale -> multiplier
-        return {
-          ...p,
-          parameters: (p.parameters || []).map(param => ({
-            ...param,
-            multiplier: param.multiplier !== undefined ? param.multiplier : (param.scale !== undefined ? param.scale : 1.0)
-          }))
-        };
-      });
+      try {
+        const parsed = JSON.parse(saved);
+        return parsed.map(p => {
+          let params = p.parameters || [];
+          if (p.profile_id === 'PROF-ELM-01' && params.length < 30) {
+            const elmDefault = initialMeterProfiles.find(ip => ip.profile_id === 'PROF-ELM-01');
+            if (elmDefault && elmDefault.parameters) {
+              params = elmDefault.parameters;
+            }
+          }
+          return {
+            ...p,
+            parameters: params.map(param => ({
+              ...param,
+              multiplier: param.multiplier !== undefined ? param.multiplier : (param.scale !== undefined ? param.scale : 1.0)
+            }))
+          };
+        });
+      } catch (e) {
+        return initialMeterProfiles;
+      }
     }
     return initialMeterProfiles;
   });

@@ -21,10 +21,10 @@ const getDeviceStatus = (gw) => {
 
 const statusStyle = (status) => {
   switch (status) {
-    case 'Online': return { bg: '#dcfce7', color: '#15803d', border: '#86efac', dot: '#22c55e' };
-    case 'Intermittent': return { bg: '#fef9c3', color: '#92400e', border: '#fde68a', dot: '#eab308' };
-    case 'Offline': return { bg: '#fee2e2', color: '#991b1b', border: '#fca5a5', dot: '#ef4444' };
-    default: return { bg: '#f1f5f9', color: '#64748b', border: '#cbd5e1', dot: '#94a3b8' };
+    case 'Online': return { bg: 'rgba(16, 185, 129, 0.15)', color: '#34d399', border: 'rgba(16, 185, 129, 0.35)', dot: '#10b981' };
+    case 'Intermittent': return { bg: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24', border: 'rgba(245, 158, 11, 0.35)', dot: '#f59e0b' };
+    case 'Offline': return { bg: 'rgba(244, 63, 94, 0.15)', color: '#fb7185', border: 'rgba(244, 63, 94, 0.35)', dot: '#f43f5e' };
+    default: return { bg: 'rgba(148, 163, 184, 0.12)', color: '#94a3b8', border: 'rgba(148, 163, 184, 0.25)', dot: '#64748b' };
   }
 };
 
@@ -549,9 +549,6 @@ export const DeviceMasterView = () => {
                 <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
                   {editingId ? 'Edit Device' : 'Register New Device'}
                 </h2>
-                <p style={{ fontSize: '0.78rem', color: '#64748b', margin: '2px 0 0' }}>
-                  {editingId ? `Editing: ${form.Gateway_name}` : 'Add a new gateway/edge device and configure its channels'}
-                </p>
               </div>
             </div>
           </div>
@@ -668,8 +665,8 @@ export const DeviceMasterView = () => {
               <Server size={22} color="#fff" />
             </div>
             <div>
-              <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>{selectedGateway.Gateway_name}</h2>
-              <p style={{ fontSize: '0.78rem', color: '#64748b', margin: '3px 0 0' }}>
+              <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.02em' }}>{selectedGateway.Gateway_name}</h2>
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '3px 0 0' }}>
                 {selectedGateway.Gateway_id} · {selectedGateway.gw_model_name || 'Gateway'} · {selectedChannels.length} configured channel{selectedChannels.length === 1 ? '' : 's'}
                 {channelCapacity > 0 ? ` of ${channelCapacity} supported` : ''}
               </p>
@@ -706,49 +703,49 @@ export const DeviceMasterView = () => {
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'space-between',
-                    border: '1px solid #e2e8f0',
-                    boxShadow: '0 4px 12px rgba(15, 23, 42, 0.03)',
+                    border: '1px solid var(--border-subtle)',
+                    boxShadow: 'var(--shadow-card)',
                     transition: 'all 0.2s ease',
                     position: 'relative'
                   }}
                 >
                   <div>
                     {/* Channel Header */}
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', paddingBottom: '14px', borderBottom: '1px solid #f1f5f9' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', paddingBottom: '14px', borderBottom: '1px solid var(--border-subtle)' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <div style={{
                           width: '40px',
                           height: '40px',
                           borderRadius: '10px',
-                          backgroundColor: channel.status === 'Active' ? '#ecfdf5' : '#f8fafc',
-                          color: channel.status === 'Active' ? '#059669' : '#64748b',
+                          backgroundColor: channel.status === 'Active' ? 'var(--accent-emerald-glow)' : 'var(--bg-card-secondary)',
+                          color: channel.status === 'Active' ? 'var(--accent-emerald)' : 'var(--text-muted)',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          border: `1px solid ${channel.status === 'Active' ? '#a7f3d0' : '#e2e8f0'}`
+                          border: `1px solid ${channel.status === 'Active' ? 'var(--accent-emerald-border)' : 'var(--border-subtle)'}`
                         }}>
                           <Network size={19} />
                         </div>
                         <div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <h3 style={{ margin: 0, color: '#0f172a', fontSize: '0.98rem', fontWeight: 700 }}>
+                            <h3 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '0.98rem', fontWeight: 700 }}>
                               {channel.Channel_name}
                             </h3>
                           </div>
-                          <div style={{ marginTop: '3px', color: '#64748b', fontSize: '0.74rem', fontWeight: 500 }}>
-                            <span style={{ color: '#0284c7', fontWeight: 700 }}>Channel {channelNum}</span>
-                            {channelCapacity > 0 ? ` of ${channelCapacity}` : ''} · <span style={{ fontFamily: 'monospace' }}>{channel.Channel_id}</span>
+                          <div style={{ marginTop: '3px', color: 'var(--text-muted)', fontSize: '0.74rem', fontWeight: 500 }}>
+                            <span style={{ color: 'var(--primary-cyan)', fontWeight: 700 }}>Channel {channelNum}</span>
+                            {channelCapacity > 0 ? ` of ${channelCapacity}` : ''} · <span style={{ fontFamily: 'var(--font-mono)' }}>{channel.Channel_id}</span>
                           </div>
                         </div>
                       </div>
                       <span style={{
                         padding: '4px 10px',
                         borderRadius: '20px',
-                        backgroundColor: channel.status === 'Active' ? '#dcfce7' : '#f1f5f9',
-                        color: channel.status === 'Active' ? '#15803d' : '#64748b',
+                        backgroundColor: channel.status === 'Active' ? 'var(--accent-emerald-glow)' : 'var(--bg-card-secondary)',
+                        color: channel.status === 'Active' ? 'var(--accent-emerald)' : 'var(--text-muted)',
                         fontSize: '0.72rem',
                         fontWeight: 700,
-                        border: `1px solid ${channel.status === 'Active' ? '#bbf7d0' : '#cbd5e1'}`
+                        border: `1px solid ${channel.status === 'Active' ? 'var(--accent-emerald-border)' : 'var(--border-subtle)'}`
                       }}>
                         {channel.status || 'Active'}
                       </span>
@@ -1437,14 +1434,11 @@ export const DeviceMasterView = () => {
       {/* Header */}
       <div style={{ ...cardStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{ width: '44px', height: '44px', borderRadius: '10px', background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(2,132,199,0.25)' }}>
+          <div style={{ width: '44px', height: '44px', borderRadius: '10px', background: 'var(--primary-cyan-gradient)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 14px rgba(2,132,199,0.35)' }}>
             <Server size={22} color="#fff" />
           </div>
           <div>
-            <h2 style={{ fontSize: '1.3rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>Device Master</h2>
-            <p style={{ fontSize: '0.78rem', color: '#64748b', margin: '2px 0 0' }}>
-              Register and manage IoT edge gateway devices. Select a device row to view its channels and meters.
-            </p>
+            <h2 style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.02em' }}>Device Master</h2>
           </div>
         </div>
         <button onClick={openAdd} style={saveBtnStyle}>
@@ -1454,38 +1448,38 @@ export const DeviceMasterView = () => {
 
       {/* Success */}
       {successMsg && (
-        <div style={{ padding: '12px 16px', backgroundColor: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '10px', color: '#065f46', fontSize: '0.84rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <CheckCircle2 size={15} color="#059669" /> {successMsg}
+        <div style={{ padding: '12px 16px', backgroundColor: 'var(--accent-emerald-glow)', border: '1px solid var(--accent-emerald-border)', borderRadius: '10px', color: 'var(--accent-emerald)', fontSize: '0.84rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <CheckCircle2 size={15} color="var(--accent-emerald)" /> {successMsg}
         </div>
       )}
 
       {/* Stats + Professional Filter Tabs + Search */}
       <div style={{ ...cardStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', gap: '18px', paddingRight: '16px', borderRight: '1px solid #e2e8f0' }}>
-            <Stat label="Total Gateways" value={gateways.length} color="#0284c7" />
-            <Stat label="Online" value={gateways.filter(g => getDeviceStatus(g) === 'Online').length} color="#15803d" />
-            <Stat label="Offline" value={gateways.filter(g => getDeviceStatus(g) === 'Offline' || getDeviceStatus(g) === 'Intermittent').length} color="#dc2626" />
+          <div style={{ display: 'flex', gap: '18px', paddingRight: '16px', borderRight: '1px solid var(--border-subtle)' }}>
+            <Stat label="Total Gateways" value={gateways.length} color="var(--primary-cyan)" />
+            <Stat label="Online" value={gateways.filter(g => getDeviceStatus(g) === 'Online').length} color="var(--accent-emerald)" />
+            <Stat label="Offline" value={gateways.filter(g => getDeviceStatus(g) === 'Offline' || getDeviceStatus(g) === 'Intermittent').length} color="var(--accent-rose)" />
             {meters.some(m => m.status === 'Inactive') && (
-              <Stat label="Inactive Meters" value={meters.filter(m => m.status === 'Inactive').length} color="#f59e0b" />
+              <Stat label="Inactive Meters" value={meters.filter(m => m.status === 'Inactive').length} color="var(--accent-amber)" />
             )}
           </div>
 
           {/* Clean Segmented Filter Controls */}
-          <div style={{ display: 'inline-flex', padding: '3px', backgroundColor: '#f1f5f9', borderRadius: '8px', gap: '3px' }}>
+          <div style={{ display: 'inline-flex', padding: '3px', backgroundColor: 'var(--bg-input)', borderRadius: '8px', border: '1px solid var(--border-subtle)', gap: '3px' }}>
             <button
               type="button"
               onClick={() => setStatusFilter('ALL')}
               style={{
-                border: 'none',
+                border: statusFilter === 'ALL' ? '1px solid var(--border-subtle)' : '1px solid transparent',
                 padding: '6px 12px',
                 borderRadius: '6px',
                 fontSize: '0.76rem',
                 fontWeight: 600,
                 cursor: 'pointer',
-                backgroundColor: statusFilter === 'ALL' ? '#ffffff' : 'transparent',
-                color: statusFilter === 'ALL' ? '#0f172a' : '#64748b',
-                boxShadow: statusFilter === 'ALL' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none'
+                backgroundColor: statusFilter === 'ALL' ? 'var(--bg-card)' : 'transparent',
+                color: statusFilter === 'ALL' ? 'var(--text-primary)' : 'var(--text-muted)',
+                boxShadow: statusFilter === 'ALL' ? 'var(--shadow-card)' : 'none'
               }}
             >
               All ({gateways.length})
@@ -1494,15 +1488,15 @@ export const DeviceMasterView = () => {
               type="button"
               onClick={() => setStatusFilter('ONLINE')}
               style={{
-                border: 'none',
+                border: statusFilter === 'ONLINE' ? '1px solid var(--border-subtle)' : '1px solid transparent',
                 padding: '6px 12px',
                 borderRadius: '6px',
                 fontSize: '0.76rem',
                 fontWeight: 600,
                 cursor: 'pointer',
-                backgroundColor: statusFilter === 'ONLINE' ? '#ffffff' : 'transparent',
-                color: statusFilter === 'ONLINE' ? '#15803d' : '#64748b',
-                boxShadow: statusFilter === 'ONLINE' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none'
+                backgroundColor: statusFilter === 'ONLINE' ? 'var(--bg-card)' : 'transparent',
+                color: statusFilter === 'ONLINE' ? 'var(--accent-emerald)' : 'var(--text-muted)',
+                boxShadow: statusFilter === 'ONLINE' ? 'var(--shadow-card)' : 'none'
               }}
             >
               Online ({gateways.filter(g => getDeviceStatus(g) === 'Online').length})
@@ -1511,22 +1505,22 @@ export const DeviceMasterView = () => {
               type="button"
               onClick={() => setStatusFilter('OFFLINE')}
               style={{
-                border: 'none',
+                border: statusFilter === 'OFFLINE' ? '1px solid var(--border-subtle)' : '1px solid transparent',
                 padding: '6px 12px',
                 borderRadius: '6px',
                 fontSize: '0.76rem',
                 fontWeight: 600,
                 cursor: 'pointer',
-                backgroundColor: statusFilter === 'OFFLINE' ? '#ffffff' : 'transparent',
-                color: statusFilter === 'OFFLINE' ? '#dc2626' : '#64748b',
-                boxShadow: statusFilter === 'OFFLINE' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                backgroundColor: statusFilter === 'OFFLINE' ? 'var(--bg-card)' : 'transparent',
+                color: statusFilter === 'OFFLINE' ? 'var(--accent-rose)' : 'var(--text-muted)',
+                boxShadow: statusFilter === 'OFFLINE' ? 'var(--shadow-card)' : 'none',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '5px'
               }}
             >
               {gateways.filter(g => getDeviceStatus(g) === 'Offline' || getDeviceStatus(g) === 'Intermittent').length > 0 && (
-                <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#ef4444' }} />
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'var(--accent-rose)' }} />
               )}
               Offline ({gateways.filter(g => getDeviceStatus(g) === 'Offline' || getDeviceStatus(g) === 'Intermittent').length})
             </button>
@@ -1534,21 +1528,21 @@ export const DeviceMasterView = () => {
         </div>
 
         <div style={{ position: 'relative' }}>
-          <Search size={14} color="#94a3b8" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+          <Search size={14} color="var(--text-muted)" style={{ position: 'absolute', left: '11px', top: '50%', transform: 'translateY(-50%)' }} />
           <input
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             placeholder="Search by name, serial, IP, MAC…"
-            style={{ ...inputStyle, paddingLeft: '32px', width: '280px' }}
+            style={{ ...inputStyle, paddingLeft: '34px', width: '280px' }}
           />
         </div>
       </div>
 
       {/* Table */}
-      <div style={{ backgroundColor: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
+      <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '14px', border: '1px solid var(--border-subtle)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', textAlign: 'left' }}>
           <thead>
-            <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <tr style={{ backgroundColor: 'var(--bg-table-header)', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               <th style={th}>S.No</th>
               <th style={th}>Device Name</th>
               <th style={th}>Serial No.</th>
@@ -1564,8 +1558,8 @@ export const DeviceMasterView = () => {
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={10} style={{ padding: '48px', textAlign: 'center', color: '#94a3b8' }}>
-                  No devices found. Click <strong>"Register Device"</strong> to add one.
+                <td colSpan={10} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  No devices found. Click <strong style={{ color: 'var(--primary-cyan)' }}>"Register Device"</strong> to add one.
                 </td>
               </tr>
             ) : filtered.map((gw, idx) => {
@@ -1573,7 +1567,7 @@ export const DeviceMasterView = () => {
               const ss = statusStyle(status);
               return (
                 <tr key={gw.Gateway_id}
-                  style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.15s', cursor: 'pointer' }}
+                  style={{ borderBottom: '1px solid var(--border-subtle)', transition: 'background-color 0.15s ease', cursor: 'pointer' }}
                   onClick={() => setSelectedGatewayId(gw.Gateway_id)}
                   onKeyDown={e => {
                     if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
@@ -1585,32 +1579,38 @@ export const DeviceMasterView = () => {
                   role="button"
                   aria-label={`View channels and meters for ${gw.Gateway_name}`}
                   title="Click to view this gateway's channels and meters"
-                  onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                  onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-table-row-hover)'}
                   onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
                 >
-                  <td style={td}><span style={{ color: '#94a3b8', fontWeight: 600, fontSize: '0.76rem' }}>{idx + 1}</span></td>
+                  <td style={td}><span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{idx + 1}</span></td>
                   <td style={td}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'linear-gradient(135deg, #e0f2fe, #bae6fd)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Server size={15} color="#0284c7" />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{ width: '30px', height: '30px', borderRadius: '6px', background: 'var(--bg-card-secondary)', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Server size={15} color="var(--text-muted)" />
                       </div>
                       <div>
-                        <div style={{ fontWeight: 700, color: '#0f172a' }}>{gw.Gateway_name}</div>
-                        <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{gw.Gateway_id}</div>
+                        <div style={{ color: 'var(--text-primary)' }}>{gw.Gateway_name}</div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{gw.Gateway_id}</div>
                       </div>
                     </div>
                   </td>
-                  <td style={{ ...td, fontFamily: 'monospace', fontWeight: 600, color: '#334155' }}>{gw.serial_number || '—'}</td>
-                  <td style={{ ...td, fontFamily: 'monospace', color: '#0369a1', fontWeight: 600 }}>{gw.ip_address || '—'}</td>
-                  <td style={{ ...td, fontFamily: 'monospace', fontSize: '0.78rem', color: '#475569' }}>{gw.mac_address || '—'}</td>
+                  <td style={{ ...td, fontFamily: 'var(--font-mono)', color: 'var(--text-primary)' }}>{gw.serial_number || '—'}</td>
+                  <td style={{ ...td, fontFamily: 'var(--font-mono)' }}>
+                    {gw.ip_address ? (
+                      <span style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-card-secondary)', border: '1px solid var(--border-subtle)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.78rem' }}>
+                        {gw.ip_address}
+                      </span>
+                    ) : '—'}
+                  </td>
+                  <td style={{ ...td, fontFamily: 'var(--font-mono)', fontSize: '0.78rem', color: 'var(--text-muted)' }}>{gw.mac_address || '—'}</td>
                   <td style={td}>
-                    <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#0f172a' }}>{gw.gw_make_name || '—'}</div>
-                    <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{gw.gw_model_name || '—'}</div>
+                    <div style={{ fontSize: '0.82rem', color: 'var(--text-primary)' }}>{gw.gw_make_name || '—'}</div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{gw.gw_model_name || '—'}</div>
                   </td>
                   <td style={td}>
                     {gw.firmware_version
-                      ? <span style={{ fontSize: '0.72rem', backgroundColor: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', padding: '2px 7px', borderRadius: '4px', fontFamily: 'monospace', fontWeight: 600 }}>{gw.firmware_version}</span>
-                      : <span style={{ color: '#94a3b8', fontSize: '0.75rem' }}>—</span>}
+                      ? <span style={{ fontSize: '0.72rem', backgroundColor: 'var(--bg-card-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border-subtle)', padding: '2px 7px', borderRadius: '4px', fontFamily: 'var(--font-mono)', fontWeight: 500 }}>{gw.firmware_version}</span>
+                      : <span style={{ color: 'var(--text-dim)', fontSize: '0.75rem' }}>—</span>}
                   </td>
                   <td style={{ ...td, textAlign: 'center' }}>
                     <span style={{
@@ -1623,7 +1623,7 @@ export const DeviceMasterView = () => {
                       padding: '3px 10px',
                       borderRadius: '20px',
                       fontSize: '0.72rem',
-                      fontWeight: 700
+                      fontWeight: 500
                     }}>
                       <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: ss.dot, boxShadow: status === 'Online' ? `0 0 6px ${ss.dot}` : 'none' }} />
                       {status}
@@ -1635,17 +1635,17 @@ export const DeviceMasterView = () => {
                       if (typeof timeObj === 'object' && timeObj !== null) {
                         return (
                           <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.74rem', fontWeight: 600, color: '#334155' }}>
-                              <Clock size={11} color="#64748b" />
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                              <Clock size={11} color="var(--text-dim)" />
                               {timeObj.elapsed}
                             </span>
-                            <span style={{ fontSize: '0.66rem', fontFamily: 'monospace', color: '#94a3b8' }}>
+                            <span style={{ fontSize: '0.66rem', fontFamily: 'var(--font-mono)', color: 'var(--text-dim)' }}>
                               {timeObj.exact}
                             </span>
                           </div>
                         );
                       }
-                      return <span style={{ color: '#94a3b8', fontSize: '0.76rem' }}>—</span>;
+                      return <span style={{ color: 'var(--text-dim)', fontSize: '0.76rem' }}>—</span>;
                     })()}
                   </td>
                   <td style={{ ...td, textAlign: 'center' }}>
@@ -1885,33 +1885,111 @@ export const DeviceMasterView = () => {
 // ── Sub-components ────────────────────────────────────────────────────────────
 const SectionTitle = ({ icon, title }) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-    <span style={{ color: '#0284c7' }}>{icon}</span>
-    <h3 style={{ fontSize: '0.9rem', fontWeight: 700, color: '#0f172a', margin: 0, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{title}</h3>
+    <span style={{ color: 'var(--primary-cyan)' }}>{icon}</span>
+    <h3 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{title}</h3>
   </div>
 );
 
 const Field = ({ label, children }) => (
   <div>
-    <label style={{ display: 'block', fontSize: '0.8rem', color: '#334155', fontWeight: 700, marginBottom: '6px' }}>{label}</label>
+    <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 700, marginBottom: '6px' }}>{label}</label>
     {children}
   </div>
 );
 
 const Stat = ({ label, value, color }) => (
   <div style={{ textAlign: 'center' }}>
-    <div style={{ fontSize: '1.3rem', fontWeight: 800, color }}>{value}</div>
-    <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>{label}</div>
+    <div style={{ fontSize: '1.35rem', fontWeight: 800, color, fontFamily: 'var(--font-heading)' }}>{value}</div>
+    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>{label}</div>
   </div>
 );
 
 // ── Styles ────────────────────────────────────────────────────────────────────
-const cardStyle = { backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '20px 24px', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' };
-const inputStyle = { width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.85rem', color: '#0f172a', outline: 'none', boxSizing: 'border-box', backgroundColor: '#fff' };
+const cardStyle = {
+  backgroundColor: 'var(--bg-card)',
+  borderRadius: '14px',
+  border: '1px solid var(--border-subtle)',
+  padding: '20px 24px',
+  boxShadow: 'var(--shadow-card)',
+  transition: 'all 0.2s ease',
+};
+const inputStyle = {
+  width: '100%',
+  padding: '9px 13px',
+  border: '1px solid var(--border-subtle)',
+  borderRadius: '8px',
+  fontSize: '0.85rem',
+  color: 'var(--text-primary)',
+  outline: 'none',
+  boxSizing: 'border-box',
+  backgroundColor: 'var(--bg-input)',
+  transition: 'border-color 0.18s, box-shadow 0.18s',
+};
 const selectStyle = { ...inputStyle, cursor: 'pointer' };
-const th = { padding: '11px 14px', whiteSpace: 'nowrap' };
-const td = { padding: '11px 14px' };
-const saveBtnStyle = { display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#0284c7', color: '#fff', border: 'none', borderRadius: '8px', padding: '9px 18px', fontSize: '0.84rem', fontWeight: 700, cursor: 'pointer', boxShadow: '0 2px 6px rgba(2,132,199,0.25)' };
-const cancelBtnStyle = { display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#fff', border: '1px solid #cbd5e1', color: '#334155', borderRadius: '8px', padding: '8px 16px', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer' };
-const backBtnStyle = { display: 'flex', alignItems: 'center', justifyContent: 'center', width: '36px', height: '36px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: '#fff', color: '#334155', cursor: 'pointer' };
-const editBtnStyle = { display: 'flex', alignItems: 'center', gap: '4px', padding: '5px 10px', borderRadius: '6px', border: '1px solid #bae6fd', backgroundColor: '#f0f9ff', color: '#0284c7', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600 };
-const deleteBtnStyle = { display: 'flex', alignItems: 'center', padding: '5px 8px', borderRadius: '6px', border: '1px solid #fecdd3', backgroundColor: '#fff1f2', color: '#e11d48', cursor: 'pointer' };
+const th = { padding: '12px 14px', whiteSpace: 'nowrap', fontWeight: 700 };
+const td = { padding: '12px 14px' };
+const saveBtnStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '7px',
+  background: 'var(--primary-cyan-gradient)',
+  color: '#ffffff',
+  border: '1px solid rgba(56, 189, 248, 0.4)',
+  borderRadius: '8px',
+  padding: '9px 18px',
+  fontSize: '0.84rem',
+  fontWeight: 700,
+  cursor: 'pointer',
+  boxShadow: '0 4px 14px rgba(2, 132, 199, 0.35)',
+  transition: 'all 0.18s ease',
+};
+const cancelBtnStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '6px',
+  backgroundColor: 'var(--bg-card-secondary)',
+  border: '1px solid var(--border-subtle)',
+  color: 'var(--text-secondary)',
+  borderRadius: '8px',
+  padding: '8px 16px',
+  fontSize: '0.82rem',
+  fontWeight: 600,
+  cursor: 'pointer',
+};
+const backBtnStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: '36px',
+  height: '36px',
+  borderRadius: '8px',
+  border: '1px solid var(--border-subtle)',
+  backgroundColor: 'var(--bg-card-secondary)',
+  color: 'var(--text-primary)',
+  cursor: 'pointer',
+};
+const editBtnStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '5px',
+  padding: '6px 11px',
+  borderRadius: '7px',
+  border: '1px solid rgba(56, 189, 248, 0.35)',
+  backgroundColor: 'rgba(2, 132, 199, 0.15)',
+  color: 'var(--primary-cyan)',
+  cursor: 'pointer',
+  fontSize: '0.76rem',
+  fontWeight: 600,
+  transition: 'all 0.15s ease',
+};
+const deleteBtnStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  padding: '6px 9px',
+  borderRadius: '7px',
+  border: '1px solid rgba(244, 63, 94, 0.35)',
+  backgroundColor: 'rgba(225, 29, 72, 0.15)',
+  color: 'var(--accent-rose)',
+  cursor: 'pointer',
+  transition: 'all 0.15s ease',
+};

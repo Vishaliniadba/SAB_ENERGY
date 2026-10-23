@@ -107,18 +107,18 @@ export const ModelMasterView = () => {
   }, [models, makes, filterMakeId, searchTerm]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '1000px', margin: '0 auto' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', width: '100%' }}>
       {/* Page Header */}
       <div
         style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          backgroundColor: '#ffffff',
+          backgroundColor: 'var(--bg-card)',
           padding: '18px 24px',
-          borderRadius: '12px',
-          border: '1px solid #e2e8f0',
-          boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+          borderRadius: '14px',
+          border: '1px solid var(--border-subtle)',
+          boxShadow: 'var(--shadow-card)',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -127,24 +127,22 @@ export const ModelMasterView = () => {
               width: '40px',
               height: '40px',
               borderRadius: '10px',
-              background: 'linear-gradient(135deg, #0284c7, #0369a1)',
+              background: 'var(--primary-cyan-gradient)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               color: '#ffffff',
+              boxShadow: '0 4px 14px rgba(2, 132, 199, 0.35)',
             }}
           >
             <Cpu size={20} />
           </div>
-          <h2 style={{ fontSize: '1.3rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+          <h2 style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
             Model Master
           </h2>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{ fontSize: '0.84rem', color: '#64748b', fontWeight: 600 }}>
-            Total Models: <strong style={{ color: '#0284c7' }}>{models.length}</strong>
-          </div>
+        <div>
           <button onClick={handleOpenAdd} style={btnPrimaryStyle}>
             <Plus size={16} />
             <span>Add Model</span>
@@ -154,7 +152,7 @@ export const ModelMasterView = () => {
 
       {/* Success Notification */}
       {successMsg && (
-        <div style={{ padding: '12px 18px', backgroundColor: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '10px', color: '#065f46', fontSize: '0.84rem', fontWeight: 600 }}>
+        <div style={{ padding: '12px 18px', backgroundColor: 'var(--accent-emerald-glow)', border: '1px solid var(--accent-emerald-border)', borderRadius: '10px', color: 'var(--accent-emerald)', fontSize: '0.84rem', fontWeight: 600 }}>
           {successMsg}
         </div>
       )}
@@ -165,17 +163,18 @@ export const ModelMasterView = () => {
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          backgroundColor: '#ffffff',
-          padding: '12px 20px',
-          borderRadius: '10px',
-          border: '1px solid #e2e8f0',
+          backgroundColor: 'var(--bg-card)',
+          padding: '14px 20px',
+          borderRadius: '12px',
+          border: '1px solid var(--border-subtle)',
+          boxShadow: 'var(--shadow-card)',
           flexWrap: 'wrap',
           gap: '12px',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', fontWeight: 600, color: '#475569' }}>
-            <Filter size={15} color="#0284c7" />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+            <Filter size={15} color="var(--primary-cyan)" />
             <span>Filter by Make:</span>
           </div>
 
@@ -184,14 +183,14 @@ export const ModelMasterView = () => {
             onChange={(e) => setFilterMakeId(e.target.value)}
             style={{
               padding: '6px 12px',
-              border: '1px solid #cbd5e1',
+              border: '1px solid var(--border-subtle)',
               borderRadius: '6px',
               fontSize: '0.82rem',
               fontWeight: 600,
-              color: '#0f172a',
+              color: 'var(--text-primary)',
               outline: 'none',
               cursor: 'pointer',
-              backgroundColor: '#ffffff',
+              backgroundColor: 'var(--bg-input)',
             }}
           >
             <option value="all">All Makes ({makes.length})</option>
@@ -201,26 +200,24 @@ export const ModelMasterView = () => {
               </option>
             ))}
           </select>
-
-          <span style={{ fontSize: '0.8rem', color: '#64748b', marginLeft: '6px' }}>
-            Showing <strong>{filteredModels.length}</strong> models
-          </span>
         </div>
 
         <div style={{ position: 'relative' }}>
-          <Search size={14} color="#94a3b8" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+          <Search size={14} color="var(--text-muted)" style={{ position: 'absolute', left: '11px', top: '50%', transform: 'translateY(-50%)' }} />
           <input
             type="text"
             placeholder="Search model name..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{
-              padding: '6px 12px 6px 30px',
-              border: '1px solid #cbd5e1',
-              borderRadius: '6px',
-              fontSize: '0.82rem',
+              padding: '8px 12px 8px 34px',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: '8px',
+              fontSize: '0.84rem',
               outline: 'none',
-              width: '220px',
+              width: '230px',
+              backgroundColor: 'var(--bg-input)',
+              color: 'var(--text-primary)',
             }}
           />
         </div>
@@ -229,16 +226,16 @@ export const ModelMasterView = () => {
       {/* Table of Models against Make (Shown First) */}
       <div
         style={{
-          backgroundColor: '#ffffff',
-          borderRadius: '12px',
-          border: '1px solid #e2e8f0',
+          backgroundColor: 'var(--bg-card)',
+          borderRadius: '14px',
+          border: '1px solid var(--border-subtle)',
           overflow: 'hidden',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+          boxShadow: 'var(--shadow-card)',
         }}
       >
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84rem', textAlign: 'left' }}>
           <thead>
-            <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontSize: '0.76rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <tr style={{ backgroundColor: 'var(--bg-table-header)', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-muted)', fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               <th style={{ padding: '12px 18px', width: '50px' }}>#</th>
               <th style={{ padding: '12px 18px' }}>Make Name</th>
               <th style={{ padding: '12px 18px' }}>Model Name</th>
@@ -248,8 +245,8 @@ export const ModelMasterView = () => {
           <tbody>
             {filteredModels.length === 0 ? (
               <tr>
-                <td colSpan={4} style={{ padding: '36px', textAlign: 'center', color: '#94a3b8' }}>
-                  No models found. Click <strong>"Add Model"</strong> to add one against a Make.
+                <td colSpan={4} style={{ padding: '36px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  No models found. Click <strong style={{ color: 'var(--primary-cyan)' }}>"Add Model"</strong> to add one against a Make.
                 </td>
               </tr>
             ) : (
@@ -261,28 +258,28 @@ export const ModelMasterView = () => {
                   <tr
                     key={m.model_id}
                     style={{
-                      borderBottom: '1px solid #f1f5f9',
+                      borderBottom: '1px solid var(--border-subtle)',
                       transition: 'background-color 0.15s ease',
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f8fafc')}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-table-row-hover)')}
                     onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                   >
-                    <td style={{ padding: '12px 18px', color: '#94a3b8', fontWeight: 600, fontSize: '0.78rem' }}>
+                    <td style={{ padding: '12px 18px', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
                       {idx + 1}
                     </td>
 
                     {/* Make Name */}
-                    <td style={{ padding: '12px 18px', fontWeight: 700, color: '#0f172a' }}>
+                    <td style={{ padding: '12px 18px', color: 'var(--text-primary)' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Building2 size={15} color="#0284c7" />
+                        <Building2 size={15} color="var(--text-muted)" />
                         <span>{makeNameDisplay}</span>
                       </div>
                     </td>
 
                     {/* Model Name */}
-                    <td style={{ padding: '12px 18px', fontWeight: 600, color: '#0369a1', fontSize: '0.92rem' }}>
+                    <td style={{ padding: '12px 18px', color: 'var(--text-primary)' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Cpu size={15} color="#64748b" />
+                        <Cpu size={15} color="var(--text-muted)" />
                         <span>{m.model_name}</span>
                       </div>
                     </td>
@@ -357,10 +354,10 @@ export const ModelMasterView = () => {
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
-              backgroundColor: '#ffffff',
+              backgroundColor: 'var(--bg-card)',
               borderRadius: '14px',
-              border: '1px solid #e2e8f0',
-              boxShadow: '0 20px 40px -8px rgba(0, 0, 0, 0.25)',
+              border: '1px solid var(--border-subtle)',
+              boxShadow: 'var(--shadow-card)',
               width: '100%',
               maxWidth: '480px',
               overflow: 'hidden',
@@ -374,13 +371,13 @@ export const ModelMasterView = () => {
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 padding: '16px 22px',
-                borderBottom: '1px solid #f1f5f9',
-                backgroundColor: '#f8fafc',
+                borderBottom: '1px solid var(--border-subtle)',
+                backgroundColor: 'var(--bg-card-secondary)',
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Cpu size={18} color="#0284c7" />
-                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                <Cpu size={18} color="var(--primary-cyan)" />
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
                   {editingModelId ? 'Edit Model' : 'Add Model'}
                 </h3>
               </div>
@@ -389,7 +386,7 @@ export const ModelMasterView = () => {
                 style={{
                   background: 'none',
                   border: 'none',
-                  color: '#94a3b8',
+                  color: 'var(--text-dim)',
                   cursor: 'pointer',
                   padding: '4px',
                   display: 'flex',
@@ -404,14 +401,14 @@ export const ModelMasterView = () => {
             {/* Modal Form */}
             <form onSubmit={handleSubmit} style={{ padding: '22px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {errorMsg && (
-                <div style={{ padding: '8px 14px', backgroundColor: '#fff1f2', border: '1px solid #fecdd3', borderRadius: '6px', color: '#e11d48', fontSize: '0.8rem' }}>
+                <div style={{ padding: '8px 14px', backgroundColor: 'rgba(244, 63, 94, 0.12)', border: '1px solid var(--accent-rose-border)', borderRadius: '6px', color: 'var(--accent-rose)', fontSize: '0.8rem' }}>
                   {errorMsg}
                 </div>
               )}
 
               {/* Make Name Dropdown */}
               <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '6px' }}>
                   Make Name
                 </label>
                 <select
@@ -421,12 +418,13 @@ export const ModelMasterView = () => {
                   style={{
                     width: '100%',
                     padding: '10px 12px',
-                    border: '1px solid #cbd5e1',
+                    border: '1px solid var(--border-subtle)',
                     borderRadius: '8px',
                     fontSize: '0.88rem',
                     outline: 'none',
                     cursor: 'pointer',
-                    backgroundColor: '#ffffff',
+                    backgroundColor: 'var(--bg-input)',
+                    color: 'var(--text-primary)',
                     boxSizing: 'border-box',
                   }}
                 >
@@ -440,7 +438,7 @@ export const ModelMasterView = () => {
 
               {/* Model Name Input */}
               <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '6px' }}>
                   Model Name
                 </label>
                 <input
@@ -453,11 +451,13 @@ export const ModelMasterView = () => {
                   style={{
                     width: '100%',
                     padding: '10px 14px',
-                    border: '1px solid #cbd5e1',
+                    border: '1px solid var(--border-subtle)',
                     borderRadius: '8px',
                     fontSize: '0.9rem',
                     outline: 'none',
                     boxSizing: 'border-box',
+                    backgroundColor: 'var(--bg-input)',
+                    color: 'var(--text-primary)',
                   }}
                 />
               </div>
@@ -484,25 +484,26 @@ const btnPrimaryStyle = {
   display: 'flex',
   alignItems: 'center',
   gap: '6px',
-  backgroundColor: '#0284c7',
+  background: 'var(--primary-cyan-gradient)',
   color: '#ffffff',
-  border: 'none',
+  border: '1px solid rgba(56, 189, 248, 0.4)',
   borderRadius: '8px',
   padding: '8px 16px',
   fontSize: '0.82rem',
   fontWeight: 700,
   cursor: 'pointer',
-  boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
+  boxShadow: '0 4px 14px rgba(2, 132, 199, 0.35)',
   whiteSpace: 'nowrap',
+  transition: 'all 0.18s ease',
 };
 
 const btnSecondaryStyle = {
   display: 'flex',
   alignItems: 'center',
   gap: '6px',
-  backgroundColor: '#ffffff',
-  border: '1px solid #cbd5e1',
-  color: '#334155',
+  backgroundColor: 'var(--bg-card-secondary)',
+  border: '1px solid var(--border-subtle)',
+  color: 'var(--text-secondary)',
   borderRadius: '8px',
   padding: '8px 16px',
   fontSize: '0.82rem',

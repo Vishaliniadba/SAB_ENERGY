@@ -89,16 +89,13 @@ export const AssetMappingView = () => {
           <h4 style={{ fontSize: '0.92rem', fontWeight: 600, color: '#0f172a', margin: 0 }}>
             Asset ↔ Meter Relationship & CT/PT Multiplier Factor
           </h4>
-          <p style={{ fontSize: '0.78rem', color: '#475569', margin: '2px 0 0' }}>
-            Multiplies raw meter pulses/registers by CT/PT ratio (e.g. 200:5 CT = 40 multiplier) to calculate calibrated actual asset energy.
-          </p>
         </div>
       </div>
 
       {/* Top Action Bar */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
         <div style={{ position: 'relative', width: '320px' }}>
-          <Search size={16} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+          <Search size={16} color="var(--text-dim)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
           <input
             type="text"
             placeholder="Search mappings by asset or meter..."
@@ -107,10 +104,10 @@ export const AssetMappingView = () => {
             style={{
               width: '100%',
               padding: '9px 12px 9px 36px',
-              backgroundColor: '#ffffff',
-              border: '1px solid #cbd5e1',
+              backgroundColor: 'var(--bg-input)',
+              border: '1px solid var(--border-subtle)',
               borderRadius: '8px',
-              color: '#0f172a',
+              color: 'var(--text-primary)',
               fontSize: '0.85rem',
               outline: 'none',
               boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
@@ -124,7 +121,7 @@ export const AssetMappingView = () => {
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            backgroundColor: '#0284c7',
+            backgroundColor: 'var(--primary-cyan-deep)',
             color: '#ffffff',
             border: 'none',
             borderRadius: '8px',
@@ -132,7 +129,7 @@ export const AssetMappingView = () => {
             fontWeight: 600,
             fontSize: '0.85rem',
             cursor: 'pointer',
-            boxShadow: '0 2px 6px rgba(2, 132, 199, 0.3)'
+            boxShadow: 'var(--shadow-glow)'
           }}
         >
           <Plus size={16} />
@@ -141,11 +138,11 @@ export const AssetMappingView = () => {
       </div>
 
       {/* Mappings Table */}
-      <div className="glass-panel" style={{ padding: '0', overflow: 'hidden', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px' }}>
+      <div className="glass-panel" style={{ padding: '0', overflow: 'hidden', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: '12px' }}>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
             <thead>
-              <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#64748b' }}>
+              <tr style={{ backgroundColor: 'var(--bg-table-header)', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
                 <th style={{ padding: '14px 18px' }}>Mapping ID</th>
                 <th style={{ padding: '14px 18px' }}>Asset Entity</th>
                 <th style={{ padding: '14px 18px', textAlign: 'center' }}>Link</th>
@@ -159,7 +156,7 @@ export const AssetMappingView = () => {
             <tbody>
               {filteredMappings.length === 0 ? (
                 <tr>
-                  <td colSpan="8" style={{ padding: '32px', textAlign: 'center', color: '#64748b' }}>
+                  <td colSpan="8" style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)' }}>
                     No asset mappings found.
                   </td>
                 </tr>
@@ -172,39 +169,39 @@ export const AssetMappingView = () => {
                     <tr
                       key={map.Mapping_id}
                       style={{
-                        borderBottom: '1px solid #f1f5f9',
+                        borderBottom: '1px solid var(--border-subtle)',
                         transition: 'background-color 0.15s'
                       }}
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-table-row-hover)'}
                       onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                     >
-                      <td style={{ padding: '14px 18px', fontFamily: 'monospace', color: '#64748b', fontWeight: 600 }}>
+                      <td style={{ padding: '14px 18px', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
                         {map.Mapping_id}
                       </td>
 
                       <td style={{ padding: '14px 18px' }}>
                         {asset ? (
                           <div>
-                            <div style={{ fontWeight: 600, color: '#0f172a' }}>{asset.Asset_name}</div>
-                            <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{asset.Asset_id} • {asset.asset_type}</div>
+                            <div style={{ color: 'var(--text-primary)' }}>{asset.Asset_name}</div>
+                            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{asset.Asset_id} • {asset.asset_type}</div>
                           </div>
                         ) : (
-                          <span style={{ color: '#e11d48' }}>{map.Asset_id} (Missing)</span>
+                          <span style={{ color: 'var(--accent-rose)' }}>{map.Asset_id} (Missing)</span>
                         )}
                       </td>
 
-                      <td style={{ padding: '14px 18px', textAlign: 'center', color: '#0284c7' }}>
+                      <td style={{ padding: '14px 18px', textAlign: 'center', color: 'var(--text-muted)' }}>
                         <ArrowRight size={16} />
                       </td>
 
                       <td style={{ padding: '14px 18px' }}>
                         {meter ? (
                           <div>
-                            <div style={{ fontWeight: 600, color: '#0f172a' }}>{meter.Meter_name}</div>
-                            <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{meter.Meter_id} • Slave ID: {meter.slave_id}</div>
+                            <div style={{ color: 'var(--text-primary)' }}>{meter.Meter_name}</div>
+                            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{meter.Meter_id} • Slave ID: {meter.slave_id}</div>
                           </div>
                         ) : (
-                          <span style={{ color: '#e11d48' }}>{map.Meter_id} (Missing)</span>
+                          <span style={{ color: 'var(--accent-rose)' }}>{map.Meter_id} (Missing)</span>
                         )}
                       </td>
 
@@ -213,21 +210,21 @@ export const AssetMappingView = () => {
                           style={{
                             padding: '4px 12px',
                             borderRadius: '6px',
-                            backgroundColor: '#f0f9ff',
-                            color: '#0284c7',
+                            backgroundColor: 'rgba(56, 189, 248, 0.12)',
+                            color: 'var(--primary-cyan)',
                             fontWeight: 700,
-                            fontFamily: 'monospace',
+                            fontFamily: 'var(--font-mono)',
                             fontSize: '0.9rem',
-                            border: '1px solid #bae6fd'
+                            border: '1px solid var(--primary-cyan-border)'
                           }}
                         >
                           {map.multiplication_factor}x
                         </span>
                       </td>
 
-                      <td style={{ padding: '14px 18px', color: '#64748b', fontSize: '0.78rem' }}>
-                        <div>From: <span style={{ color: '#0f172a', fontWeight: 500 }}>{map.effective_from}</span></div>
-                        <div>To: <span style={{ color: '#0f172a', fontWeight: 500 }}>{map.effective_to}</span></div>
+                      <td style={{ padding: '14px 18px', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
+                        <div>From: <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{map.effective_from}</span></div>
+                        <div>To: <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{map.effective_to}</span></div>
                       </td>
 
                       <td style={{ padding: '14px 18px', textAlign: 'center' }}>
@@ -252,20 +249,20 @@ export const AssetMappingView = () => {
                           <button
                             onClick={() => handleOpenEdit(map)}
                             style={{
-                              background: '#ffffff',
-                              border: '1px solid #cbd5e1',
+                              background: 'var(--bg-card-secondary)',
+                              border: '1px solid var(--border-subtle)',
                               borderRadius: '6px',
-                              color: '#475569',
+                              color: 'var(--text-secondary)',
                               padding: '6px 8px',
                               cursor: 'pointer'
                             }}
                             onMouseEnter={(e) => {
-                              e.currentTarget.style.color = '#0284c7';
-                              e.currentTarget.style.borderColor = '#0284c7';
+                              e.currentTarget.style.color = 'var(--primary-cyan)';
+                              e.currentTarget.style.borderColor = 'var(--primary-cyan)';
                             }}
                             onMouseLeave={(e) => {
-                              e.currentTarget.style.color = '#475569';
-                              e.currentTarget.style.borderColor = '#cbd5e1';
+                              e.currentTarget.style.color = 'var(--text-secondary)';
+                              e.currentTarget.style.borderColor = 'var(--border-subtle)';
                             }}
                             title="Edit Mapping"
                           >
@@ -278,20 +275,20 @@ export const AssetMappingView = () => {
                               }
                             }}
                             style={{
-                              background: '#ffffff',
-                              border: '1px solid #cbd5e1',
+                              background: 'var(--bg-card-secondary)',
+                              border: '1px solid var(--border-subtle)',
                               borderRadius: '6px',
-                              color: '#475569',
+                              color: 'var(--text-secondary)',
                               padding: '6px 8px',
                               cursor: 'pointer'
                             }}
                             onMouseEnter={(e) => {
-                              e.currentTarget.style.color = '#e11d48';
-                              e.currentTarget.style.borderColor = '#e11d48';
+                              e.currentTarget.style.color = 'var(--accent-rose)';
+                              e.currentTarget.style.borderColor = 'var(--accent-rose)';
                             }}
                             onMouseLeave={(e) => {
-                              e.currentTarget.style.color = '#475569';
-                              e.currentTarget.style.borderColor = '#cbd5e1';
+                              e.currentTarget.style.color = 'var(--text-secondary)';
+                              e.currentTarget.style.borderColor = 'var(--border-subtle)';
                             }}
                             title="Delete Mapping"
                           >
@@ -394,7 +391,7 @@ export const AssetMappingView = () => {
               onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
               style={{ width: '16px', height: '16px', accentColor: '#0284c7', cursor: 'pointer' }}
             />
-            <label htmlFor="is_active_checkbox" style={{ fontSize: '0.85rem', color: '#334155', cursor: 'pointer', fontWeight: 500 }}>
+            <label htmlFor="is_active_checkbox" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', cursor: 'pointer', fontWeight: 500 }}>
               Active (Apply this CT/PT multiplication in live calculations)
             </label>
           </div>
@@ -406,9 +403,9 @@ export const AssetMappingView = () => {
               style={{
                 padding: '8px 16px',
                 borderRadius: '6px',
-                border: '1px solid #cbd5e1',
-                backgroundColor: '#ffffff',
-                color: '#64748b',
+                border: '1px solid var(--border-subtle)',
+                backgroundColor: 'var(--bg-card-secondary)',
+                color: 'var(--text-secondary)',
                 cursor: 'pointer'
               }}
             >
@@ -420,10 +417,11 @@ export const AssetMappingView = () => {
                 padding: '8px 18px',
                 borderRadius: '6px',
                 border: 'none',
-                backgroundColor: '#0284c7',
+                backgroundColor: 'var(--primary-cyan-deep)',
                 color: '#ffffff',
                 fontWeight: 600,
-                cursor: 'pointer'
+                cursor: 'pointer',
+                boxShadow: 'var(--shadow-glow)'
               }}
             >
               {editingMapping ? 'Save Mapping' : 'Create Mapping'}
@@ -438,10 +436,10 @@ export const AssetMappingView = () => {
 const inputStyle = {
   width: '100%',
   padding: '8px 12px',
-  backgroundColor: '#ffffff',
-  border: '1px solid #cbd5e1',
+  backgroundColor: 'var(--bg-input)',
+  border: '1px solid var(--border-subtle)',
   borderRadius: '6px',
-  color: '#0f172a',
+  color: 'var(--text-primary)',
   fontSize: '0.85rem',
   outline: 'none'
 };

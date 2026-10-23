@@ -22,16 +22,24 @@ export const ConfigView = () => {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '900px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%' }}>
       {/* Top Banner */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          backgroundColor: 'var(--bg-card)',
+          padding: '20px 24px',
+          borderRadius: '10px',
+          border: '1px solid var(--border-subtle)',
+          boxShadow: 'var(--shadow-card)',
+        }}
+      >
         <div>
-          <h3 style={{ fontSize: '1.15rem', fontWeight: 600, color: '#0f172a', margin: 0 }}>
+          <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
             System & Protocol Configuration
           </h3>
-          <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '4px 0 0' }}>
-            Configure SCADA polling frequencies, Modbus timing, MQTT Edge connection, and .NET ASP API endpoints.
-          </p>
         </div>
 
         {saveSuccess && (
@@ -41,13 +49,13 @@ export const ConfigView = () => {
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
-              backgroundColor: '#ecfdf5',
-              border: '1px solid #a7f3d0',
-              color: '#059669',
+              backgroundColor: 'rgba(0, 163, 42, 0.1)',
+              border: '1px solid var(--accent-emerald-border)',
+              color: 'var(--accent-emerald)',
               padding: '6px 14px',
-              borderRadius: '8px',
-              fontSize: '0.8rem',
-              fontWeight: 600
+              borderRadius: '6px',
+              fontSize: '0.82rem',
+              fontWeight: 600,
             }}
           >
             <CheckCircle2 size={16} />
@@ -57,8 +65,9 @@ export const ConfigView = () => {
       </div>
 
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '20px' }}>
         {/* Section 1: Telemetry & SCADA Polling */}
-        <div className="glass-panel" style={{ padding: '24px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px' }}>
+        <div style={{ padding: '22px', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: '10px', boxShadow: 'var(--shadow-card)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
             <Server size={18} color="#0284c7" />
             <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#0f172a', margin: 0 }}>
@@ -79,9 +88,6 @@ export const ConfigView = () => {
                 onChange={(e) => setFormData({ ...formData, polling_interval_seconds: Number(e.target.value) })}
                 style={inputStyle}
               />
-              <span style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
-                Interval between serial and TCP requests to meters
-              </span>
             </div>
 
             <div>
@@ -96,25 +102,22 @@ export const ConfigView = () => {
                 onChange={(e) => setFormData({ ...formData, modbus_timeout_ms: Number(e.target.value) })}
                 style={inputStyle}
               />
-              <span style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
-                Timeout before marking slave meter unresponsive
-              </span>
             </div>
           </div>
         </div>
 
         {/* Section 2: Communication & Edge Broker */}
-        <div className="glass-panel" style={{ padding: '24px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
+        <div style={{ padding: '22px', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: '10px', boxShadow: 'var(--shadow-card)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '12px' }}>
             <Shield size={18} color="#059669" />
-            <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#0f172a', margin: 0 }}>
+            <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
               Edge MQTT & Communication Broker
             </h4>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '16px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', color: '#475569', fontWeight: 500, marginBottom: '6px' }}>
+              <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '6px' }}>
                 MQTT Broker URL
               </label>
               <input
@@ -126,7 +129,7 @@ export const ConfigView = () => {
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', color: '#475569', fontWeight: 500, marginBottom: '6px' }}>
+              <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '6px' }}>
                 Client ID
               </label>
               <input
@@ -144,19 +147,20 @@ export const ConfigView = () => {
               id="auto_reconnect_checkbox"
               checked={formData.auto_reconnect}
               onChange={(e) => setFormData({ ...formData, auto_reconnect: e.target.checked })}
-              style={{ width: '16px', height: '16px', accentColor: '#0284c7', cursor: 'pointer' }}
+              style={{ width: '16px', height: '16px', accentColor: '#2271b1', cursor: 'pointer' }}
             />
-            <label htmlFor="auto_reconnect_checkbox" style={{ fontSize: '0.82rem', color: '#334155', cursor: 'pointer', fontWeight: 500 }}>
+            <label htmlFor="auto_reconnect_checkbox" style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', cursor: 'pointer', fontWeight: 500 }}>
               Auto-reconnect gateway sockets on transmission drops
             </label>
           </div>
         </div>
+        </div>
 
         {/* Section 3: ASP.NET Core MVC Backend & Database Options */}
-        <div className="glass-panel" style={{ padding: '24px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
+        <div style={{ padding: '22px', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: '10px', boxShadow: 'var(--shadow-card)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '12px' }}>
             <Database size={18} color="#d97706" />
-            <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#0f172a', margin: 0 }}>
+            <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
               .NET ASP Backend & Database Integration
             </h4>
           </div>
@@ -244,14 +248,14 @@ export const ConfigView = () => {
               alignItems: 'center',
               gap: '8px',
               padding: '10px 24px',
-              borderRadius: '8px',
-              border: 'none',
-              backgroundColor: '#0284c7',
+              borderRadius: '4px',
+              border: '1px solid var(--primary-cyan)',
+              backgroundColor: 'var(--primary-cyan)',
               color: '#ffffff',
-              fontSize: '0.9rem',
-              fontWeight: 700,
+              fontSize: '0.86rem',
+              fontWeight: 600,
               cursor: 'pointer',
-              boxShadow: '0 4px 14px rgba(2, 132, 199, 0.3)'
+              boxShadow: 'var(--shadow-card)',
             }}
           >
             <Save size={16} />
@@ -266,10 +270,10 @@ export const ConfigView = () => {
 const inputStyle = {
   width: '100%',
   padding: '8px 12px',
-  backgroundColor: '#ffffff',
-  border: '1px solid #cbd5e1',
-  borderRadius: '6px',
-  color: '#0f172a',
+  backgroundColor: 'var(--bg-input)',
+  border: '1px solid var(--border-subtle)',
+  borderRadius: '4px',
+  color: 'var(--text-primary)',
   fontSize: '0.85rem',
-  outline: 'none'
+  outline: 'none',
 };

@@ -66,7 +66,7 @@ export const ChannelsView = () => {
       {/* Top Action Bar */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
         <div style={{ position: 'relative', width: '320px' }}>
-          <Search size={16} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+          <Search size={16} color="var(--text-dim)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
           <input
             type="text"
             placeholder="Search channels by name, protocol, or port..."
@@ -75,10 +75,10 @@ export const ChannelsView = () => {
             style={{
               width: '100%',
               padding: '9px 12px 9px 36px',
-              backgroundColor: '#ffffff',
-              border: '1px solid #cbd5e1',
+              backgroundColor: 'var(--bg-input)',
+              border: '1px solid var(--border-subtle)',
               borderRadius: '8px',
-              color: '#0f172a',
+              color: 'var(--text-primary)',
               fontSize: '0.85rem',
               outline: 'none',
               boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
@@ -92,7 +92,7 @@ export const ChannelsView = () => {
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            backgroundColor: '#0284c7',
+            backgroundColor: 'var(--primary-cyan-deep)',
             color: '#ffffff',
             border: 'none',
             borderRadius: '8px',
@@ -100,7 +100,7 @@ export const ChannelsView = () => {
             fontWeight: 600,
             fontSize: '0.85rem',
             cursor: 'pointer',
-            boxShadow: '0 2px 6px rgba(2, 132, 199, 0.3)'
+            boxShadow: 'var(--shadow-glow)'
           }}
         >
           <Plus size={16} />
@@ -109,11 +109,11 @@ export const ChannelsView = () => {
       </div>
 
       {/* Channels Table */}
-      <div className="glass-panel" style={{ padding: '0', overflow: 'hidden', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px' }}>
+      <div className="glass-panel" style={{ padding: '0', overflow: 'hidden', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: '12px' }}>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
             <thead>
-              <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#64748b' }}>
+              <tr style={{ backgroundColor: 'var(--bg-table-header)', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
                 <th style={{ padding: '14px 18px' }}>Channel ID & Name</th>
                 <th style={{ padding: '14px 18px' }}>Parent Gateway</th>
                 <th style={{ padding: '14px 18px' }}>Protocol</th>
@@ -126,7 +126,7 @@ export const ChannelsView = () => {
             <tbody>
               {filteredChannels.length === 0 ? (
                 <tr>
-                  <td colSpan="7" style={{ padding: '32px', textAlign: 'center', color: '#64748b' }}>
+                  <td colSpan="7" style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)' }}>
                     No channels found matching criteria.
                   </td>
                 </tr>
@@ -137,50 +137,50 @@ export const ChannelsView = () => {
                     <tr
                       key={ch.Channel_id}
                       style={{
-                        borderBottom: '1px solid #f1f5f9',
+                        borderBottom: '1px solid var(--border-subtle)',
                         transition: 'background-color 0.15s'
                       }}
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-table-row-hover)'}
                       onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                     >
                       <td style={{ padding: '14px 18px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <div style={{ padding: '7px', borderRadius: '8px', backgroundColor: '#ecfdf5', color: '#059669' }}>
+                          <div style={{ padding: '7px', borderRadius: '8px', backgroundColor: 'var(--bg-card-secondary)', color: 'var(--text-muted)' }}>
                             <Network size={16} />
                           </div>
                           <div>
-                            <div style={{ fontWeight: 600, color: '#0f172a' }}>{ch.Channel_name}</div>
-                            <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{ch.Channel_id}</div>
+                            <div style={{ color: 'var(--text-primary)' }}>{ch.Channel_name}</div>
+                            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>{ch.Channel_id}</div>
                           </div>
                         </div>
                       </td>
                       <td style={{ padding: '14px 18px' }}>
                         {parentGateway ? (
                           <div>
-                            <span style={{ color: '#0284c7', fontWeight: 600 }}>{parentGateway.Gateway_name}</span>
-                            <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{parentGateway.Gateway_id}</div>
+                            <span style={{ color: 'var(--text-primary)' }}>{parentGateway.Gateway_name}</span>
+                            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{parentGateway.Gateway_id}</div>
                           </div>
                         ) : (
-                          <span style={{ color: '#64748b' }}>{ch.Gateway_id}</span>
+                          <span style={{ color: 'var(--text-muted)' }}>{ch.Gateway_id}</span>
                         )}
                       </td>
                       <td style={{ padding: '14px 18px' }}>
                         <span style={{
                           padding: '3px 8px',
                           borderRadius: '4px',
-                          backgroundColor: '#f1f5f9',
-                          color: '#334155',
+                          backgroundColor: 'var(--bg-card-secondary)',
+                          color: 'var(--text-secondary)',
                           fontSize: '0.78rem',
-                          fontFamily: 'monospace',
-                          border: '1px solid #e2e8f0'
+                          fontFamily: 'var(--font-mono)',
+                          border: '1px solid var(--border-subtle)'
                         }}>
                           {ch.protocol}
                         </span>
                       </td>
-                      <td style={{ padding: '14px 18px', color: '#d97706', fontWeight: 600, fontFamily: 'monospace' }}>
+                      <td style={{ padding: '14px 18px', color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
                         {ch.baud_rate} bps
                       </td>
-                      <td style={{ padding: '14px 18px', color: '#334155', fontFamily: 'monospace' }}>
+                      <td style={{ padding: '14px 18px', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
                         {ch.port}
                       </td>
                       <td style={{ padding: '14px 18px', textAlign: 'center' }}>
@@ -191,20 +191,20 @@ export const ChannelsView = () => {
                           <button
                             onClick={() => handleOpenEdit(ch)}
                             style={{
-                              background: '#ffffff',
-                              border: '1px solid #cbd5e1',
+                              background: 'var(--bg-card-secondary)',
+                              border: '1px solid var(--border-subtle)',
                               borderRadius: '6px',
-                              color: '#475569',
+                              color: 'var(--text-secondary)',
                               padding: '6px 8px',
                               cursor: 'pointer'
                             }}
                             onMouseEnter={(e) => {
-                              e.currentTarget.style.color = '#0284c7';
-                              e.currentTarget.style.borderColor = '#0284c7';
+                              e.currentTarget.style.color = 'var(--primary-cyan)';
+                              e.currentTarget.style.borderColor = 'var(--primary-cyan)';
                             }}
                             onMouseLeave={(e) => {
-                              e.currentTarget.style.color = '#475569';
-                              e.currentTarget.style.borderColor = '#cbd5e1';
+                              e.currentTarget.style.color = 'var(--text-secondary)';
+                              e.currentTarget.style.borderColor = 'var(--border-subtle)';
                             }}
                             title="Edit Channel"
                           >
@@ -217,20 +217,20 @@ export const ChannelsView = () => {
                               }
                             }}
                             style={{
-                              background: '#ffffff',
-                              border: '1px solid #cbd5e1',
+                              background: 'var(--bg-card-secondary)',
+                              border: '1px solid var(--border-subtle)',
                               borderRadius: '6px',
-                              color: '#475569',
+                              color: 'var(--text-secondary)',
                               padding: '6px 8px',
                               cursor: 'pointer'
                             }}
                             onMouseEnter={(e) => {
-                              e.currentTarget.style.color = '#e11d48';
-                              e.currentTarget.style.borderColor = '#e11d48';
+                              e.currentTarget.style.color = 'var(--accent-rose)';
+                              e.currentTarget.style.borderColor = 'var(--accent-rose)';
                             }}
                             onMouseLeave={(e) => {
-                              e.currentTarget.style.color = '#475569';
-                              e.currentTarget.style.borderColor = '#cbd5e1';
+                              e.currentTarget.style.color = 'var(--text-secondary)';
+                              e.currentTarget.style.borderColor = 'var(--border-subtle)';
                             }}
                             title="Delete Channel"
                           >
@@ -342,9 +342,9 @@ export const ChannelsView = () => {
               style={{
                 padding: '8px 16px',
                 borderRadius: '6px',
-                border: '1px solid #cbd5e1',
-                backgroundColor: '#ffffff',
-                color: '#64748b',
+                border: '1px solid var(--border-subtle)',
+                backgroundColor: 'var(--bg-card-secondary)',
+                color: 'var(--text-secondary)',
                 cursor: 'pointer'
               }}
             >
@@ -356,10 +356,11 @@ export const ChannelsView = () => {
                 padding: '8px 18px',
                 borderRadius: '6px',
                 border: 'none',
-                backgroundColor: '#0284c7',
+                backgroundColor: 'var(--primary-cyan-deep)',
                 color: '#ffffff',
                 fontWeight: 600,
-                cursor: 'pointer'
+                cursor: 'pointer',
+                boxShadow: 'var(--shadow-glow)'
               }}
             >
               {editingChannel ? 'Save Changes' : 'Create Channel'}
@@ -374,10 +375,10 @@ export const ChannelsView = () => {
 const inputStyle = {
   width: '100%',
   padding: '8px 12px',
-  backgroundColor: '#ffffff',
-  border: '1px solid #cbd5e1',
+  backgroundColor: 'var(--bg-input)',
+  border: '1px solid var(--border-subtle)',
   borderRadius: '6px',
-  color: '#0f172a',
+  color: 'var(--text-primary)',
   fontSize: '0.85rem',
   outline: 'none'
 };

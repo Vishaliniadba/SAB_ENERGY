@@ -99,15 +99,15 @@ export const CommunicationConfigView = () => {
   };
 
   return (
-    <div style={{ maxWidth: '1000px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '22px' }}>
+    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '20px' }}>
       {/* Top Banner */}
       <div
         style={{
-          backgroundColor: '#ffffff',
+          backgroundColor: 'var(--bg-card)',
           borderRadius: '14px',
-          border: '1px solid #e2e8f0',
+          border: '1px solid var(--border-subtle)',
           padding: '22px 26px',
-          boxShadow: '0 2px 10px rgba(0,0,0,0.03)',
+          boxShadow: 'var(--shadow-card)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -121,23 +121,20 @@ export const CommunicationConfigView = () => {
               width: '46px',
               height: '46px',
               borderRadius: '12px',
-              background: 'linear-gradient(135deg, #0284c7, #2563eb)',
+              background: 'var(--primary-cyan-gradient)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 4px 14px rgba(2, 132, 199, 0.3)',
+              boxShadow: '0 4px 14px rgba(2, 132, 199, 0.35)',
               color: '#ffffff',
             }}
           >
             <Radio size={24} />
           </div>
           <div>
-            <h2 style={{ fontSize: '1.3rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+            <h2 style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
               Communication Config
             </h2>
-            <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '3px 0 0' }}>
-              Set data acquisition polling intervals, communication frequency (seconds / minutes), and telemetry timeouts
-            </p>
           </div>
         </div>
 
@@ -211,14 +208,17 @@ export const CommunicationConfigView = () => {
       )}
 
       <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        {/* ── CARD 1: PRIMARY DATA ACQUISITION INTERVAL ── */}
+        {/* ── TWO CARD ROW: Card 1 + Card 2 side by side ── */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(460px, 1fr))', gap: '20px', alignItems: 'stretch' }}>
         <div
           style={{
-            backgroundColor: '#ffffff',
-            borderRadius: '14px',
-            border: '1px solid #e2e8f0',
-            padding: '24px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+            backgroundColor: 'var(--bg-card)',
+            borderRadius: '8px',
+            border: '1px solid var(--border-subtle)',
+            padding: '22px 24px',
+            boxShadow: 'var(--shadow-card)',
+            display: 'flex',
+            flexDirection: 'column',
           }}
         >
           <div
@@ -228,27 +228,24 @@ export const CommunicationConfigView = () => {
               gap: '10px',
               paddingBottom: '14px',
               marginBottom: '20px',
-              borderBottom: '1px solid #f1f5f9',
+              borderBottom: '1px solid var(--border-subtle)',
             }}
           >
-            <Timer size={20} color="#0284c7" />
+            <Timer size={20} color="var(--primary-cyan)" />
             <div>
-              <h3 style={{ fontSize: '1.02rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
                 Data Acquisition Time Interval
               </h3>
-              <p style={{ fontSize: '0.76rem', color: '#64748b', margin: '2px 0 0' }}>
-                Determine how frequently the system requests telemetry registers from meters and gateways
-              </p>
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '24px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', flex: 1, justifyContent: 'space-between' }}>
             {/* Value + Unit Selector */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <label style={labelStyle}>
                 Sampling Frequency Interval *
               </label>
-              <div style={{ display: 'flex', gap: '10px' }}>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                 <input
                   type="number"
                   min="1"
@@ -257,11 +254,11 @@ export const CommunicationConfigView = () => {
                   onChange={(e) => setIntervalValue(Math.max(1, Number(e.target.value)))}
                   style={{
                     ...inputStyle,
-                    fontSize: '1.1rem',
+                    fontSize: '1.05rem',
                     fontWeight: 700,
-                    color: '#0284c7',
+                    color: 'var(--primary-cyan)',
                     fontFamily: 'monospace',
-                    width: '140px',
+                    width: '130px',
                   }}
                   required
                 />
@@ -270,19 +267,18 @@ export const CommunicationConfigView = () => {
                   onChange={(e) => setIntervalUnit(e.target.value)}
                   style={{
                     ...selectStyle,
-                    fontSize: '0.92rem',
-                    fontWeight: 700,
-                    color: '#0f172a',
-                    minWidth: '150px',
-                    backgroundColor: '#f8fafc',
+                    fontSize: '0.88rem',
+                    fontWeight: 600,
+                    color: 'var(--text-primary)',
+                    width: '180px',
                   }}
                 >
                   <option value="seconds">Seconds (sec)</option>
                   <option value="minutes">Minutes (mins)</option>
                 </select>
               </div>
-              <span style={{ fontSize: '0.74rem', color: '#64748b' }}>
-                Effective runtime frequency: <strong>{calculatedSeconds} seconds</strong> per cycle
+              <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                Effective runtime frequency: <strong style={{ color: 'var(--text-primary)' }}>{calculatedSeconds} seconds</strong> per cycle
               </span>
             </div>
 
@@ -309,13 +305,13 @@ export const CommunicationConfigView = () => {
                         setIntervalUnit(p.unit);
                       }}
                       style={{
-                        padding: '6px 12px',
-                        borderRadius: '8px',
-                        border: isSelected ? '1.5px solid #0284c7' : '1px solid #cbd5e1',
-                        backgroundColor: isSelected ? '#e0f2fe' : '#ffffff',
-                        color: isSelected ? '#0284c7' : '#334155',
-                        fontWeight: isSelected ? 700 : 500,
-                        fontSize: '0.78rem',
+                        padding: '6px 14px',
+                        borderRadius: '4px',
+                        border: isSelected ? '1px solid var(--primary-cyan)' : '1px solid var(--border-medium)',
+                        backgroundColor: isSelected ? 'var(--primary-cyan)' : 'var(--bg-card)',
+                        color: isSelected ? '#ffffff' : 'var(--text-secondary)',
+                        fontWeight: isSelected ? 600 : 500,
+                        fontSize: '0.8rem',
                         cursor: 'pointer',
                         transition: 'all 0.15s ease',
                       }}
@@ -332,11 +328,13 @@ export const CommunicationConfigView = () => {
         {/* ── CARD 2: PROTOCOL TIMEOUTS & COMMUNICATION BUFFER ── */}
         <div
           style={{
-            backgroundColor: '#ffffff',
-            borderRadius: '14px',
-            border: '1px solid #e2e8f0',
-            padding: '24px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+            backgroundColor: 'var(--bg-card)',
+            borderRadius: '8px',
+            border: '1px solid var(--border-subtle)',
+            padding: '22px 24px',
+            boxShadow: 'var(--shadow-card)',
+            display: 'flex',
+            flexDirection: 'column',
           }}
         >
           <div
@@ -346,21 +344,18 @@ export const CommunicationConfigView = () => {
               gap: '10px',
               paddingBottom: '14px',
               marginBottom: '20px',
-              borderBottom: '1px solid #f1f5f9',
+              borderBottom: '1px solid var(--border-subtle)',
             }}
           >
-            <Server size={20} color="#059669" />
+            <Server size={20} color="var(--accent-emerald)" />
             <div>
-              <h3 style={{ fontSize: '1.02rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
                 Modbus RTU/TCP & Gateway Timing
               </h3>
-              <p style={{ fontSize: '0.76rem', color: '#64748b', margin: '2px 0 0' }}>
-                Tune response timeouts and retry attempts for serial RS485 loops and TCP ports
-              </p>
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '18px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '18px', flex: 1, alignContent: 'start' }}>
             <div>
               <label style={labelStyle}>Modbus Response Timeout (ms)</label>
               <input
@@ -371,7 +366,7 @@ export const CommunicationConfigView = () => {
                 onChange={(e) => setModbusTimeoutMs(Number(e.target.value))}
                 style={inputStyle}
               />
-              <span style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
                 Maximum wait time before framing error
               </span>
             </div>
@@ -388,7 +383,7 @@ export const CommunicationConfigView = () => {
                 <option value={3}>3 Retries (Standard)</option>
                 <option value={5}>5 Retries</option>
               </select>
-              <span style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
                 Number of retry packets before marking slave offline
               </span>
             </div>
@@ -403,17 +398,16 @@ export const CommunicationConfigView = () => {
                 onChange={(e) => setKeepAliveSeconds(Number(e.target.value))}
                 style={inputStyle}
               />
-              <span style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
                 Socket keep-alive heartbeat frequency
               </span>
             </div>
           </div>
         </div>
-
-
+      </div>
 
         {/* Action Buttons */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '6px' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '6px' }}>
           <button
             type="button"
             onClick={handleResetDefaults}
@@ -421,11 +415,11 @@ export const CommunicationConfigView = () => {
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
-              backgroundColor: '#ffffff',
-              border: '1px solid #cbd5e1',
-              color: '#475569',
-              padding: '10px 18px',
-              borderRadius: '8px',
+              backgroundColor: '#f6f7f7',
+              border: '1px solid var(--border-medium)',
+              color: 'var(--text-secondary)',
+              padding: '9px 18px',
+              borderRadius: '4px',
               fontSize: '0.84rem',
               fontWeight: 600,
               cursor: 'pointer',
@@ -441,15 +435,15 @@ export const CommunicationConfigView = () => {
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
-              backgroundColor: '#0284c7',
+              background: 'var(--primary-cyan)',
               color: '#ffffff',
-              border: 'none',
-              padding: '10px 22px',
-              borderRadius: '8px',
+              border: '1px solid var(--primary-cyan)',
+              padding: '9px 22px',
+              borderRadius: '4px',
               fontSize: '0.84rem',
-              fontWeight: 700,
+              fontWeight: 600,
               cursor: 'pointer',
-              boxShadow: '0 2px 8px rgba(2, 132, 199, 0.3)',
+              boxShadow: 'var(--shadow-card)',
             }}
           >
             <Save size={16} />
@@ -464,7 +458,7 @@ export const CommunicationConfigView = () => {
 const labelStyle = {
   display: 'block',
   fontSize: '0.78rem',
-  color: '#334155',
+  color: 'var(--text-secondary)',
   fontWeight: 700,
   marginBottom: '6px',
 };
@@ -473,23 +467,23 @@ const inputStyle = {
   width: '100%',
   padding: '9px 12px',
   borderRadius: '8px',
-  border: '1px solid #cbd5e1',
+  border: '1px solid var(--border-subtle)',
   fontSize: '0.85rem',
-  color: '#0f172a',
+  color: 'var(--text-primary)',
   outline: 'none',
   boxSizing: 'border-box',
-  backgroundColor: '#ffffff',
+  backgroundColor: 'var(--bg-input)',
 };
 
 const selectStyle = {
   width: '100%',
   padding: '9px 12px',
   borderRadius: '8px',
-  border: '1px solid #cbd5e1',
+  border: '1px solid var(--border-subtle)',
   fontSize: '0.85rem',
-  color: '#0f172a',
+  color: 'var(--text-primary)',
   outline: 'none',
   boxSizing: 'border-box',
-  backgroundColor: '#ffffff',
+  backgroundColor: 'var(--bg-input)',
   cursor: 'pointer',
 };

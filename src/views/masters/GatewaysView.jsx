@@ -531,10 +531,7 @@ export const GatewaysView = () => {
             {currentChannels.length === 0 ? (
               <div style={{ padding: '40px', backgroundColor: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '12px', textAlign: 'center' }}>
                 <Network size={28} color="#94a3b8" style={{ margin: '0 auto 10px' }} />
-                <h5 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#0f172a', margin: 0 }}>No Channels Added Yet</h5>
-                <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '4px 0 14px' }}>
-                  Add your first communication channel (Modbus RTU RS485 loop, TCP link, or MQTT broker).
-                </p>
+                <h5 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#0f172a', margin: '0 0 14px' }}>No Channels Configured</h5>
                 <button
                   onClick={() => handleOpenAddChannel(currentGateway.Gateway_id)}
                   style={{

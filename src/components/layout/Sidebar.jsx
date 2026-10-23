@@ -31,17 +31,17 @@ export const Sidebar = ({ activeTab, setActiveTab }) => {
     { id: 'communication-config', label: 'Communication Config', icon: Radio },
   ];
 
-  // Meter sub-items
+  // Meter sub-items (Make, Model, Parameter)
   const meterMasterItems = [
     { id: 'meter-make', label: 'Make', icon: Building2 },
     { id: 'meter-model', label: 'Model', icon: Cpu },
+    { id: 'parameter-dictionary', label: 'Parameter', icon: Sliders },
   ];
 
-  // Gateway sub-items (Make, Model, Parameter)
+  // Gateway sub-items (Make, Model)
   const gatewayMasterItems = [
     { id: 'gateway-make', label: 'Make', icon: Building2 },
     { id: 'gateway-model', label: 'Model', icon: Cpu },
-    { id: 'parameter-dictionary', label: 'Parameter', icon: Sliders },
   ];
 
   const isTabActive = (id) => {
@@ -82,38 +82,36 @@ export const Sidebar = ({ activeTab, setActiveTab }) => {
           padding: `9px 12px 9px ${padLeft}`,
           borderRadius: '8px',
           border: active
-            ? '1px solid rgba(56, 189, 248, 0.4)'
+            ? '1px solid transparent'
             : '1px solid transparent',
           backgroundColor: active
-            ? 'rgba(2, 132, 199, 0.18)'
+            ? '#2271b1'
             : 'transparent',
-          color: active ? '#38bdf8' : '#94a3b8',
-          fontWeight: active ? 600 : 500,
+          color: active ? '#ffffff' : '#a7aaad',
+          fontWeight: active ? 600 : 400,
           fontSize: level > 0 ? '0.84rem' : '0.88rem',
           cursor: 'pointer',
-          transition: 'all 0.16s ease',
+          transition: 'all 0.15s ease',
           textAlign: 'left',
-          boxShadow: active
-            ? 'inset 3px 0 0 #38bdf8, 0 2px 8px rgba(2, 132, 199, 0.12)'
-            : 'none',
+          boxShadow: 'none',
         }}
         onMouseEnter={(e) => {
           if (!active) {
-            e.currentTarget.style.backgroundColor = '#1e293b';
-            e.currentTarget.style.color = '#f8fafc';
+            e.currentTarget.style.backgroundColor = '#2c3338';
+            e.currentTarget.style.color = '#ffffff';
           }
         }}
         onMouseLeave={(e) => {
           if (!active) {
             e.currentTarget.style.backgroundColor = 'transparent';
-            e.currentTarget.style.color = '#94a3b8';
+            e.currentTarget.style.color = '#a7aaad';
           }
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
           <Icon
             size={level > 0 ? 15 : 17}
-            color={active ? '#38bdf8' : '#64748b'}
+            color={active ? '#ffffff' : '#8c8f94'}
             style={{ flexShrink: 0 }}
           />
           <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -128,8 +126,8 @@ export const Sidebar = ({ activeTab, setActiveTab }) => {
               fontWeight: 700,
               padding: '1px 6px',
               borderRadius: '4px',
-              backgroundColor: active ? 'rgba(56, 189, 248, 0.25)' : '#1e293b',
-              color: active ? '#38bdf8' : '#64748b',
+              backgroundColor: active ? 'rgba(255,255,255,0.2)' : '#3c434a',
+              color: active ? '#ffffff' : '#a7aaad',
               letterSpacing: '0.02em',
               textTransform: 'uppercase',
             }}
@@ -145,8 +143,8 @@ export const Sidebar = ({ activeTab, setActiveTab }) => {
     <aside
       style={{
         width: '254px',
-        backgroundColor: '#0f172a',
-        borderRight: '1px solid #1e293b',
+        backgroundColor: '#1d2327',
+        borderRight: '1px solid #1d2327',
         display: 'flex',
         flexDirection: 'column',
         height: '100vh',
@@ -154,18 +152,18 @@ export const Sidebar = ({ activeTab, setActiveTab }) => {
         top: 0,
         zIndex: 100,
         userSelect: 'none',
-        boxShadow: '4px 0 24px rgba(0, 0, 0, 0.15)',
+        boxShadow: '2px 0 4px rgba(0, 0, 0, 0.1)',
       }}
     >
       {/* Brand Header */}
       <div
         style={{
-          padding: '20px 18px',
+          padding: '18px 16px',
           display: 'flex',
           alignItems: 'center',
           gap: '12px',
-          borderBottom: '1px solid #1e293b',
-          backgroundColor: '#0b1120',
+          borderBottom: '1px solid #3c434a',
+          backgroundColor: '#1d2327',
         }}
       >
         <div
@@ -186,20 +184,20 @@ export const Sidebar = ({ activeTab, setActiveTab }) => {
         <div>
           <h1
             style={{
-              fontSize: '1.15rem',
+              fontSize: '1.05rem',
               fontWeight: 700,
               color: '#ffffff',
               margin: 0,
-              letterSpacing: '-0.02em',
+              letterSpacing: '-0.01em',
             }}
           >
             SaB Energy
           </h1>
           <span
             style={{
-              fontSize: '0.72rem',
-              color: '#10b981',
-              fontWeight: 600,
+              fontSize: '0.68rem',
+              color: '#72aee6',
+              fontWeight: 500,
               display: 'flex',
               alignItems: 'center',
               gap: '5px',
@@ -211,8 +209,8 @@ export const Sidebar = ({ activeTab, setActiveTab }) => {
                 width: '6px',
                 height: '6px',
                 borderRadius: '50%',
-                backgroundColor: '#10b981',
-                boxShadow: '0 0 8px #10b981',
+                backgroundColor: '#72aee6',
+                boxShadow: '0 0 6px #72aee6',
               }}
             />
             SCADA Node Active
@@ -248,11 +246,11 @@ export const Sidebar = ({ activeTab, setActiveTab }) => {
               backgroundColor: 'transparent',
               border: 'none',
               cursor: 'pointer',
-              color: isAnyMasterActive ? '#38bdf8' : '#94a3b8',
-              borderRadius: '6px',
+              color: isAnyMasterActive ? '#72aee6' : '#a7aaad',
+              borderRadius: '4px',
               transition: 'background-color 0.15s ease',
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#1e293b')}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#2c3338')}
             onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -262,16 +260,16 @@ export const Sidebar = ({ activeTab, setActiveTab }) => {
                   fontWeight: 700,
                   textTransform: 'uppercase',
                   letterSpacing: '0.12em',
-                  color: isAnyMasterActive ? '#38bdf8' : '#64748b',
+                  color: isAnyMasterActive ? '#72aee6' : '#8c8f94',
                 }}
               >
                 Master
               </span>
             </div>
             {isMasterOpen ? (
-              <ChevronDown size={14} color={isAnyMasterActive ? '#38bdf8' : '#64748b'} />
+              <ChevronDown size={14} color={isAnyMasterActive ? '#72aee6' : '#8c8f94'} />
             ) : (
-              <ChevronRight size={14} color={isAnyMasterActive ? '#38bdf8' : '#64748b'} />
+              <ChevronRight size={14} color={isAnyMasterActive ? '#72aee6' : '#8c8f94'} />
             )}
           </button>
 
@@ -283,7 +281,7 @@ export const Sidebar = ({ activeTab, setActiveTab }) => {
                 gap: '2px',
                 marginTop: '4px',
                 paddingLeft: '4px',
-                borderLeft: '1px solid rgba(148, 163, 184, 0.15)',
+                borderLeft: '1px solid rgba(255, 255, 255, 0.08)',
                 marginLeft: '8px',
               }}
             >
@@ -300,18 +298,18 @@ export const Sidebar = ({ activeTab, setActiveTab }) => {
                     backgroundColor: 'transparent',
                     border: 'none',
                     cursor: 'pointer',
-                    color: '#cbd5e1',
+                    color: '#8c8f94',
                     fontSize: '0.78rem',
-                    fontWeight: 700,
+                    fontWeight: 600,
                     textTransform: 'uppercase',
                     letterSpacing: '0.04em',
-                    borderRadius: '6px',
+                    borderRadius: '4px',
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#1e293b')}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#2c3338')}
                   onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                 >
-                  <span style={{ color: '#94a3b8' }}>Meter</span>
-                  {isMeterMasterOpen ? <ChevronDown size={12} color="#64748b" /> : <ChevronRight size={12} color="#64748b" />}
+                  <span style={{ color: '#8c8f94' }}>Meter</span>
+                  {isMeterMasterOpen ? <ChevronDown size={12} color="#8c8f94" /> : <ChevronRight size={12} color="#8c8f94" />}
                 </button>
 
                 {isMeterMasterOpen && (
@@ -334,18 +332,18 @@ export const Sidebar = ({ activeTab, setActiveTab }) => {
                     backgroundColor: 'transparent',
                     border: 'none',
                     cursor: 'pointer',
-                    color: '#cbd5e1',
+                    color: '#8c8f94',
                     fontSize: '0.78rem',
-                    fontWeight: 700,
+                    fontWeight: 600,
                     textTransform: 'uppercase',
                     letterSpacing: '0.04em',
-                    borderRadius: '6px',
+                    borderRadius: '4px',
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#1e293b')}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#2c3338')}
                   onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                 >
-                  <span style={{ color: '#94a3b8' }}>Gateway</span>
-                  {isGatewayMasterOpen ? <ChevronDown size={12} color="#64748b" /> : <ChevronRight size={12} color="#64748b" />}
+                  <span style={{ color: '#8c8f94' }}>Gateway</span>
+                  {isGatewayMasterOpen ? <ChevronDown size={12} color="#8c8f94" /> : <ChevronRight size={12} color="#8c8f94" />}
                 </button>
 
                 {isGatewayMasterOpen && (

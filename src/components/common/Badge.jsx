@@ -4,38 +4,39 @@ export const Badge = ({ status, text }) => {
   const label = text || status;
   const s = (status || '').toLowerCase();
 
-  let bg = '#f1f5f9';
-  let color = '#475569';
-  let border = '#cbd5e1';
+  let bg = 'rgba(148, 163, 184, 0.12)';
+  let color = 'var(--text-muted)';
+  let border = 'rgba(148, 163, 184, 0.25)';
 
   if (s === 'active' || s === 'online' || status === true) {
-    bg = '#ecfdf5';
-    color = '#059669';
-    border = '#a7f3d0';
+    bg = 'var(--accent-emerald-glow)';
+    color = 'var(--accent-emerald)';
+    border = 'var(--accent-emerald-border)';
   } else if (s === 'offline' || s === 'inactive' || status === false) {
-    bg = '#fff1f2';
-    color = '#e11d48';
-    border = '#fecdd3';
+    bg = 'var(--accent-rose-glow)';
+    color = 'var(--accent-rose)';
+    border = 'var(--accent-rose-border)';
   } else if (s === 'standby' || s === 'warning') {
-    bg = '#fffbeb';
-    color = '#d97706';
-    border = '#fde68a';
+    bg = 'var(--accent-amber-glow)';
+    color = 'var(--accent-amber)';
+    border = 'var(--accent-amber-border)';
   } else if (s === 'maintenance') {
-    bg = '#f5f3ff';
-    color = '#7c3aed';
-    border = '#ddd6fe';
+    bg = 'var(--accent-purple-glow)';
+    color = 'var(--accent-purple)';
+    border = 'rgba(139, 92, 246, 0.35)';
   }
 
   return (
     <span
+      className="scada-badge"
       style={{
         display: 'inline-flex',
         alignItems: 'center',
         gap: '6px',
         padding: '3px 10px',
         borderRadius: '20px',
-        fontSize: '0.75rem',
-        fontWeight: '600',
+        fontSize: '0.74rem',
+        fontWeight: '700',
         letterSpacing: '0.02em',
         backgroundColor: bg,
         color: color,
@@ -48,7 +49,8 @@ export const Badge = ({ status, text }) => {
           width: '6px',
           height: '6px',
           borderRadius: '50%',
-          backgroundColor: color
+          backgroundColor: color,
+          boxShadow: (s === 'active' || s === 'online') ? '0 0 8px currentColor' : 'none'
         }}
       />
       {label}

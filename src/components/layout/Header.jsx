@@ -1,10 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { Database } from 'lucide-react';
+import { Database, Sun, Moon } from 'lucide-react';
 import { useEnergyData } from '../../context/EnergyDataContext';
 
 export const Header = ({ activeTab }) => {
   const { config } = useEnergyData();
   const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString());
+  const [theme, setTheme] = useState(() => {
+    // Default to clean enterprise light theme
+    const saved = localStorage.getItem('sab_theme_mode');
+    return saved || 'light';
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('sab_theme_mode', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
+  };
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -38,7 +52,7 @@ export const Header = ({ activeTab }) => {
       case 'gateway-model-master':
         return 'Gateway Master — Model';
       case 'parameter-dictionary':
-        return 'Parameter Master';
+        return 'Meter Master — Parameter';
       case 'communication-config':
       case 'comm-config':
       case 'config':
@@ -55,67 +69,104 @@ export const Header = ({ activeTab }) => {
   return (
     <header
       style={{
-        height: '64px',
-        backgroundColor: '#ffffff',
-        borderBottom: '1px solid #e2e8f0',
+        height: '56px',
+        flexShrink: 0,
+        backgroundColor: '#1d2327',
+        borderBottom: '1px solid #3c434a',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '0 28px',
+        padding: '0 24px',
         position: 'sticky',
         top: 0,
-        zIndex: 90
+        zIndex: 90,
+        transition: 'background-color 0.25s ease, border-color 0.25s ease',
       }}
     >
       <div>
-        <h2 style={{ fontSize: '1.15rem', fontWeight: 600, color: '#0f172a', margin: 0 }}>
+        <h2 style={{ fontSize: '1.05rem', fontWeight: 600, color: '#ffffff', margin: 0, letterSpacing: '-0.01em' }}>
           {getBreadcrumbTitle()}
         </h2>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
         {/* Live Status Badge */}
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
-            backgroundColor: '#ecfdf5',
-            border: '1px solid #a7f3d0',
-            padding: '5px 12px',
-            borderRadius: '20px',
-            fontSize: '0.78rem',
-            color: '#059669',
-            fontWeight: 600
+            gap: '7px',
+            backgroundColor: 'rgba(0, 163, 42, 0.15)',
+            border: '1px solid rgba(0, 163, 42, 0.3)',
+            padding: '4px 11px',
+            borderRadius: '4px',
+            fontSize: '0.74rem',
+            color: '#68de7c',
+            fontWeight: 600,
+            letterSpacing: '0.02em',
           }}
         >
-          <span className="pulse-dot" style={{ backgroundColor: '#059669' }} />
+          <span className="pulse-dot" style={{ backgroundColor: '#68de7c' }} />
           <span>Polling: {pollingDisplay}</span>
         </div>
 
-        {/* Backend Indicator */}
+
+
+        {/* Real-time Clock */}
         <div
+          className="mono-num"
+          style={{
+            fontSize: '0.80rem',
+            color: '#c3c4c7',
+            fontWeight: 500,
+            minWidth: '85px',
+            textAlign: 'right',
+          }}
+        >
+          {currentTime}
+        </div>
+
+        {/* Theme Toggle Button */}
+        <button
+          type="button"
+          onClick={toggleTheme}
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
-            fontSize: '0.78rem',
-            color: '#475569',
-            backgroundColor: '#f8fafc',
-            border: '1px solid #e2e8f0',
             padding: '5px 10px',
-            borderRadius: '8px',
-            fontWeight: 500
+            borderRadius: '4px',
+            backgroundColor: 'rgba(255, 255, 255, 0.08)',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
+            color: '#c3c4c7',
+            fontSize: '0.74rem',
+            fontWeight: 500,
+            cursor: 'pointer',
+            transition: 'all 0.18s ease',
           }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = '#72aee6';
+            e.currentTarget.style.color = '#ffffff';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+            e.currentTarget.style.color = '#c3c4c7';
+          }}
+          title={`Switch to ${theme === 'dark' ? 'Light' : 'SCADA Dark'} mode`}
+          aria-label="Toggle Theme"
         >
-          <Database size={14} color="#0284c7" />
-          <span>ASP.NET Backend Ready</span>
-        </div>
-
-        {/* Real-time Clock */}
-        <div style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600, minWidth: '70px', textAlign: 'right' }}>
-          {currentTime}
-        </div>
+          {theme === 'dark' ? (
+            <>
+              <Sun size={14} color="#f59e0b" />
+              <span>Light</span>
+            </>
+          ) : (
+            <>
+              <Moon size={14} color="#0284c7" />
+              <span>Dark</span>
+            </>
+          )}
+        </button>
       </div>
     </header>
   );
