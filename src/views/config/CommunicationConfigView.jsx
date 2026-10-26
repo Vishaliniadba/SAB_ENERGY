@@ -109,7 +109,6 @@ export const CommunicationConfigView = () => {
     <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <PageHeader
         title="Communication Configuration"
-        subtitle="Configure field Modbus polling frequency, timeout thresholds, retry policy, and backend MQTT / ThingsBoard broker parameters."
         icon={Radio}
         actions={
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -164,18 +163,13 @@ export const CommunicationConfigView = () => {
       )}
 
       <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {/* 1. Primary Polling Interval Configuration */}
+        {/* 1. Polling Intervals */}
         <div className="panel-card" style={{ padding: '20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
             <Timer size={18} color="var(--brand-primary)" />
-            <div>
-              <h3 style={{ fontSize: '0.95rem', fontWeight: 650, color: 'var(--text-primary)', margin: 0 }}>
-                1. Field Polling Interval Rate
-              </h3>
-              <p style={{ fontSize: '0.74rem', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
-                Defines the frequency at which edge gateways poll connected slave meters over RS-485 / Modbus RTU.
-              </p>
-            </div>
+            <h3 style={{ fontSize: '0.95rem', fontWeight: 650, color: 'var(--text-primary)', margin: 0 }}>
+              1. Polling Intervals
+            </h3>
           </div>
 
           <div
@@ -183,14 +177,10 @@ export const CommunicationConfigView = () => {
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
               gap: '16px',
-              padding: '16px',
-              borderRadius: 'var(--radius-md)',
-              backgroundColor: 'var(--bg-surface-secondary)',
-              border: '1px solid var(--border-subtle)',
             }}
           >
             <div>
-              <label className="form-label">Polling Interval Value *</label>
+              <label className="form-label">Polling Interval *</label>
               <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
                 <input
                   type="number"
@@ -212,13 +202,10 @@ export const CommunicationConfigView = () => {
                   <option value="minutes">Minutes (m)</option>
                 </select>
               </div>
-              <span className="form-helper" style={{ marginTop: '6px', display: 'block' }}>
-                Active Interval: <strong>{calculatedSeconds} total seconds</strong> per communication cycle.
-              </span>
             </div>
 
             <div>
-              <label className="form-label">Fast Cycle Telemetry (Critical Alarms)</label>
+              <label className="form-label">Fast Cycle Telemetry</label>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
                 <input
                   type="number"
@@ -231,13 +218,10 @@ export const CommunicationConfigView = () => {
                 />
                 <span style={{ fontSize: '0.80rem', color: 'var(--text-secondary)' }}>Seconds</span>
               </div>
-              <span className="form-helper" style={{ marginTop: '6px', display: 'block' }}>
-                Accelerated rate triggered during voltage sag, surge, or reverse-power conditions.
-              </span>
             </div>
 
             <div>
-              <label className="form-label">Historical Background Database Logging</label>
+              <label className="form-label">Database Logging Interval</label>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
                 <input
                   type="number"
@@ -250,25 +234,17 @@ export const CommunicationConfigView = () => {
                 />
                 <span style={{ fontSize: '0.80rem', color: 'var(--text-secondary)' }}>Minutes</span>
               </div>
-              <span className="form-helper" style={{ marginTop: '6px', display: 'block' }}>
-                Interval for persisting permanent audit records into TimescaleDB / Time-series store.
-              </span>
             </div>
           </div>
         </div>
 
-        {/* 2. Connection Timeouts & Retry Policy */}
+        {/* 2. Connection Timeouts & Retries */}
         <div className="panel-card" style={{ padding: '20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
             <Sliders size={18} color="var(--brand-primary)" />
-            <div>
-              <h3 style={{ fontSize: '0.95rem', fontWeight: 650, color: 'var(--text-primary)', margin: 0 }}>
-                2. Protocol Timeouts & Hardware Health Check
-              </h3>
-              <p style={{ fontSize: '0.74rem', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
-                Transmission retry policies and gateway heartbeat ping boundaries.
-              </p>
-            </div>
+            <h3 style={{ fontSize: '0.95rem', fontWeight: 650, color: 'var(--text-primary)', margin: 0 }}>
+              2. Protocol Timeouts & Retries
+            </h3>
           </div>
 
           <div
@@ -292,13 +268,10 @@ export const CommunicationConfigView = () => {
                 />
                 <span style={{ fontSize: '0.80rem', color: 'var(--text-secondary)', minWidth: '35px' }}>ms</span>
               </div>
-              <span className="form-helper">
-                Time before declaring packet drop or CRC error on RS-485 line (default 1000ms).
-              </span>
             </div>
 
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label">Transmission Retry Attempts</label>
+              <label className="form-label">Retry Attempts</label>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <input
                   type="number"
@@ -310,13 +283,10 @@ export const CommunicationConfigView = () => {
                 />
                 <span style={{ fontSize: '0.80rem', color: 'var(--text-secondary)', minWidth: '45px' }}>retries</span>
               </div>
-              <span className="form-helper">
-                Consecutive retry frames sent before flagging meter as Intermittent or Offline.
-              </span>
             </div>
 
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label">Gateway Keep-Alive Ping Interval</label>
+              <label className="form-label">Keep-Alive Interval</label>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <input
                   type="number"
@@ -328,25 +298,17 @@ export const CommunicationConfigView = () => {
                 />
                 <span style={{ fontSize: '0.80rem', color: 'var(--text-secondary)', minWidth: '35px' }}>sec</span>
               </div>
-              <span className="form-helper">
-                Expected periodic heartbeat interval from edge gateways.
-              </span>
             </div>
           </div>
         </div>
 
-        {/* 3. SCADA Broker & API Endpoints */}
+        {/* 3. Upstream Endpoints */}
         <div className="panel-card" style={{ padding: '20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
             <Server size={18} color="var(--brand-primary)" />
-            <div>
-              <h3 style={{ fontSize: '0.95rem', fontWeight: 650, color: 'var(--text-primary)', margin: 0 }}>
-                3. Upstream Telemetry Ingestion Endpoints
-              </h3>
-              <p style={{ fontSize: '0.74rem', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
-                Secure MQTT Broker and REST ingestion addresses for SCADA edge gateways.
-              </p>
-            </div>
+            <h3 style={{ fontSize: '0.95rem', fontWeight: 650, color: 'var(--text-primary)', margin: 0 }}>
+              3. Upstream Endpoints
+            </h3>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -358,22 +320,16 @@ export const CommunicationConfigView = () => {
                 onChange={(e) => setMqttBrokerUrl(e.target.value)}
                 placeholder="mqtt://broker.sabenergy.internal:1883"
               />
-              <span className="form-helper">
-                Edge gateways publish JSON modbus frames to topic <code>v1/gateway/telemetry</code>.
-              </span>
             </div>
 
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label">REST Ingestion / ThingsBoard API Endpoint</label>
+              <label className="form-label">REST API Endpoint</label>
               <input
                 className="form-input mono-num"
                 value={apiEndpoint}
                 onChange={(e) => setApiEndpoint(e.target.value)}
                 placeholder="https://api.sabenergy.internal/v1"
               />
-              <span className="form-helper">
-                HTTP endpoint for device metadata synchronization and configuration updates.
-              </span>
             </div>
           </div>
         </div>
@@ -388,7 +344,8 @@ export const CommunicationConfigView = () => {
           }}
         >
           <button type="button" onClick={handleResetDefaults} className="btn btn-secondary">
-            Reset Defaults
+            <RotateCcw size={14} />
+            <span>Reset Defaults</span>
           </button>
           <button type="submit" className="btn btn-primary">
             <Save size={15} />

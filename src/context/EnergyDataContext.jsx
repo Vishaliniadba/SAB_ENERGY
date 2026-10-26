@@ -22,9 +22,43 @@ export const EnergyDataProvider = ({ children }) => {
     return saved ? JSON.parse(saved) : fallback;
   };
 
-  const [gateways, setGateways] = useState(() => load('sab_gateways', initialGateways));
+  const [gateways, setGateways] = useState(() => {
+    const raw = load('sab_gateways', initialGateways);
+    return raw.map(gw => {
+      const initMatch = initialGateways.find(ig => ig.Gateway_id === gw.Gateway_id);
+      const rawCount = Number(gw.channel_count || initMatch?.channel_count || 2);
+      const count = rawCount === 1 ? 1 : 2;
+      return {
+        ...initMatch,
+        ...gw,
+        gw_make_name: gw.gw_make_name || initMatch?.gw_make_name || '',
+        gw_model_name: gw.gw_model_name || initMatch?.gw_model_name || '',
+        channel_count: count,
+        status: gw.status || initMatch?.status || 'Active',
+        last_communicate_time: gw.last_communicate_time || initMatch?.last_communicate_time || new Date().toISOString()
+      };
+    });
+  });
   const [gatewayMakes, setGatewayMakes] = useState(() => load('sab_gw_makes', initialGatewayMakes));
-  const [gatewayModels, setGatewayModels] = useState(() => load('sab_gw_models', initialGatewayModels));
+  const [gatewayModels, setGatewayModels] = useState(() => {
+    const raw = load('sab_gw_models', initialGatewayModels);
+    return raw.map(mod => {
+      const initMatch = initialGatewayModels.find(im => im.gw_model_id === mod.gw_model_id);
+      const rawCount = Number(mod.channel_count || initMatch?.channel_count || 2);
+      const count = rawCount === 1 ? 1 : 2;
+      const initNames = initMatch?.channel_names || ['Channel 1', 'Channel 2'];
+      const names = (mod.channel_names && mod.channel_names.length)
+        ? mod.channel_names.slice(0, count)
+        : initNames.slice(0, count);
+
+      return {
+        ...initMatch,
+        ...mod,
+        channel_count: count,
+        channel_names: names
+      };
+    });
+  });
   const [channels, setChannels] = useState(() => load('sab_channels', initialChannels));
   const [meters, setMeters] = useState(() => load('sab_meters', initialMeters));
   const [assets, setAssets] = useState(() => load('sab_assets', initialAssets));

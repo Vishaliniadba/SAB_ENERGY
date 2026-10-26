@@ -83,7 +83,6 @@ export const GatewayMakeMasterView = () => {
     <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <PageHeader
         title="Gateway Make Master"
-        subtitle="Catalog of industrial hardware manufacturers for SCADA edge gateways and communication controllers."
         icon={Building2}
         actions={
           <button onClick={openAdd} className="btn btn-primary">
@@ -133,48 +132,27 @@ export const GatewayMakeMasterView = () => {
           <thead>
             <tr>
               <th style={{ width: '60px' }}>#</th>
-              <th>Make Identifier</th>
               <th>Manufacturer Name</th>
-              <th style={{ textAlign: 'center', width: '160px' }}>Linked Models</th>
               <th style={{ textAlign: 'center', width: '130px' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={5} style={{ padding: '36px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                <td colSpan={3} style={{ padding: '36px', textAlign: 'center', color: 'var(--text-muted)' }}>
                   No gateway manufacturers found matching your query.
                 </td>
               </tr>
             ) : (
               filtered.map((m, index) => {
-                const linkedCount = gatewayModels.filter((mod) => mod.gw_make_id === m.gw_make_id).length;
                 return (
                   <tr key={m.gw_make_id}>
                     <td style={{ color: 'var(--text-muted)' }}>{index + 1}</td>
-                    <td className="mono-num" style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>
-                      {m.gw_make_id}
-                    </td>
                     <td style={{ fontWeight: 600 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <Building2 size={14} color="var(--brand-primary)" />
                         <span>{m.gw_make_name}</span>
                       </div>
-                    </td>
-                    <td style={{ textAlign: 'center' }}>
-                      <span
-                        style={{
-                          fontSize: '0.75rem',
-                          padding: '2px 8px',
-                          borderRadius: 'var(--radius-xs)',
-                          backgroundColor: 'var(--bg-surface-secondary)',
-                          color: 'var(--text-secondary)',
-                          border: '1px solid var(--border-default)',
-                          fontWeight: 550,
-                        }}
-                      >
-                        {linkedCount} {linkedCount === 1 ? 'model' : 'models'}
-                      </span>
                     </td>
                     <td style={{ textAlign: 'center' }}>
                       <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>

@@ -36,13 +36,13 @@ export const Header = ({ activeTab }) => {
         return { section: 'Asset Management', page: 'Asset-to-Meter Mapping' };
       case 'meter-profile':
       case 'meter-profiles':
-        return { section: 'Configuration', page: 'Meter Profiles' };
+        return { section: 'Meter Master', page: 'Meter Profile' };
       case 'meter-make':
       case 'make-master':
-        return { section: 'Meter Masters', page: 'Meter Makes' };
+        return { section: 'Meter Master', page: 'Meter Makes' };
       case 'meter-model':
       case 'model-master':
-        return { section: 'Meter Masters', page: 'Meter Models' };
+        return { section: 'Meter Master', page: 'Meter Models' };
       case 'gateway-make':
       case 'gateway-make-master':
         return { section: 'Gateway Masters', page: 'Gateway Makes' };

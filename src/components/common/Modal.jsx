@@ -12,27 +12,31 @@ export const Modal = ({
 }) => {
   const modalRef = useRef(null);
   const previousActiveElement = useRef(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => {
+    if (!isOpen) return;
+
+    previousActiveElement.current = document.activeElement;
+    document.body.style.overflow = 'hidden';
+
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        onCloseRef.current?.();
+      }
     };
 
-    if (isOpen) {
-      previousActiveElement.current = document.activeElement;
-      document.body.style.overflow = 'hidden';
-      window.addEventListener('keydown', handleKeyDown);
-      modalRef.current?.focus();
-    }
+    window.addEventListener('keydown', handleKeyDown);
 
     return () => {
       document.body.style.overflow = 'unset';
       window.removeEventListener('keydown', handleKeyDown);
-      if (previousActiveElement.current) {
-        previousActiveElement.current.focus?.();
+      if (previousActiveElement.current && typeof previousActiveElement.current.focus === 'function') {
+        previousActiveElement.current.focus();
       }
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

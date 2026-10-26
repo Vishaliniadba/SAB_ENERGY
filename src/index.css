@@ -76,6 +76,7 @@
   --primary-cyan-deep: #0D5D45;
   --primary-cyan-glow: rgba(22, 128, 93, 0.12);
   --primary-cyan-border: rgba(22, 128, 93, 0.3);
+  --primary-cyan-gradient: linear-gradient(135deg, #16805D 0%, #0D5D45 100%);
 
   --accent-emerald: #146C43;
   --accent-emerald-deep: #0D5D45;
@@ -191,6 +192,7 @@
   --primary-cyan-deep: #2EA26F;
   --primary-cyan-glow: rgba(66, 184, 131, 0.18);
   --primary-cyan-border: rgba(66, 184, 131, 0.35);
+  --primary-cyan-gradient: linear-gradient(135deg, #2EA26F 0%, #18523A 100%);
 
   --accent-emerald: #70D6A0;
   --accent-emerald-deep: #42B883;

@@ -73,6 +73,22 @@ export const MeterProfileView = () => {
   // Parameter Box rows state
   const [parameterRows, setParameterRows] = useState([]);
 
+  // Duplicate key detection in Parameter Box rows
+  const duplicateKeyCountsInRows = useMemo(() => {
+    const counts = {};
+    for (const r of parameterRows) {
+      const k = (r.key || '').trim().toLowerCase();
+      if (k) {
+        counts[k] = (counts[k] || 0) + 1;
+      }
+    }
+    return counts;
+  }, [parameterRows]);
+
+  const hasDuplicateRowKeys = useMemo(() => {
+    return Object.values(duplicateKeyCountsInRows).some((c) => c > 1);
+  }, [duplicateKeyCountsInRows]);
+
   // Toast / feedback message
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
@@ -947,6 +963,17 @@ export const MeterProfileView = () => {
 
     if (cleanedParams.length === 0) {
       setErrorMsg('Please add at least one parameter row in the Parameter Box.');
+      return;
+    }
+
+    // Duplicate parameter validation
+    const keyCounts = {};
+    for (const p of cleanedParams) {
+      keyCounts[p.key] = (keyCounts[p.key] || 0) + 1;
+    }
+    const dupKey = Object.keys(keyCounts).find((k) => keyCounts[k] > 1);
+    if (dupKey) {
+      setErrorMsg(`Duplicate parameter key "${dupKey}" detected in the Parameter Box. Each parameter row must have a unique key.`);
       return;
     }
 
@@ -1943,39 +1970,52 @@ export const MeterProfileView = () => {
 
                       {/* Key dropdown */}
                       <td style={{ padding: '8px 12px' }}>
-                        <select
-                          value={row.key}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            if (val === '__custom__') {
-                              const custom = window.prompt('Enter custom telemetry key (e.g. custom_energy_total):');
-                              if (custom && custom.trim()) {
-                                handleRowChange(index, 'key', custom.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_'));
-                              }
-                            } else {
-                              handleRowChange(index, 'key', val);
-                            }
-                          }}
-                          style={{
-                            ...tableInputStyle,
-                            fontFamily: 'monospace',
-                            color: 'var(--text-primary)',
-                            fontWeight: 400,
-                            cursor: 'pointer',
-                            backgroundColor: 'var(--bg-input)',
-                          }}
-                        >
-                          <option value="">-- Select Key --</option>
-                          {standardParameters.map((sp) => (
-                            <option key={sp.key} value={sp.key}>
-                              {sp.key}{sp.unit ? ` (${sp.unit})` : ''}
-                            </option>
-                          ))}
-                          {row.key && !standardParameters.some((sp) => sp.key === row.key) && (
-                            <option value={row.key}>{row.key}</option>
-                          )}
-                          <option value="__custom__">➕ Custom Key...</option>
-                        </select>
+                        {(() => {
+                          const isRowKeyDuplicate = Boolean(row.key && (duplicateKeyCountsInRows[row.key.trim().toLowerCase()] || 0) > 1);
+                          return (
+                            <>
+                              <select
+                                value={row.key}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  if (val === '__custom__') {
+                                    const custom = window.prompt('Enter custom telemetry key (e.g. custom_energy_total):');
+                                    if (custom && custom.trim()) {
+                                      handleRowChange(index, 'key', custom.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_'));
+                                    }
+                                  } else {
+                                    handleRowChange(index, 'key', val);
+                                  }
+                                }}
+                                style={{
+                                  ...tableInputStyle,
+                                  fontFamily: 'monospace',
+                                  color: isRowKeyDuplicate ? 'var(--status-danger-text)' : 'var(--text-primary)',
+                                  fontWeight: isRowKeyDuplicate ? 600 : 400,
+                                  cursor: 'pointer',
+                                  backgroundColor: isRowKeyDuplicate ? 'var(--status-danger-bg)' : 'var(--bg-input)',
+                                  borderColor: isRowKeyDuplicate ? 'var(--status-danger-border, #ef4444)' : undefined,
+                                }}
+                              >
+                                <option value="">-- Select Key --</option>
+                                {standardParameters.map((sp) => (
+                                  <option key={sp.key} value={sp.key}>
+                                    {sp.key}{sp.unit ? ` (${sp.unit})` : ''}
+                                  </option>
+                                ))}
+                                {row.key && !standardParameters.some((sp) => sp.key === row.key) && (
+                                  <option value={row.key}>{row.key}</option>
+                                )}
+                                <option value="__custom__">➕ Custom Key...</option>
+                              </select>
+                              {isRowKeyDuplicate && (
+                                <div style={{ marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--status-danger-text)', fontSize: '0.70rem', fontWeight: 650 }}>
+                                  <AlertCircle size={11} /> Duplicate parameter in profile
+                                </div>
+                              )}
+                            </>
+                          );
+                        })()}
                       </td>
 
                       {/* display name */}
@@ -2170,9 +2210,18 @@ export const MeterProfileView = () => {
           Cancel & Return to List
         </button>
 
-        <button onClick={handleSaveProfile} style={btnPrimaryStyle}>
+        <button
+          onClick={handleSaveProfile}
+          style={{
+            ...btnPrimaryStyle,
+            opacity: hasDuplicateRowKeys ? 0.6 : 1,
+            cursor: hasDuplicateRowKeys ? 'not-allowed' : 'pointer',
+          }}
+          disabled={hasDuplicateRowKeys}
+          title={hasDuplicateRowKeys ? 'Cannot save profile with duplicate parameter keys' : 'Save Meter Profile'}
+        >
           <Save size={15} />
-          <span>Save Meter Profile</span>
+          <span>{hasDuplicateRowKeys ? 'Duplicate Parameter in Profile' : 'Save Meter Profile'}</span>
         </button>
       </div>
 

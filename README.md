@@ -150,11 +150,16 @@ vishalini-SaB Energy/
 - [x] **Gateway Make Master (`GatewayMakeMasterView.jsx`)**:
   - Manage hardware edge gateway manufacturers (SaB Systems, Advantech, Siemens, Wago).
 - [x] **Gateway Model Master (`GatewayModelMasterView.jsx`)**:
-  - Configure gateway models with physical port/channel capacity limits (1–16 channels), default firmware versions, and communication capabilities.
+  - **Two-Stage Configuration**:
+    - **Stage 1 (Gateway Details)**: Manufacturer, Model Name, Channel count (1–32 slots), and Firmware version.
+    - **Stage 2 (Channels & Ports)**: Gateway summary, channel names, and RS-485 port settings (baud rate, parity, slave ID).
+  - Validation, duplicate prevention, and state preservation across steps.
 - [x] **Parameter Dictionary (`ParameterDictionaryView.jsx`)**:
   - Standardized enterprise dictionary of electrical parameters.
   - Standard parameter keys (e.g. `v_r`, `v_y`, `v_b`, `v_ry`, `i_r`, `active_power_total`, `energy_active_import`, `power_factor_avg`, `thd_v_avg`).
   - Predefined display names and engineering units.
+  - **Real-Time Duplicate Detection**: Live visual warning badge, alert panel, red focus ring, and submission prevention when an existing parameter key or display name is entered.
+  - Catalog-wide duplicate key tracking indicator in toolbar and table rows.
 
 ---
 

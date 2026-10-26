@@ -102,7 +102,6 @@ export const ModelMasterView = () => {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%' }}>
       <PageHeader
         title="Meter Model Master"
-        subtitle="Catalog of energy meter models linked under manufacturers with Modbus register profile mappings."
         icon={Cpu}
         actions={
           <button onClick={handleOpenAdd} className="btn btn-primary">
@@ -174,7 +173,6 @@ export const ModelMasterView = () => {
           <thead>
             <tr>
               <th style={{ width: '60px' }}>#</th>
-              <th>Model Code</th>
               <th>Model Name</th>
               <th>Manufacturer (Make)</th>
               <th style={{ textAlign: 'center', width: '130px' }}>Actions</th>
@@ -183,7 +181,7 @@ export const ModelMasterView = () => {
           <tbody>
             {filteredModels.length === 0 ? (
               <tr>
-                <td colSpan={5} style={{ padding: '36px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                <td colSpan={4} style={{ padding: '36px', textAlign: 'center', color: 'var(--text-muted)' }}>
                   No meter models found for this filter.
                 </td>
               </tr>
@@ -193,9 +191,6 @@ export const ModelMasterView = () => {
                 return (
                   <tr key={model.model_id}>
                     <td style={{ color: 'var(--text-muted)' }}>{index + 1}</td>
-                    <td className="mono-num" style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>
-                      {model.model_id}
-                    </td>
                     <td style={{ fontWeight: 600 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <Cpu size={14} color="var(--brand-primary)" />
@@ -242,7 +237,6 @@ export const ModelMasterView = () => {
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         title={editingModelId ? 'Edit Meter Model' : 'Add Meter Model'}
-        subtitle="Associate hardware meter model with its parent manufacturer."
         maxWidth="520px"
         footer={
           <>
@@ -300,9 +294,6 @@ export const ModelMasterView = () => {
               placeholder="e.g. EM6400NG, Elite 440, MFM384, PM5300"
               autoFocus
             />
-            <span className="form-helper">
-              Specific model variant supported by the Modbus register mapping catalog.
-            </span>
           </div>
         </form>
       </Modal>

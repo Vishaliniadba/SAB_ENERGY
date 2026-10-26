@@ -87,7 +87,6 @@ export const MakeMasterView = () => {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%' }}>
       <PageHeader
         title="Meter Make Master"
-        subtitle="Catalog of power meter manufacturers (Schneider, Secure Meters, Selec, Rishabh, Socomec, etc.)."
         icon={Building2}
         actions={
           <button onClick={handleOpenAdd} className="btn btn-primary">
@@ -137,48 +136,27 @@ export const MakeMasterView = () => {
           <thead>
             <tr>
               <th style={{ width: '60px' }}>#</th>
-              <th>Make Code</th>
               <th>Manufacturer Name</th>
-              <th style={{ textAlign: 'center', width: '160px' }}>Linked Models</th>
               <th style={{ textAlign: 'center', width: '130px' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {filteredMakes.length === 0 ? (
               <tr>
-                <td colSpan={5} style={{ padding: '36px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                <td colSpan={3} style={{ padding: '36px', textAlign: 'center', color: 'var(--text-muted)' }}>
                   No meter makes found. Click <strong>"Add Meter Make"</strong> to register a new vendor.
                 </td>
               </tr>
             ) : (
               filteredMakes.map((make, index) => {
-                const associatedModels = models.filter((m) => m.make_id === make.make_id);
                 return (
                   <tr key={make.make_id}>
                     <td style={{ color: 'var(--text-muted)' }}>{index + 1}</td>
-                    <td className="mono-num" style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>
-                      {make.make_id}
-                    </td>
                     <td style={{ fontWeight: 600 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <Building2 size={14} color="var(--brand-primary)" />
                         <span>{make.make_name}</span>
                       </div>
-                    </td>
-                    <td style={{ textAlign: 'center' }}>
-                      <span
-                        style={{
-                          fontSize: '0.75rem',
-                          padding: '2px 8px',
-                          borderRadius: 'var(--radius-xs)',
-                          backgroundColor: 'var(--bg-surface-secondary)',
-                          color: 'var(--text-secondary)',
-                          border: '1px solid var(--border-default)',
-                          fontWeight: 550,
-                        }}
-                      >
-                        {associatedModels.length} {associatedModels.length === 1 ? 'model' : 'models'}
-                      </span>
                     </td>
                     <td style={{ textAlign: 'center' }}>
                       <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>

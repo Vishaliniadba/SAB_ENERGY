@@ -76,7 +76,6 @@ export const AssetMappingView = () => {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%' }}>
       <PageHeader
         title="Asset-to-Meter Mapping"
-        subtitle="Associate plant physical equipment with slave meters, configure external CT/PT multiplication ratios, and manage effective dates."
         icon={Calculator}
         actions={
           <button onClick={handleOpenAdd} className="btn btn-primary">

@@ -272,14 +272,14 @@ export const Sidebar = ({ activeTab, setActiveTab }) => {
         {/* Main Menu Navigation */}
         {renderNavItem('dashboard', 'Energy Dashboard', LayoutDashboard)}
         {renderNavItem('devices', 'Gateways & Devices', Server)}
-        {renderNavItem('meter-profile', 'Meter Profiles', Layers)}
         {renderNavItem('asset-mapping', 'Asset-to-Meter Mapping', Activity)}
         {renderNavItem('communication-config', 'Comm Configuration', Radio)}
 
-        {/* Meter Masters Section */}
-        {renderSectionHeader('Meter Masters', isProfilesOpen, () => setIsProfilesOpen((p) => !p))}
+        {/* Meter Master Section */}
+        {renderSectionHeader('Meter Master', isProfilesOpen, () => setIsProfilesOpen((p) => !p))}
         {(isProfilesOpen || isCollapsed) && (
           <>
+            {renderNavItem('meter-profile', 'Meter Profile', Layers, !isCollapsed)}
             {renderNavItem('meter-make', 'Meter Makes', Building2, !isCollapsed)}
             {renderNavItem('meter-model', 'Meter Models', Cpu, !isCollapsed)}
             {renderNavItem('parameter-dictionary', 'Parameter', Sliders, !isCollapsed)}

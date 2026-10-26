@@ -8,20 +8,24 @@ import {
 import { useEnergyData } from '../../context/EnergyDataContext';
 import { Modal } from '../../components/common/Modal';
 
-// ── Helper: derive status from last_communicate_time vs keep_alive_seconds ──
+// ── Helper: derive status from gateway status and telemetry ping ──
 const getDeviceStatus = (gw) => {
-  if (!gw.last_communicate_time) return 'Unknown';
+  if (gw.status === 'Offline' || gw.status === 'Inactive') return 'Offline';
+  if (!gw.last_communicate_time) {
+    return gw.status === 'Active' ? 'Online' : 'Offline';
+  }
   const lastMs = new Date(gw.last_communicate_time).getTime();
   const keepAliveMs = (Number(gw.keep_alive_seconds) || 30) * 1000;
   const diffMs = Date.now() - lastMs;
-  if (diffMs <= keepAliveMs * 2) return 'Online';
-  if (diffMs <= keepAliveMs * 10) return 'Intermittent';
+  if (diffMs <= keepAliveMs * 10) return 'Online';
+  if (diffMs <= keepAliveMs * 30) return 'Intermittent';
   return 'Offline';
 };
 
 const statusStyle = (status) => {
   switch (status) {
     case 'Online':
+    case 'Active':
       return {
         bg: 'var(--status-success-bg)',
         color: 'var(--status-success-text)',
@@ -36,6 +40,7 @@ const statusStyle = (status) => {
         dot: 'var(--status-warning-text)',
       };
     case 'Offline':
+    case 'Inactive':
       return {
         bg: 'var(--status-danger-bg)',
         color: 'var(--status-danger-text)',
@@ -44,16 +49,18 @@ const statusStyle = (status) => {
       };
     default:
       return {
-        bg: 'var(--status-info-bg)',
-        color: 'var(--status-info-text)',
-        border: 'var(--status-info-border)',
-        dot: 'var(--status-info-text)',
+        bg: 'var(--status-success-bg)',
+        color: 'var(--status-success-text)',
+        border: 'var(--status-success-border)',
+        dot: 'var(--status-success-text)',
       };
   }
 };
 
 const formatTime = (iso) => {
-  if (!iso) return '—';
+  if (!iso) {
+    return { elapsed: 'Live polling', exact: 'Just now', diffMs: 0 };
+  }
   const d = new Date(iso);
   const now = Date.now();
   const diffMs = Math.max(0, now - d.getTime());
@@ -64,8 +71,10 @@ const formatTime = (iso) => {
   const secs = totalSec % 60;
 
   let elapsedStr = '';
-  if (hrs > 0) {
-    elapsedStr = `${hrs}h ${mins}m ${secs}s ago`;
+  if (hrs > 24) {
+    elapsedStr = `${Math.floor(hrs / 24)}d ago`;
+  } else if (hrs > 0) {
+    elapsedStr = `${hrs}h ${mins}m ago`;
   } else if (mins > 0) {
     elapsedStr = `${mins}m ${secs}s ago`;
   } else {
@@ -89,6 +98,7 @@ const EMPTY_FORM = {
   gw_model_name: '',
   firmware_version: '',
   channel_count: 4,
+  channel_names: [],
   keep_alive_seconds: 30,
   status: 'Active',
 };
@@ -115,7 +125,8 @@ export const DeviceMasterView = () => {
     gateways, gatewayMakes, gatewayModels, channels, meters,
     makes, models, meterProfiles,
     addGateway, updateGateway, deleteGateway,
-    addChannel, addMeter, updateMeter, deleteMeter
+    addChannel, updateChannel, deleteChannel,
+    addMeter, updateMeter, deleteMeter
   } = useEnergyData();
 
   const [viewMode, setViewMode] = useState('list'); // 'list' | 'form'
@@ -259,7 +270,9 @@ export const DeviceMasterView = () => {
     }, 1100);
   };
 
-  // Channel modal state
+  // Channel modal & split-screen state
+  const [selectedChannelId, setSelectedChannelId] = useState(null);
+  const [editingChannelId, setEditingChannelId] = useState(null);
   const [isChannelModalOpen, setIsChannelModalOpen] = useState(false);
   const [channelModalSlot, setChannelModalSlot] = useState(null);
   const [channelForm, setChannelForm] = useState({
@@ -310,11 +323,16 @@ export const DeviceMasterView = () => {
   const selectedGatewayModel = selectedGateway
     ? gatewayModels.find(model => model.gw_model_id === selectedGateway.gw_model_id)
     : null;
-  const channelCapacity = Number(selectedGateway?.channel_count || selectedGatewayModel?.channel_count) || 4;
+  const channelCapacity = Number(selectedGateway?.channel_count || selectedGatewayModel?.channel_count) || 2;
 
   const handleMakeChange = (makeId) => {
     const mk = gatewayMakes.find(m => m.gw_make_id === makeId);
     const firstModel = gatewayModels.find(m => m.gw_make_id === makeId);
+    const count = Number(firstModel?.channel_count) || 2;
+    const names = firstModel?.channel_names?.length
+      ? [...firstModel.channel_names]
+      : Array.from({ length: count }, (_, i) => `Channel ${i + 1}`);
+
     setForm(prev => ({
       ...prev,
       gw_make_id: makeId,
@@ -322,24 +340,36 @@ export const DeviceMasterView = () => {
       gw_model_id: firstModel?.gw_model_id || '',
       gw_model_name: firstModel?.gw_model_name || '',
       firmware_version: prev.firmware_version || firstModel?.firmware_version || '',
-      channel_count: firstModel?.channel_count || prev.channel_count || 4
+      channel_count: count,
+      channel_names: names
     }));
   };
 
   const handleModelChange = (modelId) => {
     const mod = gatewayModels.find(m => m.gw_model_id === modelId);
+    const count = Number(mod?.channel_count) || 2;
+    const names = mod?.channel_names?.length
+      ? [...mod.channel_names]
+      : Array.from({ length: count }, (_, i) => `Channel ${i + 1}`);
+
     setForm(prev => ({
       ...prev,
       gw_model_id: modelId,
       gw_model_name: mod?.gw_model_name || '',
       firmware_version: prev.firmware_version || mod?.firmware_version || '',
-      channel_count: mod?.channel_count || prev.channel_count || 4
+      channel_count: count,
+      channel_names: names
     }));
   };
 
   const openAdd = () => {
     const defMake = gatewayMakes[0];
     const defModel = gatewayModels.find(m => m.gw_make_id === defMake?.gw_make_id);
+    const count = Number(defModel?.channel_count) || 2;
+    const names = defModel?.channel_names?.length
+      ? [...defModel.channel_names]
+      : Array.from({ length: count }, (_, i) => `Channel ${i + 1}`);
+
     setEditingId(null);
     setForm({
       ...EMPTY_FORM,
@@ -348,7 +378,8 @@ export const DeviceMasterView = () => {
       gw_model_id: defModel?.gw_model_id || '',
       gw_model_name: defModel?.gw_model_name || '',
       firmware_version: defModel?.firmware_version || '',
-      channel_count: defModel?.channel_count || 4,
+      channel_count: count,
+      channel_names: names,
       serial_number: `SAB-GW-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`,
     });
     setErrorMsg('');
@@ -357,6 +388,17 @@ export const DeviceMasterView = () => {
 
   const openEdit = (gw) => {
     const gwModel = gatewayModels.find(m => m.gw_model_id === gw.gw_model_id);
+    const count = Number(gw.channel_count || gwModel?.channel_count) || 4;
+    const existingGwChannels = channels.filter(c => c.Gateway_id === gw.Gateway_id);
+    const names = Array.from({ length: count }, (_, i) => {
+      return (
+        existingGwChannels[i]?.Channel_name ||
+        gw.channel_names?.[i] ||
+        gwModel?.channel_names?.[i] ||
+        `Channel ${i + 1}`
+      );
+    });
+
     setEditingId(gw.Gateway_id);
     setForm({
       Gateway_name: gw.Gateway_name || '',
@@ -368,7 +410,8 @@ export const DeviceMasterView = () => {
       gw_model_id: gw.gw_model_id || '',
       gw_model_name: gw.gw_model_name || '',
       firmware_version: gw.firmware_version || '',
-      channel_count: gw.channel_count || gwModel?.channel_count || 4,
+      channel_count: count,
+      channel_names: names,
       keep_alive_seconds: gw.keep_alive_seconds || 30,
       status: gw.status || 'Active',
     });
@@ -386,16 +429,25 @@ export const DeviceMasterView = () => {
     if (!form.gw_model_id) return setErrorMsg('Model is required.');
     
     const count = Math.max(1, parseInt(form.channel_count, 10) || 1);
+    const cleanNames = Array.from({ length: count }, (_, i) => {
+      const custom = (form.channel_names?.[i] || '').trim();
+      return custom || `Channel ${i + 1} (${form.Gateway_name.split(' ')[0] || 'GW'})`;
+    });
 
     if (editingId) {
-      updateGateway(editingId, { ...form, channel_count: count });
-      // If channels count is greater than existing channels, create missing channels
+      updateGateway(editingId, { ...form, channel_count: count, channel_names: cleanNames });
+      // Update existing channel names and create missing channels
       const existing = channels.filter(c => c.Gateway_id === editingId);
+      for (let i = 0; i < Math.min(existing.length, count); i++) {
+        if (cleanNames[i] && cleanNames[i] !== existing[i].Channel_name) {
+          updateChannel(existing[i].Channel_id, { Channel_name: cleanNames[i] });
+        }
+      }
       if (existing.length < count) {
         for (let i = existing.length; i < count; i++) {
           addChannel({
             Gateway_id: editingId,
-            Channel_name: `Channel ${i + 1} (${form.Gateway_name.split(' ')[0] || 'GW'})`,
+            Channel_name: cleanNames[i],
             protocol: 'Modbus RTU',
             baud_rate: '9600',
             port: `COM${i + 1}`,
@@ -403,16 +455,16 @@ export const DeviceMasterView = () => {
           });
         }
       }
-      setSuccessMsg(`✓ Device "${form.Gateway_name}" updated successfully.`);
+      setSuccessMsg(`✓ Device "${form.Gateway_name}" updated successfully with ${count} channels.`);
     } else {
       const generatedGwId = `GW-${Math.floor(100 + Math.random() * 900)}`;
-      addGateway({ ...form, Gateway_id: generatedGwId, channel_count: count });
+      addGateway({ ...form, Gateway_id: generatedGwId, channel_count: count, channel_names: cleanNames });
       
-      // Auto-create exactly the number of channels specified for this gateway
+      // Auto-create exactly the number of channels specified based on channel_count
       for (let i = 0; i < count; i++) {
         addChannel({
           Gateway_id: generatedGwId,
-          Channel_name: `Channel ${i + 1} (${form.Gateway_name.split(' ')[0] || 'GW'})`,
+          Channel_name: cleanNames[i],
           protocol: i === 1 ? 'Modbus TCP' : 'Modbus RTU',
           baud_rate: i === 1 ? '115200' : '9600',
           port: i === 1 ? '502' : `COM${i + 1}`,
@@ -548,18 +600,24 @@ export const DeviceMasterView = () => {
 
   // ─── Channel Modal Handlers ────────────────────────────────────────────────
   const openAddChannelSlot = (slotNumber) => {
+    setEditingChannelId(null);
     setChannelModalSlot(slotNumber);
+    const suggestedName =
+      selectedGatewayModel?.channel_names?.[slotNumber - 1] ||
+      selectedGateway?.channel_names?.[slotNumber - 1] ||
+      `Channel ${slotNumber} (${selectedGateway?.Gateway_name?.split(' ')[0] || 'GW'})`;
     setChannelForm({
-      Channel_name: `Channel ${slotNumber} (${selectedGateway?.Gateway_name?.split(' ')[0] || 'GW'})`,
-      protocol: 'Modbus RTU',
-      baud_rate: '9600',
-      port: `COM${slotNumber}`,
+      Channel_name: suggestedName,
+      protocol: slotNumber === 1 ? 'Modbus TCP' : 'Modbus RTU',
+      baud_rate: slotNumber === 1 ? '115200' : '9600',
+      port: slotNumber === 1 ? '502' : `COM${slotNumber}`,
       status: 'Active'
     });
     setIsChannelModalOpen(true);
   };
 
   const openAddChannelGeneral = () => {
+    setEditingChannelId(null);
     const nextSlot = (selectedChannels.length || 0) + 1;
     setChannelModalSlot(nextSlot);
     setChannelForm({
@@ -572,24 +630,59 @@ export const DeviceMasterView = () => {
     setIsChannelModalOpen(true);
   };
 
+  const openEditChannel = (channel) => {
+    setEditingChannelId(channel.Channel_id);
+    setChannelForm({
+      Channel_name: channel.Channel_name || '',
+      protocol: channel.protocol || 'Modbus RTU',
+      baud_rate: channel.baud_rate || '9600',
+      port: channel.port || 'COM1',
+      status: channel.status || 'Active'
+    });
+    setIsChannelModalOpen(true);
+  };
+
+  const handleDeleteChannel = (channel) => {
+    const channelMeters = meters.filter(m => m.Channel_id === channel.Channel_id);
+    const confirmMsg = channelMeters.length > 0
+      ? `Channel "${channel.Channel_name}" has ${channelMeters.length} meter(s) assigned. Deleting will unassign those meters. Continue?`
+      : `Are you sure you want to delete channel "${channel.Channel_name}"?`;
+    if (window.confirm(confirmMsg)) {
+      deleteChannel(channel.Channel_id);
+      if (selectedChannelId === channel.Channel_id) {
+        setSelectedChannelId(null);
+      }
+      setSuccessMsg(`Channel "${channel.Channel_name}" deleted.`);
+      setTimeout(() => setSuccessMsg(''), 3000);
+    }
+  };
+
   const handleChannelSubmit = (e) => {
     e.preventDefault();
     if (!channelForm.Channel_name.trim()) return;
+
+    if (editingChannelId) {
+      updateChannel(editingChannelId, channelForm);
+      setSuccessMsg(`Channel "${channelForm.Channel_name}" updated.`);
+      setIsChannelModalOpen(false);
+      setEditingChannelId(null);
+      setTimeout(() => setSuccessMsg(''), 3000);
+      return;
+    }
 
     if (selectedGateway) {
       addChannel({
         ...channelForm,
         Gateway_id: selectedGateway.Gateway_id
       });
-      // Also update gateway channel_count if needed to make room
       if (selectedChannels.length >= channelCapacity) {
         updateGateway(selectedGateway.Gateway_id, {
           channel_count: selectedChannels.length + 1
         });
       }
-      setSuccessMsg(`✓ Channel "${channelForm.Channel_name}" created under ${selectedGateway.Gateway_name}.`);
+      setSuccessMsg(`Channel "${channelForm.Channel_name}" created.`);
       setIsChannelModalOpen(false);
-      setTimeout(() => setSuccessMsg(''), 4000);
+      setTimeout(() => setSuccessMsg(''), 3000);
     }
   };
 
@@ -604,172 +697,135 @@ export const DeviceMasterView = () => {
         title={`Meter Communication Diagnostic Test`}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {/* Header context card */}
+          {/* Header Context Card: Gateway > Channel > Meter Hierarchy + Image 1 Info */}
           <div style={{
-            padding: '12px 14px',
+            padding: '14px 16px',
             backgroundColor: '#f8fafc',
             border: '1px solid #e2e8f0',
             borderRadius: '10px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '10px'
-          }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0f172a' }}>
-                  {testingMeter?.Meter_name || 'Selected Meter'}
-                </span>
-                <span style={{
-                  padding: '2px 8px',
-                  borderRadius: '12px',
-                  backgroundColor: testingMeter?.status === 'Active' ? '#ecfdf5' : '#fff1f2',
-                  color: testingMeter?.status === 'Active' ? '#059669' : '#dc2626',
-                  border: `1px solid ${testingMeter?.status === 'Active' ? '#a7f3d0' : '#fca5a5'}`,
-                  fontSize: '0.7rem',
-                  fontWeight: 700,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}>
-                  {testingMeter?.status === 'Active' ? (
-                    <>
-                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10b981' }} />
-                      Active / Online
-                    </>
-                  ) : (
-                    <>
-                      <WifiOff size={10} color="#dc2626" />
-                      Offline
-                    </>
-                  )}
-                </span>
-              </div>
-              <div style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', gap: '8px', marginTop: '3px' }}>
-                <span>ID: <code style={{ color: '#0f172a', fontWeight: 600 }}>{testingMeter?.Meter_id}</code></span>
-                <span>•</span>
-                <span>Model: <strong style={{ color: '#334155' }}>{testingMeter?.meter_model || testingMeter?.make_name || 'Meter'}</strong></span>
-                <span>•</span>
-                <span>Channel: <strong style={{ color: '#0284c7' }}>{testingChannel?.Channel_name || 'Loop'}</strong></span>
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: '6px' }}>
-              <span style={{
-                fontSize: '0.72rem',
-                backgroundColor: '#e0f2fe',
-                color: '#0369a1',
-                padding: '3px 8px',
-                borderRadius: '6px',
-                fontFamily: 'monospace',
-                fontWeight: 600
-              }}>
-                Slave #{testingMeter?.slave_id || '1'}
-              </span>
-              <span style={{
-                fontSize: '0.72rem',
-                backgroundColor: '#f1f5f9',
-                color: '#334155',
-                padding: '3px 8px',
-                borderRadius: '6px',
-                fontFamily: 'monospace',
-                fontWeight: 600
-              }}>
-                {testingMeter?.baud_rate || '9600'} bps
-              </span>
-            </div>
-          </div>
-
-          {/* Verification Mode Selector */}
-          <div style={{
             display: 'flex',
             flexDirection: 'column',
-            gap: '8px',
-            backgroundColor: '#f8fafc',
-            border: '1px solid #e2e8f0',
-            borderRadius: '10px',
-            padding: '12px'
+            gap: '12px'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#1e293b' }}>
-                Test Data Flow Scenario:
-              </span>
-              <span style={{ fontSize: '0.7rem', color: '#64748b' }}>
-                Verify if data passes from meter to gateway
-              </span>
+            {/* Hierarchy Header: Gateway > Channel > Meter */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', fontSize: '0.82rem' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 600, color: '#475569' }}>
+                  <Server size={14} color="#0284c7" />
+                  {activeGateway?.Gateway_name || 'Gateway'}
+                </span>
+                <ChevronRight size={13} color="#94a3b8" />
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 600, color: '#475569' }}>
+                  <Network size={14} color="#0284c7" />
+                  {testingChannel?.Channel_name || 'Channel'}
+                </span>
+                <ChevronRight size={13} color="#94a3b8" />
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 700, color: '#0f172a' }}>
+                  <Cpu size={14} color="#7c3aed" />
+                  {testingMeter?.Meter_name || testingMeter?.meter_model || 'Meter'}
+                </span>
+              </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-              <button
-                type="button"
-                onClick={() => setTestMode('auto')}
-                style={{
-                  padding: '7px 10px',
-                  borderRadius: '6px',
-                  fontSize: '0.74rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  border: testMode === 'auto' ? '2px solid #0284c7' : '1px solid #cbd5e1',
-                  backgroundColor: testMode === 'auto' ? '#eff6ff' : '#ffffff',
-                  color: testMode === 'auto' ? '#0369a1' : '#475569',
-                  display: 'flex',
+
+            {/* Image 1 Configuration Parameters Grid */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(115px, 1fr))',
+              gap: '8px',
+              paddingTop: '10px',
+              borderTop: '1px solid #e2e8f0'
+            }}>
+              {/* Serial Number */}
+              <div style={{
+                backgroundColor: '#ffffff',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                border: '1px solid #e2e8f0'
+              }}>
+                <div style={{ fontSize: '0.67rem', color: '#64748b', fontWeight: 600 }}>Serial Number</div>
+                <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0f172a', fontFamily: 'monospace', marginTop: '2px', wordBreak: 'break-all' }}>
+                  {testingMeter?.meter_serial_number || testingMeter?.Meter_id || 'SCH-MTR-4112'}
+                </div>
+              </div>
+
+              {/* Status */}
+              <div style={{
+                backgroundColor: '#ffffff',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                border: '1px solid #e2e8f0'
+              }}>
+                <div style={{ fontSize: '0.67rem', color: '#64748b', fontWeight: 600 }}>Status</div>
+                <div style={{
+                  display: 'inline-flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                <Activity size={13} color={testMode === 'auto' ? '#0284c7' : '#64748b'} />
-                Auto Ping Test
-              </button>
-              <button
-                type="button"
-                onClick={() => setTestMode('pass')}
-                style={{
-                  padding: '7px 10px',
-                  borderRadius: '6px',
-                  fontSize: '0.74rem',
+                  gap: '5px',
+                  fontSize: '0.8rem',
                   fontWeight: 700,
-                  cursor: 'pointer',
-                  border: testMode === 'pass' ? '2px solid #10b981' : '1px solid #cbd5e1',
-                  backgroundColor: testMode === 'pass' ? '#ecfdf5' : '#ffffff',
-                  color: testMode === 'pass' ? '#065f46' : '#475569',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                <CheckCircle2 size={13} color={testMode === 'pass' ? '#10b981' : '#64748b'} />
-                Simulate Data Pass (Online)
-              </button>
-              <button
-                type="button"
-                onClick={() => setTestMode('fail')}
-                style={{
-                  padding: '7px 10px',
-                  borderRadius: '6px',
-                  fontSize: '0.74rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  border: testMode === 'fail' ? '2px solid #ef4444' : '1px solid #cbd5e1',
-                  backgroundColor: testMode === 'fail' ? '#fff1f2' : '#ffffff',
-                  color: testMode === 'fail' ? '#9f1239' : '#475569',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                <WifiOff size={13} color={testMode === 'fail' ? '#ef4444' : '#64748b'} />
-                Simulate No Data (Mark Offline)
-              </button>
-            </div>
-            <div style={{ fontSize: '0.7rem', color: '#64748b', fontStyle: 'italic', marginTop: '2px' }}>
-              {testMode === 'auto' && '• Auto Mode: Detects channel status and meter state to perform live Modbus query.'}
-              {testMode === 'pass' && '• Pass Mode: Simulates data successfully reaching gateway. Meter will be marked ACTIVE (ONLINE).'}
-              {testMode === 'fail' && '• Fail Mode: Simulates timeout (no data from meter). Meter will be automatically marked OFFLINE.'}
+                  color: (testingMeter?.status || 'Active') === 'Active' ? '#059669' : '#dc2626',
+                  marginTop: '2px'
+                }}>
+                  <span style={{
+                    width: '6px',
+                    height: '6px',
+                    borderRadius: '50%',
+                    backgroundColor: (testingMeter?.status || 'Active') === 'Active' ? '#10b981' : '#ef4444'
+                  }} />
+                  {testingMeter?.status || 'Active'}
+                </div>
+              </div>
+
+              {/* Baud Rate */}
+              <div style={{
+                backgroundColor: '#ffffff',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                border: '1px solid #e2e8f0'
+              }}>
+                <div style={{ fontSize: '0.67rem', color: '#64748b', fontWeight: 600 }}>Baud Rate</div>
+                <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0f172a', fontFamily: 'monospace', marginTop: '2px' }}>
+                  {testingMeter?.baud_rate || testingChannel?.baud_rate || '9600'} bps
+                </div>
+              </div>
+
+              {/* Parity Bit */}
+              <div style={{
+                backgroundColor: '#ffffff',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                border: '1px solid #e2e8f0'
+              }}>
+                <div style={{ fontSize: '0.67rem', color: '#64748b', fontWeight: 600 }}>Parity Bit</div>
+                <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0f172a', marginTop: '2px' }}>
+                  {testingMeter?.parity_bit || testingChannel?.parity_bit || 'None'}
+                </div>
+              </div>
+
+              {/* Stop Bit */}
+              <div style={{
+                backgroundColor: '#ffffff',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                border: '1px solid #e2e8f0'
+              }}>
+                <div style={{ fontSize: '0.67rem', color: '#64748b', fontWeight: 600 }}>Stop Bit</div>
+                <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0f172a', fontFamily: 'monospace', marginTop: '2px' }}>
+                  {testingMeter?.stop_bit !== undefined && testingMeter?.stop_bit !== null ? testingMeter.stop_bit : (testingChannel?.stop_bit ?? '1')}
+                </div>
+              </div>
+
+              {/* Data Bit */}
+              <div style={{
+                backgroundColor: '#ffffff',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                border: '1px solid #e2e8f0'
+              }}>
+                <div style={{ fontSize: '0.67rem', color: '#64748b', fontWeight: 600 }}>Data Bit</div>
+                <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0f172a', fontFamily: 'monospace', marginTop: '2px' }}>
+                  {testingMeter?.data_bit !== undefined && testingMeter?.data_bit !== null ? testingMeter.data_bit : (testingChannel?.data_bit ?? '8')}
+                </div>
+              </div>
             </div>
           </div>
 
@@ -1091,7 +1147,14 @@ export const DeviceMasterView = () => {
                   min="1"
                   max="32"
                   value={form.channel_count}
-                  onChange={e => setForm(p => ({ ...p, channel_count: Math.max(1, parseInt(e.target.value, 10) || 1) }))}
+                  onChange={e => {
+                    const newCount = Math.max(1, parseInt(e.target.value, 10) || 1);
+                    setForm(p => {
+                      const existingNames = p.channel_names || [];
+                      const updatedNames = Array.from({ length: newCount }, (_, i) => existingNames[i] || `Channel ${i + 1}`);
+                      return { ...p, channel_count: newCount, channel_names: updatedNames };
+                    });
+                  }}
                   placeholder="e.g. 4"
                 />
                 <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>
@@ -1115,6 +1178,58 @@ export const DeviceMasterView = () => {
           </div>
         </div>
 
+        {/* Dynamic Channel Slots based on Channel Count */}
+        <div style={cardStyle}>
+          <SectionTitle
+            icon={<Network size={16} />}
+            title={`Channel Configuration (${form.channel_count || 1} Channel${(form.channel_count || 1) === 1 ? '' : 's'} based on Channel Count)`}
+          />
+          <p style={{ fontSize: '0.76rem', color: 'var(--text-muted)', margin: '4px 0 16px' }}>
+            These channel slots will be created under this gateway based on the channel count. Names are pre-filled from the selected model and can be customized.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '14px' }}>
+            {Array.from({ length: Math.max(1, parseInt(form.channel_count, 10) || 1) }, (_, idx) => {
+              const chNum = idx + 1;
+              return (
+                <div
+                  key={`channel-slot-${chNum}`}
+                  style={{
+                    padding: '12px 14px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-subtle)',
+                    backgroundColor: 'var(--bg-card-secondary)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '6px',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--brand-primary)' }}>
+                      Channel Slot #{chNum}
+                    </span>
+                    <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                      {chNum === 1 ? 'Modbus RTU/TCP' : `COM${chNum}`}
+                    </span>
+                  </div>
+                  <input
+                    style={inputStyle}
+                    value={form.channel_names?.[idx] || ''}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setForm((prev) => {
+                        const next = [...(prev.channel_names || [])];
+                        next[idx] = val;
+                        return { ...prev, channel_names: next };
+                      });
+                    }}
+                    placeholder={`e.g. Channel ${chNum} Name`}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Actions */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', ...cardStyle }}>
           <button onClick={() => setViewMode('list')} style={cancelBtnStyle}>
@@ -1129,499 +1244,498 @@ export const DeviceMasterView = () => {
   }
 
   if (selectedGateway) {
+    const displayChannels = selectedChannels.slice(0, 2);
+    const totalSlots = 2;
+
+    const renderChannelCard = (channel, slotNum) => {
+      if (!channel) {
+        return (
+          <div
+            key={`unassigned-slot-${slotNum}`}
+            style={{
+              ...cardStyle,
+              padding: '32px 20px',
+              border: '1.5px dashed #cbd5e1',
+              backgroundColor: '#fafbfc',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              textAlign: 'center',
+              gap: '12px',
+              minHeight: '260px',
+              height: '100%'
+            }}
+          >
+            <div style={{ width: '46px', height: '46px', borderRadius: '12px', backgroundColor: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Network size={22} color="#94a3b8" />
+            </div>
+            <div>
+              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Channel {slotNum}
+              </span>
+              <h4 style={{ margin: '4px 0 6px', color: '#334155', fontSize: '1rem', fontWeight: 700 }}>
+                Unassigned Channel Slot
+              </h4>
+              <p style={{ margin: 0, fontSize: '0.78rem', color: '#94a3b8' }}>
+                Channel {slotNum} is not configured yet for {selectedGateway.Gateway_name}.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => openAddChannelSlot(slotNum)}
+              style={{
+                ...saveBtnStyle,
+                fontSize: '0.78rem',
+                padding: '7px 14px',
+                marginTop: '4px'
+              }}
+            >
+              <Plus size={14} /> Configure Channel {slotNum}
+            </button>
+          </div>
+        );
+      }
+
+      const channelMeters = meters.filter(m => m.Channel_id === channel.Channel_id);
+      const cleanChannelTitle = channel.Channel_name && /^channel\s*\d+/i.test(channel.Channel_name)
+        ? channel.Channel_name.replace(/^channel\s*\d+/i, `Channel ${slotNum}`)
+        : (channel.Channel_name || `Channel ${slotNum}`);
+
+      return (
+        <div
+          key={channel.Channel_id}
+          style={{
+            ...cardStyle,
+            padding: '18px 20px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '14px',
+            border: '1px solid var(--border-subtle)',
+            boxShadow: 'var(--shadow-card)',
+            height: '100%'
+          }}
+        >
+          {/* Channel Header (Name, Slot, Status & Actions) */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{
+                width: '38px',
+                height: '38px',
+                borderRadius: '8px',
+                backgroundColor: channel.status === 'Active' ? '#ecfdf5' : '#f1f5f9',
+                color: channel.status === 'Active' ? '#059669' : '#64748b',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: `1px solid ${channel.status === 'Active' ? '#a7f3d0' : '#e2e8f0'}`,
+                flexShrink: 0
+              }}>
+                <Network size={18} />
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <span style={{
+                    fontSize: '0.68rem',
+                    fontWeight: 800,
+                    color: slotNum === 1 ? '#0284c7' : '#16805D',
+                    backgroundColor: slotNum === 1 ? '#eff6ff' : '#f0fdf4',
+                    border: `1px solid ${slotNum === 1 ? '#bfdbfe' : '#bbf7d0'}`,
+                    padding: '2px 7px',
+                    borderRadius: '4px'
+                  }}>
+                    CHANNEL {slotNum}
+                  </span>
+                  <h3 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    {cleanChannelTitle}
+                  </h3>
+                  <span style={{
+                    padding: '2px 7px',
+                    borderRadius: '10px',
+                    fontSize: '0.68rem',
+                    fontWeight: 700,
+                    backgroundColor: channel.status === 'Active' ? '#ecfdf5' : '#f1f5f9',
+                    color: channel.status === 'Active' ? '#059669' : '#64748b',
+                    border: `1px solid ${channel.status === 'Active' ? '#a7f3d0' : '#e2e8f0'}`
+                  }}>
+                    {channel.status || 'Active'}
+                  </span>
+                </div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px', fontFamily: 'monospace' }}>
+                  ID: {channel.Channel_id}
+                </div>
+              </div>
+            </div>
+
+            {/* Actions for this Channel */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <button
+                type="button"
+                onClick={() => openAddMeter(channel)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '5px 10px',
+                  borderRadius: '6px',
+                  backgroundColor: '#16805D',
+                  color: '#fff',
+                  border: 'none',
+                  fontSize: '0.74rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+                title={`Add meter to ${cleanChannelTitle}`}
+              >
+                <Plus size={13} /> Add Meter
+              </button>
+              <button
+                type="button"
+                onClick={() => openEditChannel(channel)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '5px 8px',
+                  borderRadius: '6px',
+                  backgroundColor: '#f8fafc',
+                  color: '#334155',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '0.74rem',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+                title="Edit Channel settings"
+              >
+                <Edit3 size={12} />
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDeleteChannel(channel)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '5px 8px',
+                  borderRadius: '6px',
+                  backgroundColor: '#fef2f2',
+                  color: '#dc2626',
+                  border: '1px solid #fecaca',
+                  fontSize: '0.74rem',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+                title="Delete this channel"
+              >
+                <Trash2 size={12} />
+              </button>
+            </div>
+          </div>
+
+          {/* Channel Basic Parameters Strip */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            padding: '7px 12px',
+            borderRadius: '6px',
+            backgroundColor: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            fontSize: '0.73rem',
+            color: '#475569'
+          }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <span style={{ color: '#64748b' }}>Protocol:</span>
+              <strong style={{ color: '#0f172a' }}>{channel.protocol || 'Modbus RTU'}</strong>
+            </div>
+            <span style={{ color: '#cbd5e1' }}>•</span>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <span style={{ color: '#64748b' }}>Port:</span>
+              <strong style={{ color: '#0f172a', fontFamily: 'monospace' }}>{channel.port || `COM${slotNum}`}</strong>
+            </div>
+            <span style={{ color: '#cbd5e1' }}>•</span>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <span style={{ color: '#64748b' }}>Baud:</span>
+              <strong style={{ color: '#0f172a', fontFamily: 'monospace' }}>{channel.baud_rate || '9600'} bps</strong>
+            </div>
+          </div>
+
+          {/* Channel Meters Section */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Cpu size={15} color="#7c3aed" />
+                <h4 style={{ margin: 0, fontSize: '0.84rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  Assigned Meters ({channelMeters.length})
+                </h4>
+              </div>
+            </div>
+
+            {channelMeters.length === 0 ? (
+              <div style={{
+                padding: '28px 16px',
+                textAlign: 'center',
+                backgroundColor: '#fafbfc',
+                borderRadius: '8px',
+                border: '1px dashed #cbd5e1',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                flex: 1,
+                minHeight: '120px'
+              }}>
+                <Cpu size={22} color="#94a3b8" />
+                <div style={{ color: '#64748b', fontSize: '0.78rem' }}>
+                  No meters connected to Channel {slotNum} yet.
+                </div>
+                <button
+                  type="button"
+                  onClick={() => openAddMeter(channel)}
+                  style={{
+                    padding: '5px 12px',
+                    borderRadius: '6px',
+                    backgroundColor: '#16805D',
+                    color: '#ffffff',
+                    border: 'none',
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  <Plus size={12} /> Add Meter
+                </button>
+              </div>
+            ) : (
+              <div style={{ overflowX: 'auto', border: '1px solid var(--border-subtle)', borderRadius: '8px' }}>
+                <table className="enterprise-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: 'var(--bg-card-secondary, #f8fafc)', borderBottom: '1px solid var(--border-subtle)', textAlign: 'left' }}>
+                      <th style={{ padding: '8px 10px', width: '28px' }}>#</th>
+                      <th style={{ padding: '8px 10px' }}>Meter</th>
+                      <th style={{ padding: '8px 10px' }}>Slave ID</th>
+                      <th style={{ padding: '8px 10px' }}>Status</th>
+                      <th style={{ padding: '8px 10px', textAlign: 'right' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {channelMeters.map((meter, mIdx) => {
+                      const displayName = meter.meter_model || (meter.Meter_name?.includes('(') ? meter.Meter_name.split('(')[0].trim() : meter.Meter_name) || 'Meter';
+                      const displaySerial = meter.meter_serial_number || (meter.Meter_name?.match(/\(([^)]+)\)/)?.[1]) || meter.Meter_id;
+
+                      return (
+                        <tr key={meter.Meter_id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                          <td style={{ padding: '8px 10px', color: 'var(--text-muted)', fontWeight: 600 }}>{mIdx + 1}</td>
+                          <td style={{ padding: '8px 10px' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <Cpu size={13} color="#7c3aed" style={{ flexShrink: 0 }} />
+                                <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{displayName}</span>
+                              </div>
+                              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', paddingLeft: '19px', fontFamily: 'monospace' }}>
+                                S/N: {displaySerial}
+                              </span>
+                            </div>
+                          </td>
+                          <td style={{ padding: '8px 10px' }}>
+                            <span style={{
+                              fontSize: '0.72rem',
+                              backgroundColor: '#eff6ff',
+                              color: '#1d4ed8',
+                              border: '1px solid #bfdbfe',
+                              padding: '2px 7px',
+                              borderRadius: '4px',
+                              fontWeight: 700
+                            }}>
+                              #{meter.slave_id || '1'}
+                            </span>
+                          </td>
+                          <td style={{ padding: '8px 10px' }}>
+                            {meter.status === 'Active' ? (
+                              <span style={{
+                                padding: '2px 7px',
+                                borderRadius: '10px',
+                                backgroundColor: '#ecfdf5',
+                                color: '#059669',
+                                border: '1px solid #a7f3d0',
+                                fontSize: '0.68rem',
+                                fontWeight: 700,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px'
+                              }}>
+                                <span style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#10b981' }} />
+                                Active
+                              </span>
+                            ) : meter.status === 'Offline' ? (
+                              <span style={{
+                                padding: '2px 7px',
+                                borderRadius: '10px',
+                                backgroundColor: '#fff1f2',
+                                color: '#dc2626',
+                                border: '1px solid #fca5a5',
+                                fontSize: '0.68rem',
+                                fontWeight: 700,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px'
+                              }}>
+                                <WifiOff size={10} color="#dc2626" />
+                                Offline
+                              </span>
+                            ) : (
+                              <span style={{
+                                padding: '2px 7px',
+                                borderRadius: '10px',
+                                backgroundColor: '#f8fafc',
+                                color: '#64748b',
+                                border: '1px solid #e2e8f0',
+                                fontSize: '0.68rem',
+                                fontWeight: 700
+                              }}>
+                                {meter.status || 'Inactive'}
+                              </span>
+                            )}
+                          </td>
+                          <td style={{ padding: '8px 10px', textAlign: 'right' }}>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              {quickTestingMeterId === meter.Meter_id && (
+                                <span style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '3px',
+                                  padding: '1px 5px',
+                                  borderRadius: '4px',
+                                  backgroundColor: '#eff6ff',
+                                  color: '#0284c7',
+                                  fontSize: '0.66rem',
+                                  fontWeight: 700
+                                }}>
+                                  <RefreshCw size={9} className="spin-animate" /> Pinging...
+                                </span>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => openTestMeter(meter, channel)}
+                                disabled={quickTestingMeterId === meter.Meter_id}
+                                style={{
+                                  border: meter.status === 'Offline' ? '1px solid #fca5a5' : '1px solid #bfdbfe',
+                                  background: meter.status === 'Offline' ? '#fff1f2' : '#eff6ff',
+                                  color: meter.status === 'Offline' ? '#dc2626' : '#1d4ed8',
+                                  padding: '3px 7px',
+                                  borderRadius: '5px',
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '3px',
+                                  fontSize: '0.7rem',
+                                  fontWeight: 700
+                                }}
+                                title="Test communication"
+                              >
+                                {meter.status === 'Offline' ? <WifiOff size={10} color="#dc2626" /> : <Zap size={10} color="#2563eb" />}
+                                Test
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => openEditMeter(meter, channel)}
+                                style={editBtnStyle}
+                                title="Edit Meter"
+                              >
+                                <Edit3 size={12} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteMeter(meter)}
+                                style={deleteBtnStyle}
+                                title="Delete Meter"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    };
+
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '1300px', margin: '0 auto' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', maxWidth: '1440px', margin: '0 auto' }}>
+        {/* Top Header Card */}
         <div style={{ ...cardStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            <button onClick={() => setSelectedGatewayId(null)} style={backBtnStyle} aria-label="Back to devices">
+            <button
+              onClick={() => {
+                setSelectedGatewayId(null);
+                setSelectedChannelId(null);
+              }}
+              style={backBtnStyle}
+              aria-label="Back to devices"
+            >
               <ArrowLeft size={18} />
             </button>
-            <div style={{ width: '44px', height: '44px', borderRadius: '10px', background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Server size={22} color="#fff" />
             </div>
             <div>
               <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.02em' }}>{selectedGateway.Gateway_name}</h2>
               <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '3px 0 0' }}>
-                {selectedGateway.Gateway_id} · {selectedGateway.gw_model_name || 'Gateway'} · {selectedChannels.length} configured channel{selectedChannels.length === 1 ? '' : 's'}
-                {channelCapacity > 0 ? ` of ${channelCapacity} supported` : ''}
+                {selectedGateway.Gateway_id} · {selectedGateway.gw_model_name || 'Gateway'} · {displayChannels.length} of 2 supported channels
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={openAddChannelGeneral}
-            style={saveBtnStyle}
-            title="Add another channel to this gateway"
-          >
-            <Plus size={15} /> Add Channel
-          </button>
+          {displayChannels.length < 2 && (
+            <button
+              type="button"
+              onClick={openAddChannelGeneral}
+              style={saveBtnStyle}
+              title="Add Channel 2 to this gateway"
+            >
+              <Plus size={15} /> Add Channel 2
+            </button>
+          )}
         </div>
 
-        {/* Channels Grid according to Gateway Channel Capacity */}
-        {(() => {
-          // If gateway has channel_count specified (e.g. 4 or 8), generate slots up to capacity
-          const totalSlots = channelCapacity > 0 ? channelCapacity : Math.max(selectedChannels.length, 1);
-          const channelSlotCards = [];
-
-          for (let slotIndex = 0; slotIndex < totalSlots; slotIndex++) {
-            const channel = selectedChannels[slotIndex];
-            const channelNum = slotIndex + 1;
-
-            if (channel) {
-              const channelMeters = meters.filter(meter => meter.Channel_id === channel.Channel_id);
-              channelSlotCards.push(
-                <section
-                  key={channel.Channel_id}
-                  style={{
-                    ...cardStyle,
-                    padding: '20px 22px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    border: '1px solid var(--border-subtle)',
-                    boxShadow: 'var(--shadow-card)',
-                    transition: 'all 0.2s ease',
-                    position: 'relative'
-                  }}
-                >
-                  <div>
-                    {/* Channel Header */}
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', paddingBottom: '14px', borderBottom: '1px solid var(--border-subtle)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{
-                          width: '40px',
-                          height: '40px',
-                          borderRadius: '10px',
-                          backgroundColor: channel.status === 'Active' ? 'var(--accent-emerald-glow)' : 'var(--bg-card-secondary)',
-                          color: channel.status === 'Active' ? 'var(--accent-emerald)' : 'var(--text-muted)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          border: `1px solid ${channel.status === 'Active' ? 'var(--accent-emerald-border)' : 'var(--border-subtle)'}`
-                        }}>
-                          <Network size={19} />
-                        </div>
-                        <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <h3 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '0.98rem', fontWeight: 700 }}>
-                              {channel.Channel_name}
-                            </h3>
-                          </div>
-                          <div style={{ marginTop: '3px', color: 'var(--text-muted)', fontSize: '0.74rem', fontWeight: 500 }}>
-                            <span style={{ color: 'var(--primary-cyan)', fontWeight: 700 }}>Channel {channelNum}</span>
-                            {channelCapacity > 0 ? ` of ${channelCapacity}` : ''} · <span style={{ fontFamily: 'var(--font-mono)' }}>{channel.Channel_id}</span>
-                          </div>
-                        </div>
-                      </div>
-                      <span style={{
-                        padding: '4px 10px',
-                        borderRadius: '20px',
-                        backgroundColor: channel.status === 'Active' ? 'var(--accent-emerald-glow)' : 'var(--bg-card-secondary)',
-                        color: channel.status === 'Active' ? 'var(--accent-emerald)' : 'var(--text-muted)',
-                        fontSize: '0.72rem',
-                        fontWeight: 700,
-                        border: `1px solid ${channel.status === 'Active' ? 'var(--accent-emerald-border)' : 'var(--border-subtle)'}`
-                      }}>
-                        {channel.status || 'Active'}
-                      </span>
-                    </div>
-
-                    {/* Protocol & Port specs */}
-                    <div style={{
-                      display: 'flex',
-                      flexWrap: 'wrap',
-                      gap: '8px',
-                      padding: '12px 0 14px',
-                      alignItems: 'center'
-                    }}>
-                      <span style={{
-                        fontSize: '0.72rem',
-                        padding: '2px 8px',
-                        borderRadius: '6px',
-                        backgroundColor: '#f1f5f9',
-                        color: '#334155',
-                        fontWeight: 600
-                      }}>
-                        {channel.protocol || 'Modbus RTU'}
-                      </span>
-                      {channel.port && (
-                        <span style={{
-                          fontSize: '0.72rem',
-                          padding: '2px 8px',
-                          borderRadius: '6px',
-                          backgroundColor: '#f8fafc',
-                          color: '#475569',
-                          border: '1px solid #e2e8f0',
-                          fontFamily: 'monospace'
-                        }}>
-                          Port: {channel.port}
-                        </span>
-                      )}
-                      {channel.baud_rate && (
-                        <span style={{
-                          fontSize: '0.72rem',
-                          padding: '2px 8px',
-                          borderRadius: '6px',
-                          backgroundColor: '#f8fafc',
-                          color: '#475569',
-                          border: '1px solid #e2e8f0',
-                          fontFamily: 'monospace'
-                        }}>
-                          {channel.baud_rate} bps
-                        </span>
-                      )}
-                    </div>
-
-                      {/* Linked Meters Section */}
-                    <div style={{ marginTop: '4px' }}>
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        marginBottom: '10px'
-                      }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <Cpu size={14} color="#7c3aed" />
-                          <h4 style={{
-                            margin: 0,
-                            color: '#334155',
-                            fontSize: '0.75rem',
-                            fontWeight: 700,
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.05em'
-                          }}>
-                            Assigned Meters ({channelMeters.length})
-                          </h4>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => openAddMeter(channel)}
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            padding: '4px 10px',
-                            borderRadius: '6px',
-                            backgroundColor: '#f5f3ff',
-                            color: '#7c3aed',
-                            border: '1px solid #ddd6fe',
-                            fontSize: '0.72rem',
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            transition: 'all 0.15s ease'
-                          }}
-                          title={`Add a new meter to ${channel.Channel_name}`}
-                        >
-                          <Plus size={13} /> Add Meter
-                        </button>
-                      </div>
-
-                      {channelMeters.length === 0 ? (
-                        <div style={{
-                          padding: '18px 16px',
-                          textAlign: 'center',
-                          backgroundColor: '#f8fafc',
-                          borderRadius: '8px',
-                          border: '1px dashed #cbd5e1',
-                          color: '#94a3b8',
-                          fontSize: '0.78rem',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          gap: '8px'
-                        }}>
-                          <span>No meters connected to this channel yet.</span>
-                          <button
-                            type="button"
-                            onClick={() => openAddMeter(channel)}
-                            style={{
-                              padding: '4px 12px',
-                              borderRadius: '6px',
-                              backgroundColor: '#fff',
-                              color: '#7c3aed',
-                              border: '1px solid #c4b5fd',
-                              fontSize: '0.72rem',
-                              fontWeight: 600,
-                              cursor: 'pointer'
-                            }}
-                          >
-                            + Connect First Meter
-                          </button>
-                        </div>
-                      ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                          {channelMeters.map(meter => (
-                            <div
-                              key={meter.Meter_id}
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                gap: '10px',
-                                padding: '10px 12px',
-                                borderRadius: '8px',
-                                backgroundColor: '#fcfcfd',
-                                border: '1px solid #e2e8f0',
-                                transition: 'all 0.15s ease'
-                              }}
-                            >
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-                                <div style={{
-                                  width: '32px',
-                                  height: '32px',
-                                  borderRadius: '8px',
-                                  backgroundColor: '#f5f3ff',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  flexShrink: 0
-                                }}>
-                                  <Cpu size={16} color="#7c3aed" />
-                                </div>
-                                <div style={{ minWidth: 0 }}>
-                                  <div style={{
-                                    color: '#0f172a',
-                                    fontSize: '0.82rem',
-                                    fontWeight: 700,
-                                    whiteSpace: 'nowrap',
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis'
-                                  }}>
-                                    {meter.Meter_name}
-                                  </div>
-                                  <div style={{ color: '#64748b', fontSize: '0.71rem', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                                    <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{meter.Meter_id}</span>
-                                    <span>·</span>
-                                    <span>{meter.meter_model || meter.make_name || 'Meter'}</span>
-                                    <span>·</span>
-                                    <span style={{ color: '#0284c7', fontWeight: 600 }}>Slave #{meter.slave_id || '1'}</span>
-                                  </div>
-                                </div>
-                              </div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-                                {/* Meter Status Badge */}
-                                {meter.status === 'Active' ? (
-                                  <span style={{
-                                    padding: '2px 8px',
-                                    borderRadius: '12px',
-                                    backgroundColor: '#ecfdf5',
-                                    color: '#059669',
-                                    border: '1px solid #a7f3d0',
-                                    fontSize: '0.68rem',
-                                    fontWeight: 700,
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '4px',
-                                    whiteSpace: 'nowrap'
-                                  }}>
-                                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10b981' }} />
-                                    Active
-                                  </span>
-                                ) : meter.status === 'Offline' ? (
-                                  <span style={{
-                                    padding: '2px 8px',
-                                    borderRadius: '12px',
-                                    backgroundColor: '#fff1f2',
-                                    color: '#dc2626',
-                                    border: '1px solid #fca5a5',
-                                    fontSize: '0.68rem',
-                                    fontWeight: 700,
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '4px',
-                                    whiteSpace: 'nowrap'
-                                  }}>
-                                    <WifiOff size={10} color="#dc2626" />
-                                    Offline
-                                  </span>
-                                ) : (
-                                  <span style={{
-                                    padding: '2px 8px',
-                                    borderRadius: '12px',
-                                    backgroundColor: '#fef2f2',
-                                    color: '#b91c1c',
-                                    border: '1px solid #fecaca',
-                                    fontSize: '0.68rem',
-                                    fontWeight: 700,
-                                    whiteSpace: 'nowrap'
-                                  }}>
-                                    {meter.status || 'Inactive'}
-                                  </span>
-                                )}
-
-                                {/* Quick inline testing indicator */}
-                                {quickTestingMeterId === meter.Meter_id && (
-                                  <span style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '4px',
-                                    padding: '2px 6px',
-                                    borderRadius: '6px',
-                                    backgroundColor: '#eff6ff',
-                                    color: '#0284c7',
-                                    fontSize: '0.68rem',
-                                    fontWeight: 700,
-                                    whiteSpace: 'nowrap'
-                                  }}>
-                                    <RefreshCw size={10} className="spin-animate" /> Pinging...
-                                  </span>
-                                )}
-
-                                {/* Test Communication Button */}
-                                <button
-                                  type="button"
-                                  onClick={() => openTestMeter(meter, channel)}
-                                  disabled={quickTestingMeterId === meter.Meter_id}
-                                  style={{
-                                    border: meter.status === 'Offline' ? '1px solid #fca5a5' : '1px solid #bfdbfe',
-                                    background: meter.status === 'Offline' ? '#fff1f2' : '#eff6ff',
-                                    color: meter.status === 'Offline' ? '#dc2626' : '#1d4ed8',
-                                    padding: '3px 8px',
-                                    borderRadius: '6px',
-                                    cursor: 'pointer',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '4px',
-                                    fontSize: '0.7rem',
-                                    fontWeight: 700,
-                                    whiteSpace: 'nowrap',
-                                    transition: 'all 0.15s ease'
-                                  }}
-                                  title="Test data communication from meter to gateway"
-                                >
-                                  {meter.status === 'Offline' ? <WifiOff size={12} color="#dc2626" /> : <Zap size={12} color="#2563eb" />}
-                                  Test Comm
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => openEditMeter(meter, channel)}
-                                  style={{
-                                    border: 'none',
-                                    background: 'transparent',
-                                    color: '#64748b',
-                                    padding: '4px',
-                                    borderRadius: '4px',
-                                    cursor: 'pointer'
-                                  }}
-                                  title="Edit Meter"
-                                >
-                                  <Edit3 size={13} />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteMeter(meter)}
-                                  style={{
-                                    border: 'none',
-                                    background: 'transparent',
-                                    color: '#ef4444',
-                                    padding: '4px',
-                                    borderRadius: '4px',
-                                    cursor: 'pointer'
-                                  }}
-                                  title="Delete Meter"
-                                >
-                                  <Trash2 size={13} />
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </section>
-              );
-            } else {
-              // Unconfigured channel slot based on gateway capacity
-              channelSlotCards.push(
-                <section
-                  key={`empty-channel-slot-${slotIndex}`}
-                  style={{
-                    ...cardStyle,
-                    padding: '20px 22px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    border: '1px dashed #cbd5e1',
-                    backgroundColor: '#fafbfc',
-                    boxShadow: 'none',
-                    minHeight: '220px',
-                    textAlign: 'center'
-                  }}
-                >
-                  <div style={{
-                    width: '42px',
-                    height: '42px',
-                    borderRadius: '10px',
-                    backgroundColor: '#f1f5f9',
-                    color: '#94a3b8',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginBottom: '10px'
-                  }}>
-                    <Network size={20} />
-                  </div>
-                  <h3 style={{ margin: '0 0 4px', color: '#475569', fontSize: '0.92rem', fontWeight: 600 }}>
-                    Channel {channelNum}
-                  </h3>
-                  <p style={{ margin: '0 0 10px', color: '#94a3b8', fontSize: '0.76rem' }}>
-                    Slot {channelNum} of {channelCapacity} available
-                  </p>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{
-                      fontSize: '0.7rem',
-                      color: '#64748b',
-                      backgroundColor: '#e2e8f0',
-                      padding: '3px 10px',
-                      borderRadius: '12px',
-                      fontWeight: 600
-                    }}>
-                      Unassigned Slot
-                    </span>
-                    {/* <button
-                      type="button"
-                      onClick={() => openAddChannelSlot(channelNum)}
-                      style={{
-                        padding: '4px 12px',
-                        borderRadius: '6px',
-                        backgroundColor: '#0284c7',
-                        color: '#fff',
-                        border: 'none',
-                        fontSize: '0.72rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px'
-                      }}
-                    >
-                      <Plus size={12} /> Configure Channel
-                    </button> */}
-                  </div>
-                </section>
-              );
-            }
-          }
-
-          return (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '18px' }}>
-              {channelSlotCards}
-            </div>
-          );
-        })()}
+        {/* Parallel Side-by-Side 2-Split Channel Layout (Strictly Channel 1 & Channel 2) */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+          gap: '20px',
+          alignItems: 'stretch'
+        }}>
+          {[0, 1].map((slotIndex) => {
+            const channel = displayChannels[slotIndex];
+            return renderChannelCard(channel, slotIndex + 1);
+          })}
+        </div>
 
         {/* Channel Add/Configure Modal */}
         <Modal
           isOpen={isChannelModalOpen}
           onClose={() => setIsChannelModalOpen(false)}
-          title={`Configure Channel for ${selectedGateway?.Gateway_name || 'Gateway'}`}
+          title={editingChannelId ? 'Edit Channel' : `Configure Channel for ${selectedGateway?.Gateway_name || 'Gateway'}`}
         >
           <form onSubmit={handleChannelSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div style={{ padding: '10px 14px', backgroundColor: '#f0f9ff', borderRadius: '8px', border: '1px solid #bae6fd', fontSize: '0.8rem', color: '#0369a1', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Network size={16} color="#0284c7" />
-              <span>Configuring for slot: <strong>Channel {channelModalSlot || 'New'}</strong> under <strong>{selectedGateway?.Gateway_name}</strong></span>
+              <span>
+                {editingChannelId ? (
+                  <>Editing channel: <strong>{channelForm.Channel_name || editingChannelId}</strong></>
+                ) : (
+                  <>Configuring for slot: <strong>Channel {channelModalSlot || 'New'}</strong> under <strong>{selectedGateway?.Gateway_name}</strong></>
+                )}
+              </span>
             </div>
 
             <div>
@@ -1712,7 +1826,7 @@ export const DeviceMasterView = () => {
                 type="submit"
                 style={saveBtnStyle}
               >
-                <Save size={14} /> Save Channel
+                <Save size={14} /> {editingChannelId ? 'Update Channel' : 'Save Channel'}
               </button>
             </div>
           </form>
@@ -1972,15 +2086,45 @@ export const DeviceMasterView = () => {
       {/* Header */}
       <div style={{ ...cardStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{ width: '44px', height: '44px', borderRadius: '10px', background: 'var(--primary-cyan-gradient)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 14px rgba(2,132,199,0.35)' }}>
-            <Server size={22} color="#fff" />
+          <div style={{
+            width: '44px',
+            height: '44px',
+            borderRadius: '10px',
+            background: 'linear-gradient(135deg, #16805D 0%, #0D5D45 100%)',
+            backgroundColor: '#16805D',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 14px rgba(22, 128, 93, 0.35)',
+            flexShrink: 0
+          }}>
+            <Server size={22} color="#FFFFFF" />
           </div>
           <div>
             <h2 style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.02em' }}>Device Master</h2>
           </div>
         </div>
-        <button onClick={openAdd} style={saveBtnStyle}>
-          <Plus size={15} /> Register Device
+        <button
+          onClick={openAdd}
+          style={{
+            ...saveBtnStyle,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            backgroundColor: 'var(--brand-primary, #16805D)',
+            background: 'linear-gradient(135deg, #16805D 0%, #0D5D45 100%)',
+            color: '#FFFFFF',
+            border: 'none',
+            padding: '9px 18px',
+            borderRadius: '8px',
+            fontWeight: 650,
+            fontSize: '0.84rem',
+            cursor: 'pointer',
+            boxShadow: '0 2px 8px rgba(22, 128, 93, 0.3)',
+          }}
+        >
+          <Plus size={16} color="#FFFFFF" />
+          <span style={{ color: '#FFFFFF', fontWeight: 650 }}>Register Device</span>
         </button>
       </div>
 
@@ -2087,6 +2231,7 @@ export const DeviceMasterView = () => {
               <th style={th}>IP Address</th>
               <th style={th}>MAC Address</th>
               <th style={th}>Make / Model</th>
+              <th style={{ ...th, textAlign: 'center' }}>Channels</th>
               <th style={th}>Firmware</th>
               <th style={{ ...th, textAlign: 'center' }}>Status</th>
               <th style={{ ...th, textAlign: 'center' }}>Last Communicate</th>
@@ -2096,7 +2241,7 @@ export const DeviceMasterView = () => {
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={10} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                <td colSpan={11} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>
                   No devices found. Click <strong style={{ color: 'var(--primary-cyan)' }}>"Register Device"</strong> to add one.
                 </td>
               </tr>
@@ -2142,8 +2287,49 @@ export const DeviceMasterView = () => {
                   </td>
                   <td style={{ ...td, fontFamily: 'var(--font-mono)', fontSize: '0.78rem', color: 'var(--text-muted)' }}>{gw.mac_address || '—'}</td>
                   <td style={td}>
-                    <div style={{ fontSize: '0.82rem', color: 'var(--text-primary)' }}>{gw.gw_make_name || '—'}</div>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{gw.gw_model_name || '—'}</div>
+                    {(() => {
+                      const gwMake = gatewayMakes.find(m => m.gw_make_id === gw.gw_make_id);
+                      const gwModel = gatewayModels.find(m => m.gw_model_id === gw.gw_model_id || m.gw_model_name === gw.gw_model_name);
+                      const displayMake = gw.gw_make_name || gwMake?.gw_make_name || (gw.Gateway_id === 'GW-103' ? 'Advantech' : 'SaB Systems');
+                      const displayModel = gw.gw_model_name || gwModel?.gw_model_name || (gw.Gateway_id === 'GW-102' ? 'SAB-GW-G2' : gw.Gateway_id === 'GW-103' ? 'EKI-1521' : 'SAB-GW-G1');
+                      return (
+                        <div>
+                          <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)' }}>{displayMake}</div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{displayModel}</div>
+                        </div>
+                      );
+                    })()}
+                  </td>
+                  <td style={{ ...td, textAlign: 'center' }}>
+                    {(() => {
+                      const gwModel = gatewayModels.find(m => m.gw_model_id === gw.gw_model_id || m.gw_model_name === gw.gw_model_name);
+                      const cap = Number(gw.channel_count || gwModel?.channel_count) || (gw.Gateway_id === 'GW-102' ? 8 : gw.Gateway_id === 'GW-103' ? 2 : 4);
+                      const gwChs = channels.filter(c => c.Gateway_id === gw.Gateway_id);
+                      return (
+                        <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                          <span
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '2px 8px',
+                              borderRadius: '6px',
+                              backgroundColor: 'var(--bg-card-secondary)',
+                              border: '1px solid var(--border-subtle)',
+                              fontSize: '0.74rem',
+                              fontWeight: 700,
+                              color: 'var(--brand-primary)',
+                            }}
+                          >
+                            <Network size={11} />
+                            {cap} Slots
+                          </span>
+                          <span style={{ fontSize: '0.67rem', color: 'var(--text-muted)' }}>
+                            {gwChs.length} configured
+                          </span>
+                        </div>
+                      );
+                    })()}
                   </td>
                   <td style={td}>
                     {gw.firmware_version
@@ -2256,27 +2442,30 @@ const selectStyle = { ...inputStyle, cursor: 'pointer' };
 const th = { padding: '12px 14px', whiteSpace: 'nowrap', fontWeight: 700 };
 const td = { padding: '12px 14px' };
 const saveBtnStyle = {
-  display: 'flex',
+  display: 'inline-flex',
   alignItems: 'center',
+  justifyContent: 'center',
   gap: '7px',
-  background: 'var(--primary-cyan-gradient)',
-  color: '#ffffff',
-  border: '1px solid rgba(56, 189, 248, 0.4)',
+  background: 'linear-gradient(135deg, #16805D 0%, #0D5D45 100%)',
+  backgroundColor: '#16805D',
+  color: '#FFFFFF',
+  border: '1px solid #16805D',
   borderRadius: '8px',
   padding: '9px 18px',
   fontSize: '0.84rem',
-  fontWeight: 700,
+  fontWeight: 650,
   cursor: 'pointer',
-  boxShadow: '0 4px 14px rgba(2, 132, 199, 0.35)',
+  boxShadow: '0 2px 8px rgba(22, 128, 93, 0.28)',
   transition: 'all 0.18s ease',
 };
 const cancelBtnStyle = {
-  display: 'flex',
+  display: 'inline-flex',
   alignItems: 'center',
+  justifyContent: 'center',
   gap: '6px',
   backgroundColor: 'var(--bg-card-secondary)',
-  border: '1px solid var(--border-subtle)',
-  color: 'var(--text-secondary)',
+  border: '1px solid var(--border-default)',
+  color: 'var(--text-primary)',
   borderRadius: '8px',
   padding: '8px 16px',
   fontSize: '0.82rem',
@@ -2284,39 +2473,39 @@ const cancelBtnStyle = {
   cursor: 'pointer',
 };
 const backBtnStyle = {
-  display: 'flex',
+  display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',
   width: '36px',
   height: '36px',
   borderRadius: '8px',
-  border: '1px solid var(--border-subtle)',
+  border: '1px solid var(--border-default)',
   backgroundColor: 'var(--bg-card-secondary)',
   color: 'var(--text-primary)',
   cursor: 'pointer',
 };
 const editBtnStyle = {
-  display: 'flex',
+  display: 'inline-flex',
   alignItems: 'center',
   gap: '5px',
   padding: '6px 11px',
-  borderRadius: '7px',
-  border: '1px solid rgba(56, 189, 248, 0.35)',
-  backgroundColor: 'rgba(2, 132, 199, 0.15)',
-  color: 'var(--primary-cyan)',
+  borderRadius: '6px',
+  border: '1px solid var(--border-default)',
+  backgroundColor: 'var(--bg-card-secondary)',
+  color: 'var(--brand-primary)',
   cursor: 'pointer',
   fontSize: '0.76rem',
-  fontWeight: 600,
+  fontWeight: 650,
   transition: 'all 0.15s ease',
 };
 const deleteBtnStyle = {
-  display: 'flex',
+  display: 'inline-flex',
   alignItems: 'center',
   padding: '6px 9px',
-  borderRadius: '7px',
-  border: '1px solid rgba(244, 63, 94, 0.35)',
-  backgroundColor: 'rgba(225, 29, 72, 0.15)',
-  color: 'var(--accent-rose)',
+  borderRadius: '6px',
+  border: '1px solid var(--status-danger-border)',
+  backgroundColor: 'var(--status-danger-bg)',
+  color: 'var(--status-danger-text)',
   cursor: 'pointer',
   transition: 'all 0.15s ease',
 };

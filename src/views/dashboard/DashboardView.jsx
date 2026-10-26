@@ -106,23 +106,7 @@ export const DashboardView = () => {
             }}
           >
             Energy Overview
-            <span
-              style={{
-                fontSize: '0.68rem',
-                fontWeight: 600,
-                padding: '2px 8px',
-                borderRadius: 'var(--radius-xs)',
-                backgroundColor: 'var(--bg-surface-secondary)',
-                border: '1px solid var(--border-default)',
-                color: 'var(--text-muted)',
-              }}
-            >
-              Simulated Telemetry Stream
-            </span>
           </h2>
-          <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>
-            Real-time telemetry, power consumption metrics, and connectivity health across industrial assets.
-          </p>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
