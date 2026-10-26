@@ -12,30 +12,28 @@ import {
   Sliders,
   Shield,
   Activity,
-  ArrowRight
+  ArrowRight,
 } from 'lucide-react';
 import { useEnergyData } from '../../context/EnergyDataContext';
+import { PageHeader } from '../../components/common/PageHeader';
 
 export const CommunicationConfigView = () => {
   const { config, updateConfig } = useEnergyData();
 
-  // Primary communication polling interval settings
-  // Allows user to pick either seconds or minutes unit
-  const initialUnit = (config.polling_interval_unit || 'seconds');
-  const initialValue = config.polling_interval_value !== undefined
-    ? config.polling_interval_value
-    : (initialUnit === 'minutes'
-        ? Math.max(1, Math.round((config.polling_interval_seconds || 5) / 60))
-        : (config.polling_interval_seconds || 5));
+  const initialUnit = config.polling_interval_unit || 'seconds';
+  const initialValue =
+    config.polling_interval_value !== undefined
+      ? config.polling_interval_value
+      : initialUnit === 'minutes'
+      ? Math.max(1, Math.round((config.polling_interval_seconds || 5) / 60))
+      : config.polling_interval_seconds || 5;
 
   const [intervalValue, setIntervalValue] = useState(initialValue);
   const [intervalUnit, setIntervalUnit] = useState(initialUnit); // 'seconds' | 'minutes'
 
-  // Fast cycle & background logging interval
   const [fastCycleSeconds, setFastCycleSeconds] = useState(config.fast_cycle_seconds || 2);
   const [backgroundLogMinutes, setBackgroundLogMinutes] = useState(config.background_log_minutes || 15);
 
-  // Modbus and network communication parameters
   const [modbusTimeoutMs, setModbusTimeoutMs] = useState(config.modbus_timeout_ms || 1000);
   const [retryAttempts, setRetryAttempts] = useState(config.retry_attempts || 3);
   const [keepAliveSeconds, setKeepAliveSeconds] = useState(config.keep_alive_seconds || 30);
@@ -45,11 +43,10 @@ export const CommunicationConfigView = () => {
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Calculate total seconds for polling
   const calculatedSeconds = intervalUnit === 'minutes' ? Number(intervalValue) * 60 : Number(intervalValue);
 
   const handleSave = (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     setErrorMsg('');
 
     const val = Number(intervalValue);
@@ -79,7 +76,7 @@ export const CommunicationConfigView = () => {
   };
 
   const handleResetDefaults = () => {
-    if (window.confirm('Reset communication interval to recommended defaults (5 seconds)?')) {
+    if (window.confirm('Reset communication settings to recommended enterprise defaults?')) {
       setIntervalValue(5);
       setIntervalUnit('seconds');
       setFastCycleSeconds(2);
@@ -87,11 +84,21 @@ export const CommunicationConfigView = () => {
       setModbusTimeoutMs(1000);
       setRetryAttempts(3);
       setKeepAliveSeconds(30);
+      setMqttBrokerUrl('mqtt://broker.sabenergy.internal:1883');
+      setApiEndpoint('https://api.sabenergy.internal/v1');
+
       updateConfig({
         ...config,
         polling_interval_value: 5,
         polling_interval_unit: 'seconds',
         polling_interval_seconds: 5,
+        fast_cycle_seconds: 2,
+        background_log_minutes: 15,
+        modbus_timeout_ms: 1000,
+        retry_attempts: 3,
+        keep_alive_seconds: 30,
+        mqtt_broker_url: 'mqtt://broker.sabenergy.internal:1883',
+        api_endpoint: 'https://api.sabenergy.internal/v1',
       });
       setSuccessMsg('✓ Communication intervals restored to defaults.');
       setTimeout(() => setSuccessMsg(''), 3500);
@@ -99,391 +106,296 @@ export const CommunicationConfigView = () => {
   };
 
   return (
-    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      {/* Top Banner */}
-      <div
-        style={{
-          backgroundColor: 'var(--bg-card)',
-          borderRadius: '14px',
-          border: '1px solid var(--border-subtle)',
-          padding: '22px 26px',
-          boxShadow: 'var(--shadow-card)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '16px',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div
-            style={{
-              width: '46px',
-              height: '46px',
-              borderRadius: '12px',
-              background: 'var(--primary-cyan-gradient)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 4px 14px rgba(2, 132, 199, 0.35)',
-              color: '#ffffff',
-            }}
-          >
-            <Radio size={24} />
+    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <PageHeader
+        title="Communication Configuration"
+        subtitle="Configure field Modbus polling frequency, timeout thresholds, retry policy, and backend MQTT / ThingsBoard broker parameters."
+        icon={Radio}
+        actions={
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button onClick={handleResetDefaults} className="btn btn-secondary">
+              <RotateCcw size={14} />
+              <span>Reset Defaults</span>
+            </button>
+            <button onClick={handleSave} className="btn btn-primary">
+              <Save size={14} />
+              <span>Save Configuration</span>
+            </button>
           </div>
-          <div>
-            <h2 style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
-              Communication Config
-            </h2>
-          </div>
-        </div>
+        }
+      />
 
-        {/* Live Active Pill */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            backgroundColor: '#ecfdf5',
-            border: '1px solid #a7f3d0',
-            padding: '7px 16px',
-            borderRadius: '24px',
-            fontSize: '0.82rem',
-            color: '#059669',
-            fontWeight: 700,
-          }}
-        >
-          <span
-            style={{
-              width: '8px',
-              height: '8px',
-              borderRadius: '50%',
-              backgroundColor: '#059669',
-              boxShadow: '0 0 8px #059669',
-            }}
-          />
-          <span>Live Polling: {intervalValue} {intervalUnit}</span>
-        </div>
-      </div>
-
-      {/* Notifications */}
       {successMsg && (
         <div
           style={{
+            padding: '10px 14px',
+            backgroundColor: 'var(--status-success-bg)',
+            border: '1px solid var(--status-success-border)',
+            borderRadius: 'var(--radius-md)',
+            color: 'var(--status-success-text)',
+            fontSize: '0.8125rem',
+            fontWeight: 600,
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            padding: '12px 18px',
-            borderRadius: '10px',
-            backgroundColor: '#ecfdf5',
-            border: '1px solid #a7f3d0',
-            color: '#059669',
-            fontSize: '0.86rem',
-            fontWeight: 600,
           }}
         >
-          <CheckCircle2 size={18} />
-          <span>{successMsg}</span>
+          <CheckCircle2 size={16} /> {successMsg}
         </div>
       )}
 
       {errorMsg && (
         <div
           style={{
+            padding: '10px 14px',
+            backgroundColor: 'var(--status-danger-bg)',
+            border: '1px solid var(--status-danger-border)',
+            borderRadius: 'var(--radius-md)',
+            color: 'var(--status-danger-text)',
+            fontSize: '0.8125rem',
+            fontWeight: 600,
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            padding: '12px 18px',
-            borderRadius: '10px',
-            backgroundColor: '#fff1f2',
-            border: '1px solid #fecdd3',
-            color: '#e11d48',
-            fontSize: '0.86rem',
-            fontWeight: 600,
           }}
         >
-          <AlertCircle size={18} />
-          <span>{errorMsg}</span>
+          <AlertCircle size={16} /> {errorMsg}
         </div>
       )}
 
-      <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        {/* ── TWO CARD ROW: Card 1 + Card 2 side by side ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(460px, 1fr))', gap: '20px', alignItems: 'stretch' }}>
-        <div
-          style={{
-            backgroundColor: 'var(--bg-card)',
-            borderRadius: '8px',
-            border: '1px solid var(--border-subtle)',
-            padding: '22px 24px',
-            boxShadow: 'var(--shadow-card)',
-            display: 'flex',
-            flexDirection: 'column',
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              paddingBottom: '14px',
-              marginBottom: '20px',
-              borderBottom: '1px solid var(--border-subtle)',
-            }}
-          >
-            <Timer size={20} color="var(--primary-cyan)" />
+      <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {/* 1. Primary Polling Interval Configuration */}
+        <div className="panel-card" style={{ padding: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+            <Timer size={18} color="var(--brand-primary)" />
             <div>
-              <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
-                Data Acquisition Time Interval
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 650, color: 'var(--text-primary)', margin: 0 }}>
+                1. Field Polling Interval Rate
               </h3>
+              <p style={{ fontSize: '0.74rem', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
+                Defines the frequency at which edge gateways poll connected slave meters over RS-485 / Modbus RTU.
+              </p>
             </div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', flex: 1, justifyContent: 'space-between' }}>
-            {/* Value + Unit Selector */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <label style={labelStyle}>
-                Sampling Frequency Interval *
-              </label>
-              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+              gap: '16px',
+              padding: '16px',
+              borderRadius: 'var(--radius-md)',
+              backgroundColor: 'var(--bg-surface-secondary)',
+              border: '1px solid var(--border-subtle)',
+            }}
+          >
+            <div>
+              <label className="form-label">Polling Interval Value *</label>
+              <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
                 <input
                   type="number"
+                  className="form-input mono-num"
+                  style={{ width: '130px', fontWeight: 700 }}
+                  value={intervalValue}
+                  onChange={(e) => setIntervalValue(e.target.value)}
                   min="1"
                   max={intervalUnit === 'minutes' ? 1440 : 86400}
-                  value={intervalValue}
-                  onChange={(e) => setIntervalValue(Math.max(1, Number(e.target.value)))}
-                  style={{
-                    ...inputStyle,
-                    fontSize: '1.05rem',
-                    fontWeight: 700,
-                    color: 'var(--primary-cyan)',
-                    fontFamily: 'monospace',
-                    width: '130px',
-                  }}
                   required
                 />
                 <select
+                  className="form-select"
+                  style={{ width: '140px', fontWeight: 600 }}
                   value={intervalUnit}
                   onChange={(e) => setIntervalUnit(e.target.value)}
-                  style={{
-                    ...selectStyle,
-                    fontSize: '0.88rem',
-                    fontWeight: 600,
-                    color: 'var(--text-primary)',
-                    width: '180px',
-                  }}
                 >
-                  <option value="seconds">Seconds (sec)</option>
-                  <option value="minutes">Minutes (mins)</option>
+                  <option value="seconds">Seconds (s)</option>
+                  <option value="minutes">Minutes (m)</option>
                 </select>
               </div>
-              <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
-                Effective runtime frequency: <strong style={{ color: 'var(--text-primary)' }}>{calculatedSeconds} seconds</strong> per cycle
+              <span className="form-helper" style={{ marginTop: '6px', display: 'block' }}>
+                Active Interval: <strong>{calculatedSeconds} total seconds</strong> per communication cycle.
               </span>
             </div>
 
-            {/* Quick Preset Buttons */}
             <div>
-              <label style={labelStyle}>Quick Interval Presets</label>
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                {[
-                  { label: '1 sec', val: 1, unit: 'seconds' },
-                  { label: '5 sec', val: 5, unit: 'seconds' },
-                  { label: '10 sec', val: 10, unit: 'seconds' },
-                  { label: '30 sec', val: 30, unit: 'seconds' },
-                  { label: '1 min', val: 1, unit: 'minutes' },
-                  { label: '5 mins', val: 5, unit: 'minutes' },
-                  { label: '15 mins', val: 15, unit: 'minutes' },
-                ].map((p) => {
-                  const isSelected = intervalValue === p.val && intervalUnit === p.unit;
-                  return (
-                    <button
-                      key={p.label}
-                      type="button"
-                      onClick={() => {
-                        setIntervalValue(p.val);
-                        setIntervalUnit(p.unit);
-                      }}
-                      style={{
-                        padding: '6px 14px',
-                        borderRadius: '4px',
-                        border: isSelected ? '1px solid var(--primary-cyan)' : '1px solid var(--border-medium)',
-                        backgroundColor: isSelected ? 'var(--primary-cyan)' : 'var(--bg-card)',
-                        color: isSelected ? '#ffffff' : 'var(--text-secondary)',
-                        fontWeight: isSelected ? 600 : 500,
-                        fontSize: '0.8rem',
-                        cursor: 'pointer',
-                        transition: 'all 0.15s ease',
-                      }}
-                    >
-                      {p.label}
-                    </button>
-                  );
-                })}
+              <label className="form-label">Fast Cycle Telemetry (Critical Alarms)</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                <input
+                  type="number"
+                  className="form-input mono-num"
+                  style={{ width: '120px' }}
+                  value={fastCycleSeconds}
+                  onChange={(e) => setFastCycleSeconds(e.target.value)}
+                  min="1"
+                  max="60"
+                />
+                <span style={{ fontSize: '0.80rem', color: 'var(--text-secondary)' }}>Seconds</span>
               </div>
+              <span className="form-helper" style={{ marginTop: '6px', display: 'block' }}>
+                Accelerated rate triggered during voltage sag, surge, or reverse-power conditions.
+              </span>
+            </div>
+
+            <div>
+              <label className="form-label">Historical Background Database Logging</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                <input
+                  type="number"
+                  className="form-input mono-num"
+                  style={{ width: '120px' }}
+                  value={backgroundLogMinutes}
+                  onChange={(e) => setBackgroundLogMinutes(e.target.value)}
+                  min="1"
+                  max="1440"
+                />
+                <span style={{ fontSize: '0.80rem', color: 'var(--text-secondary)' }}>Minutes</span>
+              </div>
+              <span className="form-helper" style={{ marginTop: '6px', display: 'block' }}>
+                Interval for persisting permanent audit records into TimescaleDB / Time-series store.
+              </span>
             </div>
           </div>
         </div>
 
-        {/* ── CARD 2: PROTOCOL TIMEOUTS & COMMUNICATION BUFFER ── */}
-        <div
-          style={{
-            backgroundColor: 'var(--bg-card)',
-            borderRadius: '8px',
-            border: '1px solid var(--border-subtle)',
-            padding: '22px 24px',
-            boxShadow: 'var(--shadow-card)',
-            display: 'flex',
-            flexDirection: 'column',
-          }}
-        >
+        {/* 2. Connection Timeouts & Retry Policy */}
+        <div className="panel-card" style={{ padding: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+            <Sliders size={18} color="var(--brand-primary)" />
+            <div>
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 650, color: 'var(--text-primary)', margin: 0 }}>
+                2. Protocol Timeouts & Hardware Health Check
+              </h3>
+              <p style={{ fontSize: '0.74rem', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
+                Transmission retry policies and gateway heartbeat ping boundaries.
+              </p>
+            </div>
+          </div>
+
           <div
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              paddingBottom: '14px',
-              marginBottom: '20px',
-              borderBottom: '1px solid var(--border-subtle)',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+              gap: '16px',
             }}
           >
-            <Server size={20} color="var(--accent-emerald)" />
-            <div>
-              <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
-                Modbus RTU/TCP & Gateway Timing
-              </h3>
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '18px', flex: 1, alignContent: 'start' }}>
-            <div>
-              <label style={labelStyle}>Modbus Response Timeout (ms)</label>
-              <input
-                type="number"
-                min="100"
-                step="50"
-                value={modbusTimeoutMs}
-                onChange={(e) => setModbusTimeoutMs(Number(e.target.value))}
-                style={inputStyle}
-              />
-              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
-                Maximum wait time before framing error
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Modbus Response Timeout</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <input
+                  type="number"
+                  className="form-input mono-num"
+                  value={modbusTimeoutMs}
+                  onChange={(e) => setModbusTimeoutMs(e.target.value)}
+                  min="100"
+                  max="10000"
+                  step="50"
+                />
+                <span style={{ fontSize: '0.80rem', color: 'var(--text-secondary)', minWidth: '35px' }}>ms</span>
+              </div>
+              <span className="form-helper">
+                Time before declaring packet drop or CRC error on RS-485 line (default 1000ms).
               </span>
             </div>
 
-            <div>
-              <label style={labelStyle}>Retry Attempts on Error</label>
-              <select
-                value={retryAttempts}
-                onChange={(e) => setRetryAttempts(Number(e.target.value))}
-                style={selectStyle}
-              >
-                <option value={1}>1 Retry</option>
-                <option value={2}>2 Retries</option>
-                <option value={3}>3 Retries (Standard)</option>
-                <option value={5}>5 Retries</option>
-              </select>
-              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
-                Number of retry packets before marking slave offline
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Transmission Retry Attempts</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <input
+                  type="number"
+                  className="form-input mono-num"
+                  value={retryAttempts}
+                  onChange={(e) => setRetryAttempts(e.target.value)}
+                  min="0"
+                  max="10"
+                />
+                <span style={{ fontSize: '0.80rem', color: 'var(--text-secondary)', minWidth: '45px' }}>retries</span>
+              </div>
+              <span className="form-helper">
+                Consecutive retry frames sent before flagging meter as Intermittent or Offline.
               </span>
             </div>
 
-            <div>
-              <label style={labelStyle}>Keep-Alive Ping (Seconds)</label>
-              <input
-                type="number"
-                min="5"
-                max="300"
-                value={keepAliveSeconds}
-                onChange={(e) => setKeepAliveSeconds(Number(e.target.value))}
-                style={inputStyle}
-              />
-              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
-                Socket keep-alive heartbeat frequency
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Gateway Keep-Alive Ping Interval</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <input
+                  type="number"
+                  className="form-input mono-num"
+                  value={keepAliveSeconds}
+                  onChange={(e) => setKeepAliveSeconds(e.target.value)}
+                  min="5"
+                  max="600"
+                />
+                <span style={{ fontSize: '0.80rem', color: 'var(--text-secondary)', minWidth: '35px' }}>sec</span>
+              </div>
+              <span className="form-helper">
+                Expected periodic heartbeat interval from edge gateways.
               </span>
             </div>
           </div>
         </div>
-      </div>
 
-        {/* Action Buttons */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '6px' }}>
-          <button
-            type="button"
-            onClick={handleResetDefaults}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              backgroundColor: '#f6f7f7',
-              border: '1px solid var(--border-medium)',
-              color: 'var(--text-secondary)',
-              padding: '9px 18px',
-              borderRadius: '4px',
-              fontSize: '0.84rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
-          >
-            <RotateCcw size={15} />
-            <span>Reset Defaults</span>
+        {/* 3. SCADA Broker & API Endpoints */}
+        <div className="panel-card" style={{ padding: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+            <Server size={18} color="var(--brand-primary)" />
+            <div>
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 650, color: 'var(--text-primary)', margin: 0 }}>
+                3. Upstream Telemetry Ingestion Endpoints
+              </h3>
+              <p style={{ fontSize: '0.74rem', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
+                Secure MQTT Broker and REST ingestion addresses for SCADA edge gateways.
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">MQTT Telemetry Broker URI</label>
+              <input
+                className="form-input mono-num"
+                value={mqttBrokerUrl}
+                onChange={(e) => setMqttBrokerUrl(e.target.value)}
+                placeholder="mqtt://broker.sabenergy.internal:1883"
+              />
+              <span className="form-helper">
+                Edge gateways publish JSON modbus frames to topic <code>v1/gateway/telemetry</code>.
+              </span>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">REST Ingestion / ThingsBoard API Endpoint</label>
+              <input
+                className="form-input mono-num"
+                value={apiEndpoint}
+                onChange={(e) => setApiEndpoint(e.target.value)}
+                placeholder="https://api.sabenergy.internal/v1"
+              />
+              <span className="form-helper">
+                HTTP endpoint for device metadata synchronization and configuration updates.
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Actions Bar */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            gap: '10px',
+            paddingTop: '8px',
+          }}
+        >
+          <button type="button" onClick={handleResetDefaults} className="btn btn-secondary">
+            Reset Defaults
           </button>
-
-          <button
-            type="submit"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              background: 'var(--primary-cyan)',
-              color: '#ffffff',
-              border: '1px solid var(--primary-cyan)',
-              padding: '9px 22px',
-              borderRadius: '4px',
-              fontSize: '0.84rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              boxShadow: 'var(--shadow-card)',
-            }}
-          >
-            <Save size={16} />
-            <span>Save Configuration</span>
+          <button type="submit" className="btn btn-primary">
+            <Save size={15} />
+            <span>Apply Changes</span>
           </button>
         </div>
       </form>
     </div>
   );
-};
-
-const labelStyle = {
-  display: 'block',
-  fontSize: '0.78rem',
-  color: 'var(--text-secondary)',
-  fontWeight: 700,
-  marginBottom: '6px',
-};
-
-const inputStyle = {
-  width: '100%',
-  padding: '9px 12px',
-  borderRadius: '8px',
-  border: '1px solid var(--border-subtle)',
-  fontSize: '0.85rem',
-  color: 'var(--text-primary)',
-  outline: 'none',
-  boxSizing: 'border-box',
-  backgroundColor: 'var(--bg-input)',
-};
-
-const selectStyle = {
-  width: '100%',
-  padding: '9px 12px',
-  borderRadius: '8px',
-  border: '1px solid var(--border-subtle)',
-  fontSize: '0.85rem',
-  color: 'var(--text-primary)',
-  outline: 'none',
-  boxSizing: 'border-box',
-  backgroundColor: 'var(--bg-input)',
-  cursor: 'pointer',
 };

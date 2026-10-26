@@ -1,22 +1,24 @@
 import React, { useState } from 'react';
-import { Plus, Search, Edit2, Trash2, ArrowRight, Calculator } from 'lucide-react';
+import { Plus, Search, Edit3, Trash2, ArrowRight, Calculator, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useEnergyData } from '../../context/EnergyDataContext';
 import { Badge } from '../../components/common/Badge';
 import { Modal } from '../../components/common/Modal';
+import { PageHeader } from '../../components/common/PageHeader';
 
 export const AssetMappingView = () => {
   const { mappings, assets, meters, addMapping, updateMapping, deleteMapping, toggleMappingActive } = useEnergyData();
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingMapping, setEditingMapping] = useState(null);
+  const [successMsg, setSuccessMsg] = useState('');
 
   const [formData, setFormData] = useState({
     Asset_id: assets[0]?.Asset_id || '',
     Meter_id: meters[0]?.Meter_id || '',
     multiplication_factor: '40',
     effective_from: '2026-01-01',
-    effective_to: '2027-01-01',
-    is_active: true
+    effective_to: '2027-12-31',
+    is_active: true,
   });
 
   const handleOpenAdd = () => {
@@ -27,7 +29,7 @@ export const AssetMappingView = () => {
       multiplication_factor: '40',
       effective_from: new Date().toISOString().substring(0, 10),
       effective_to: '2027-12-31',
-      is_active: true
+      is_active: true,
     });
     setIsModalOpen(true);
   };
@@ -40,24 +42,27 @@ export const AssetMappingView = () => {
       multiplication_factor: map.multiplication_factor,
       effective_from: map.effective_from,
       effective_to: map.effective_to,
-      is_active: map.is_active
+      is_active: map.is_active,
     });
     setIsModalOpen(true);
   };
 
   const handleSubmit = (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     if (editingMapping) {
       updateMapping(editingMapping.Mapping_id, formData);
+      setSuccessMsg(`✓ Updated mapping "${editingMapping.Mapping_id}" successfully.`);
     } else {
       addMapping(formData);
+      setSuccessMsg('✓ New asset-to-meter mapping created successfully.');
     }
     setIsModalOpen(false);
+    setTimeout(() => setSuccessMsg(''), 3500);
   };
 
-  const filteredMappings = mappings.filter(m => {
-    const asset = assets.find(a => a.Asset_id === m.Asset_id);
-    const meter = meters.find(mtr => mtr.Meter_id === m.Meter_id);
+  const filteredMappings = mappings.filter((m) => {
+    const asset = assets.find((a) => a.Asset_id === m.Asset_id);
+    const meter = meters.find((mtr) => mtr.Meter_id === m.Meter_id);
     const query = searchTerm.toLowerCase();
 
     return (
@@ -68,378 +73,308 @@ export const AssetMappingView = () => {
   });
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      {/* Informative Header Banner */}
-      <div
-        className="glass-panel"
-        style={{
-          padding: '16px 20px',
-          borderLeft: '4px solid #0284c7',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '14px',
-          backgroundColor: '#f0f9ff',
-          border: '1px solid #bae6fd'
-        }}
-      >
-        <div style={{ padding: '8px', borderRadius: '8px', backgroundColor: '#e0f2fe', color: '#0284c7' }}>
-          <Calculator size={20} />
-        </div>
-        <div>
-          <h4 style={{ fontSize: '0.92rem', fontWeight: 600, color: '#0f172a', margin: 0 }}>
-            Asset ↔ Meter Relationship & CT/PT Multiplier Factor
-          </h4>
-        </div>
-      </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%' }}>
+      <PageHeader
+        title="Asset-to-Meter Mapping"
+        subtitle="Associate plant physical equipment with slave meters, configure external CT/PT multiplication ratios, and manage effective dates."
+        icon={Calculator}
+        actions={
+          <button onClick={handleOpenAdd} className="btn btn-primary">
+            <Plus size={15} />
+            <span>New Asset Mapping</span>
+          </button>
+        }
+      />
 
-      {/* Top Action Bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-        <div style={{ position: 'relative', width: '320px' }}>
-          <Search size={16} color="var(--text-dim)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
-          <input
-            type="text"
-            placeholder="Search mappings by asset or meter..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '9px 12px 9px 36px',
-              backgroundColor: 'var(--bg-input)',
-              border: '1px solid var(--border-subtle)',
-              borderRadius: '8px',
-              color: 'var(--text-primary)',
-              fontSize: '0.85rem',
-              outline: 'none',
-              boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
-            }}
-          />
-        </div>
-
-        <button
-          onClick={handleOpenAdd}
+      {successMsg && (
+        <div
           style={{
+            padding: '10px 14px',
+            backgroundColor: 'var(--status-success-bg)',
+            border: '1px solid var(--status-success-border)',
+            borderRadius: 'var(--radius-md)',
+            color: 'var(--status-success-text)',
+            fontSize: '0.8125rem',
+            fontWeight: 600,
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            backgroundColor: 'var(--primary-cyan-deep)',
-            color: '#ffffff',
-            border: 'none',
-            borderRadius: '8px',
-            padding: '9px 18px',
-            fontWeight: 600,
-            fontSize: '0.85rem',
-            cursor: 'pointer',
-            boxShadow: 'var(--shadow-glow)'
           }}
         >
-          <Plus size={16} />
-          <span>New Asset Mapping</span>
-        </button>
+          <CheckCircle2 size={16} /> {successMsg}
+        </div>
+      )}
+
+      {/* Informative Scaling Banner */}
+      <div
+        className="panel-card"
+        style={{
+          padding: '12px 16px',
+          backgroundColor: 'var(--bg-surface-secondary)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+        }}
+      >
+        <Calculator size={18} color="var(--brand-primary)" style={{ flexShrink: 0 }} />
+        <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+          <strong style={{ color: 'var(--text-primary)' }}>Formula Rule:</strong> Active Telemetry Power (kW) = Meter Modbus Register Reading × External CT Ratio / PT Ratio (Multiplication Factor).
+        </div>
       </div>
 
-      {/* Mappings Table */}
-      <div className="glass-panel" style={{ padding: '0', overflow: 'hidden', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: '12px' }}>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
-            <thead>
-              <tr style={{ backgroundColor: 'var(--bg-table-header)', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
-                <th style={{ padding: '14px 18px' }}>Mapping ID</th>
-                <th style={{ padding: '14px 18px' }}>Asset Entity</th>
-                <th style={{ padding: '14px 18px', textAlign: 'center' }}>Link</th>
-                <th style={{ padding: '14px 18px' }}>Assigned Meter</th>
-                <th style={{ padding: '14px 18px', textAlign: 'center' }}>Multiplication Factor (CT/PT)</th>
-                <th style={{ padding: '14px 18px' }}>Effective Validity</th>
-                <th style={{ padding: '14px 18px', textAlign: 'center' }}>Active Status</th>
-                <th style={{ padding: '14px 18px', textAlign: 'right' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredMappings.length === 0 ? (
-                <tr>
-                  <td colSpan="8" style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                    No asset mappings found.
-                  </td>
-                </tr>
-              ) : (
-                filteredMappings.map((map) => {
-                  const asset = assets.find(a => a.Asset_id === map.Asset_id);
-                  const meter = meters.find(m => m.Meter_id === map.Meter_id);
+      {/* Table Container with Integrated Toolbar */}
+      <div className="table-container">
+        <div className="table-toolbar">
+          <div className="search-input-wrapper">
+            <Search size={14} />
+            <input
+              type="text"
+              placeholder="Search mappings by asset or meter..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
 
-                  return (
-                    <tr
-                      key={map.Mapping_id}
-                      style={{
-                        borderBottom: '1px solid var(--border-subtle)',
-                        transition: 'background-color 0.15s'
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-table-row-hover)'}
-                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                    >
-                      <td style={{ padding: '14px 18px', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
-                        {map.Mapping_id}
-                      </td>
-
-                      <td style={{ padding: '14px 18px' }}>
-                        {asset ? (
-                          <div>
-                            <div style={{ color: 'var(--text-primary)' }}>{asset.Asset_name}</div>
-                            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{asset.Asset_id} • {asset.asset_type}</div>
-                          </div>
-                        ) : (
-                          <span style={{ color: 'var(--accent-rose)' }}>{map.Asset_id} (Missing)</span>
-                        )}
-                      </td>
-
-                      <td style={{ padding: '14px 18px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                        <ArrowRight size={16} />
-                      </td>
-
-                      <td style={{ padding: '14px 18px' }}>
-                        {meter ? (
-                          <div>
-                            <div style={{ color: 'var(--text-primary)' }}>{meter.Meter_name}</div>
-                            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{meter.Meter_id} • Slave ID: {meter.slave_id}</div>
-                          </div>
-                        ) : (
-                          <span style={{ color: 'var(--accent-rose)' }}>{map.Meter_id} (Missing)</span>
-                        )}
-                      </td>
-
-                      <td style={{ padding: '14px 18px', textAlign: 'center' }}>
-                        <span
-                          style={{
-                            padding: '4px 12px',
-                            borderRadius: '6px',
-                            backgroundColor: 'rgba(56, 189, 248, 0.12)',
-                            color: 'var(--primary-cyan)',
-                            fontWeight: 700,
-                            fontFamily: 'var(--font-mono)',
-                            fontSize: '0.9rem',
-                            border: '1px solid var(--primary-cyan-border)'
-                          }}
-                        >
-                          {map.multiplication_factor}x
-                        </span>
-                      </td>
-
-                      <td style={{ padding: '14px 18px', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
-                        <div>From: <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{map.effective_from}</span></div>
-                        <div>To: <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{map.effective_to}</span></div>
-                      </td>
-
-                      <td style={{ padding: '14px 18px', textAlign: 'center' }}>
-                        <button
-                          onClick={() => toggleMappingActive(map.Mapping_id)}
-                          style={{
-                            background: 'transparent',
-                            border: 'none',
-                            cursor: 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px'
-                          }}
-                          title="Click to toggle Active status"
-                        >
-                          <Badge status={map.is_active ? 'Active' : 'Inactive'} text={map.is_active ? 'Active' : 'Disabled'} />
-                        </button>
-                      </td>
-
-                      <td style={{ padding: '14px 18px', textAlign: 'right' }}>
-                        <div style={{ display: 'inline-flex', gap: '8px' }}>
-                          <button
-                            onClick={() => handleOpenEdit(map)}
-                            style={{
-                              background: 'var(--bg-card-secondary)',
-                              border: '1px solid var(--border-subtle)',
-                              borderRadius: '6px',
-                              color: 'var(--text-secondary)',
-                              padding: '6px 8px',
-                              cursor: 'pointer'
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.color = 'var(--primary-cyan)';
-                              e.currentTarget.style.borderColor = 'var(--primary-cyan)';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.color = 'var(--text-secondary)';
-                              e.currentTarget.style.borderColor = 'var(--border-subtle)';
-                            }}
-                            title="Edit Mapping"
-                          >
-                            <Edit2 size={14} />
-                          </button>
-                          <button
-                            onClick={() => {
-                              if (window.confirm(`Delete mapping "${map.Mapping_id}"?`)) {
-                                deleteMapping(map.Mapping_id);
-                              }
-                            }}
-                            style={{
-                              background: 'var(--bg-card-secondary)',
-                              border: '1px solid var(--border-subtle)',
-                              borderRadius: '6px',
-                              color: 'var(--text-secondary)',
-                              padding: '6px 8px',
-                              cursor: 'pointer'
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.color = 'var(--accent-rose)';
-                              e.currentTarget.style.borderColor = 'var(--accent-rose)';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.color = 'var(--text-secondary)';
-                              e.currentTarget.style.borderColor = 'var(--border-subtle)';
-                            }}
-                            title="Delete Mapping"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+          <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 550 }}>
+            Active Mappings: <strong style={{ color: 'var(--brand-primary)' }}>{mappings.filter((m) => m.is_active).length}</strong> of {mappings.length}
+          </div>
         </div>
+
+        <table className="enterprise-table">
+          <thead>
+            <tr>
+              <th>Mapping ID</th>
+              <th>Asset Entity</th>
+              <th style={{ textAlign: 'center', width: '50px' }}>Link</th>
+              <th>Assigned Meter</th>
+              <th style={{ textAlign: 'center' }}>CT/PT Multiplier</th>
+              <th>Effective Validity</th>
+              <th style={{ textAlign: 'center' }}>Status</th>
+              <th style={{ textAlign: 'center', width: '110px' }}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredMappings.length === 0 ? (
+              <tr>
+                <td colSpan={8} style={{ padding: '36px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  No asset mappings found. Click <strong>"New Asset Mapping"</strong> to link equipment to a meter.
+                </td>
+              </tr>
+            ) : (
+              filteredMappings.map((map) => {
+                const asset = assets.find((a) => a.Asset_id === map.Asset_id);
+                const meter = meters.find((m) => m.Meter_id === map.Meter_id);
+
+                return (
+                  <tr key={map.Mapping_id}>
+                    <td className="mono-num" style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>
+                      {map.Mapping_id}
+                    </td>
+
+                    <td>
+                      {asset ? (
+                        <div>
+                          <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{asset.Asset_name}</div>
+                          <div className="mono-num" style={{ fontSize: '0.70rem', color: 'var(--text-muted)' }}>
+                            {asset.Asset_id} • {asset.asset_type}
+                          </div>
+                        </div>
+                      ) : (
+                        <span style={{ color: 'var(--status-danger-text)' }}>{map.Asset_id} (Missing)</span>
+                      )}
+                    </td>
+
+                    <td style={{ textAlign: 'center', color: 'var(--text-dim)' }}>
+                      <ArrowRight size={14} />
+                    </td>
+
+                    <td>
+                      {meter ? (
+                        <div>
+                          <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{meter.Meter_name}</div>
+                          <div className="mono-num" style={{ fontSize: '0.70rem', color: 'var(--text-muted)' }}>
+                            {meter.Meter_id} • Slave ID: {meter.slave_id}
+                          </div>
+                        </div>
+                      ) : (
+                        <span style={{ color: 'var(--status-danger-text)' }}>{map.Meter_id} (Missing)</span>
+                      )}
+                    </td>
+
+                    <td style={{ textAlign: 'center' }}>
+                      <span
+                        className="mono-num"
+                        style={{
+                          padding: '2px 8px',
+                          borderRadius: 'var(--radius-xs)',
+                          backgroundColor: 'var(--brand-surface)',
+                          color: 'var(--brand-primary)',
+                          fontWeight: 700,
+                          fontSize: '0.80rem',
+                          border: '1px solid var(--brand-border)',
+                        }}
+                      >
+                        {map.multiplication_factor}x
+                      </span>
+                    </td>
+
+                    <td style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      <div>From: <span className="mono-num" style={{ color: 'var(--text-secondary)', fontWeight: 550 }}>{map.effective_from}</span></div>
+                      <div>To: <span className="mono-num" style={{ color: 'var(--text-secondary)', fontWeight: 550 }}>{map.effective_to}</span></div>
+                    </td>
+
+                    <td style={{ textAlign: 'center' }}>
+                      <button
+                        onClick={() => toggleMappingActive(map.Mapping_id)}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                        }}
+                        title="Click to toggle Active status"
+                      >
+                        <Badge status={map.is_active ? 'Active' : 'Inactive'} text={map.is_active ? 'Active' : 'Disabled'} />
+                      </button>
+                    </td>
+
+                    <td style={{ textAlign: 'center' }}>
+                      <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+                        <button
+                          onClick={() => handleOpenEdit(map)}
+                          className="btn-icon"
+                          title="Edit Mapping"
+                          aria-label="Edit Mapping"
+                        >
+                          <Edit3 size={14} />
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (window.confirm(`Delete mapping "${map.Mapping_id}"?`)) {
+                              deleteMapping(map.Mapping_id);
+                            }
+                          }}
+                          className="btn-icon"
+                          style={{ color: 'var(--status-danger-text)' }}
+                          title="Delete Mapping"
+                          aria-label="Delete Mapping"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
       </div>
 
       {/* Add / Edit Mapping Modal */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={editingMapping ? `Edit Mapping: ${editingMapping.Mapping_id}` : 'Create Asset-to-Meter Mapping'}
+        title={editingMapping ? 'Edit Asset-to-Meter Mapping' : 'New Asset-to-Meter Mapping'}
+        subtitle="Connect plant equipment to an active field meter and specify electrical CT/PT multiplier."
+        maxWidth="540px"
+        footer={
+          <>
+            <button onClick={() => setIsModalOpen(false)} className="btn btn-secondary">
+              Cancel
+            </button>
+            <button onClick={handleSubmit} className="btn btn-primary">
+              {editingMapping ? 'Update Mapping' : 'Create Mapping'}
+            </button>
+          </>
+        }
       >
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div>
-            <label style={{ display: 'block', fontSize: '0.78rem', color: '#475569', fontWeight: 500, marginBottom: '6px' }}>Select Asset</label>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div className="form-group">
+            <label className="form-label">Plant Asset *</label>
             <select
+              className="form-select"
               value={formData.Asset_id}
               onChange={(e) => setFormData({ ...formData, Asset_id: e.target.value })}
-              style={inputStyle}
             >
-              {assets.map(ast => (
-                <option key={ast.Asset_id} value={ast.Asset_id}>
-                  {ast.Asset_name} ({ast.Asset_id} - {ast.asset_type})
+              {assets.map((a) => (
+                <option key={a.Asset_id} value={a.Asset_id}>
+                  {a.Asset_name} ({a.Asset_id}) — {a.asset_type}
                 </option>
               ))}
             </select>
           </div>
 
-          <div>
-            <label style={{ display: 'block', fontSize: '0.78rem', color: '#475569', fontWeight: 500, marginBottom: '6px' }}>Select Meter</label>
+          <div className="form-group">
+            <label className="form-label">Assigned Modbus Meter *</label>
             <select
+              className="form-select"
               value={formData.Meter_id}
               onChange={(e) => setFormData({ ...formData, Meter_id: e.target.value })}
-              style={inputStyle}
             >
-              {meters.map(mtr => (
-                <option key={mtr.Meter_id} value={mtr.Meter_id}>
-                  {mtr.Meter_name} ({mtr.Meter_id} - Slave ID #{mtr.slave_id})
+              {meters.map((m) => (
+                <option key={m.Meter_id} value={m.Meter_id}>
+                  {m.Meter_name} (Slave ID: {m.slave_id}) — {m.Meter_id}
                 </option>
               ))}
             </select>
           </div>
 
-          <div>
-            <label style={{ display: 'block', fontSize: '0.78rem', color: '#475569', fontWeight: 500, marginBottom: '6px' }}>
-              Multiplication Factor (CT/PT Ratio Multiplier)
-            </label>
+          <div className="form-group">
+            <label className="form-label">Multiplication Factor (CT / PT Ratio) *</label>
             <input
               type="number"
-              step="any"
-              required
-              placeholder="e.g. 40 (for 200:5A CT) or 1 (direct)"
+              className="form-input mono-num"
               value={formData.multiplication_factor}
               onChange={(e) => setFormData({ ...formData, multiplication_factor: e.target.value })}
-              style={inputStyle}
+              min="0.01"
+              step="any"
+              placeholder="e.g. 40"
+              required
             />
-            <span style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
-              Common Ratios: 100/5A = 20 | 200/5A = 40 | 400/5A = 80 | 1000/5A = 200
+            <span className="form-helper">
+              Multiplier applied to raw meter registers to compute true primary power (e.g. 200/5A CT = 40x).
             </span>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', color: '#475569', fontWeight: 500, marginBottom: '6px' }}>Effective From</label>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+            <div className="form-group">
+              <label className="form-label">Effective From Date</label>
               <input
                 type="date"
-                required
+                className="form-input mono-num"
                 value={formData.effective_from}
                 onChange={(e) => setFormData({ ...formData, effective_from: e.target.value })}
-                style={inputStyle}
+                required
               />
             </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', color: '#475569', fontWeight: 500, marginBottom: '6px' }}>Effective To</label>
+
+            <div className="form-group">
+              <label className="form-label">Effective To Date</label>
               <input
                 type="date"
-                required
+                className="form-input mono-num"
                 value={formData.effective_to}
                 onChange={(e) => setFormData({ ...formData, effective_to: e.target.value })}
-                style={inputStyle}
+                required
               />
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
             <input
               type="checkbox"
-              id="is_active_checkbox"
+              id="is_active_map"
               checked={formData.is_active}
               onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-              style={{ width: '16px', height: '16px', accentColor: '#0284c7', cursor: 'pointer' }}
+              style={{ width: '16px', height: '16px', accentColor: 'var(--brand-primary)' }}
             />
-            <label htmlFor="is_active_checkbox" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', cursor: 'pointer', fontWeight: 500 }}>
-              Active (Apply this CT/PT multiplication in live calculations)
+            <label htmlFor="is_active_map" style={{ fontSize: '0.8125rem', color: 'var(--text-primary)', cursor: 'pointer', fontWeight: 550 }}>
+              Enable this mapping for live active telemetry calculations
             </label>
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '12px' }}>
-            <button
-              type="button"
-              onClick={() => setIsModalOpen(false)}
-              style={{
-                padding: '8px 16px',
-                borderRadius: '6px',
-                border: '1px solid var(--border-subtle)',
-                backgroundColor: 'var(--bg-card-secondary)',
-                color: 'var(--text-secondary)',
-                cursor: 'pointer'
-              }}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              style={{
-                padding: '8px 18px',
-                borderRadius: '6px',
-                border: 'none',
-                backgroundColor: 'var(--primary-cyan-deep)',
-                color: '#ffffff',
-                fontWeight: 600,
-                cursor: 'pointer',
-                boxShadow: 'var(--shadow-glow)'
-              }}
-            >
-              {editingMapping ? 'Save Mapping' : 'Create Mapping'}
-            </button>
           </div>
         </form>
       </Modal>
     </div>
   );
-};
-
-const inputStyle = {
-  width: '100%',
-  padding: '8px 12px',
-  backgroundColor: 'var(--bg-input)',
-  border: '1px solid var(--border-subtle)',
-  borderRadius: '6px',
-  color: 'var(--text-primary)',
-  fontSize: '0.85rem',
-  outline: 'none'
 };

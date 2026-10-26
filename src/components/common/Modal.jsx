@@ -1,18 +1,36 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 
-export const Modal = ({ isOpen, onClose, title, children, maxWidth = '540px' }) => {
+export const Modal = ({
+  isOpen,
+  onClose,
+  title,
+  subtitle,
+  children,
+  maxWidth = '580px',
+  footer = null,
+}) => {
+  const modalRef = useRef(null);
+  const previousActiveElement = useRef(null);
+
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') onClose();
     };
+
     if (isOpen) {
+      previousActiveElement.current = document.activeElement;
       document.body.style.overflow = 'hidden';
       window.addEventListener('keydown', handleKeyDown);
+      modalRef.current?.focus();
     }
+
     return () => {
       document.body.style.overflow = 'unset';
       window.removeEventListener('keydown', handleKeyDown);
+      if (previousActiveElement.current) {
+        previousActiveElement.current.focus?.();
+      }
     };
   }, [isOpen, onClose]);
 
@@ -27,13 +45,18 @@ export const Modal = ({ isOpen, onClose, title, children, maxWidth = '540px' }) 
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'rgba(3, 7, 18, 0.75)',
-        backdropFilter: 'blur(8px)',
-        padding: '16px'
+        backgroundColor: 'rgba(10, 16, 22, 0.65)',
+        backdropFilter: 'blur(3px)',
+        padding: '16px',
       }}
       onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title"
     >
       <div
+        ref={modalRef}
+        tabIndex={-1}
         className="animate-fade-in"
         style={{
           width: '100%',
@@ -41,12 +64,12 @@ export const Modal = ({ isOpen, onClose, title, children, maxWidth = '540px' }) 
           maxHeight: '90vh',
           display: 'flex',
           flexDirection: 'column',
-          backgroundColor: 'var(--bg-card)',
-          borderRadius: '16px',
-          border: '1px solid var(--border-medium)',
-          boxShadow: '0 25px 60px -12px rgba(0, 0, 0, 0.75)',
+          backgroundColor: 'var(--bg-surface)',
+          borderRadius: 'var(--radius-xl)',
+          border: '1px solid var(--border-default)',
+          boxShadow: 'var(--shadow-modal)',
           overflow: 'hidden',
-          transition: 'background-color 0.25s ease, border-color 0.25s ease',
+          outline: 'none',
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -56,53 +79,67 @@ export const Modal = ({ isOpen, onClose, title, children, maxWidth = '540px' }) 
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '18px 24px',
-            borderBottom: '1px solid var(--border-subtle)',
-            backgroundColor: 'var(--bg-card-secondary)'
+            padding: '14px 20px',
+            borderBottom: '1px solid var(--border-default)',
+            backgroundColor: 'var(--bg-surface-secondary)',
           }}
         >
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
-            {title}
-          </h3>
+          <div>
+            <h3
+              id="modal-title"
+              style={{
+                fontSize: '1rem',
+                fontWeight: 650,
+                color: 'var(--text-primary)',
+                margin: 0,
+                letterSpacing: '-0.01em',
+              }}
+            >
+              {title}
+            </h3>
+            {subtitle && (
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
+                {subtitle}
+              </p>
+            )}
+          </div>
           <button
             onClick={onClose}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--text-muted)',
-              cursor: 'pointer',
-              padding: '6px',
-              borderRadius: '6px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'all 0.18s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = 'var(--text-primary)';
-              e.currentTarget.style.backgroundColor = 'var(--bg-card-hover)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = 'var(--text-muted)';
-              e.currentTarget.style.backgroundColor = 'transparent';
-            }}
-            aria-label="Close Modal"
+            className="btn-icon"
+            aria-label="Close modal"
           >
-            <X size={18} />
+            <X size={16} />
           </button>
         </div>
 
         {/* Modal Body */}
         <div
           style={{
-            padding: '24px',
+            padding: '20px',
             overflowY: 'auto',
-            backgroundColor: 'var(--bg-card)',
-            color: 'var(--text-primary)'
+            flex: 1,
+            color: 'var(--text-primary)',
           }}
         >
           {children}
         </div>
+
+        {/* Optional Footer */}
+        {footer && (
+          <div
+            style={{
+              padding: '12px 20px',
+              borderTop: '1px solid var(--border-default)',
+              backgroundColor: 'var(--bg-surface-secondary)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'flex-end',
+              gap: '10px',
+            }}
+          >
+            {footer}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -8,41 +8,29 @@ import {
   Cpu,
   Zap,
   Radio,
-  BookOpen,
+  Sliders,
   ChevronDown,
   ChevronRight,
-  ShieldCheck,
-  Signal,
-  Sliders,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react';
 
 export const Sidebar = ({ activeTab, setActiveTab }) => {
-  // Collapsible state for Master sub-menus
-  const [isMasterOpen, setIsMasterOpen] = useState(true);
-  const [isMeterMasterOpen, setIsMeterMasterOpen] = useState(true);
-  const [isGatewayMasterOpen, setIsGatewayMasterOpen] = useState(true);
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    return localStorage.getItem('sab_sidebar_collapsed') === 'true';
+  });
 
-  // Top main navigation items
-  const mainItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'devices', label: 'Gateway', icon: Server },
-    { id: 'asset-mapping', label: 'Asset Mapping', icon: Activity },
-    { id: 'meter-profile', label: 'Meter Profile', icon: Layers },
-    { id: 'communication-config', label: 'Communication Config', icon: Radio },
-  ];
+  // Collapsible sub-sections
+  const [isProfilesOpen, setIsProfilesOpen] = useState(true);
+  const [isGatewaysOpen, setIsGatewaysOpen] = useState(true);
 
-  // Meter sub-items (Make, Model, Parameter)
-  const meterMasterItems = [
-    { id: 'meter-make', label: 'Make', icon: Building2 },
-    { id: 'meter-model', label: 'Model', icon: Cpu },
-    { id: 'parameter-dictionary', label: 'Parameter', icon: Sliders },
-  ];
-
-  // Gateway sub-items (Make, Model)
-  const gatewayMasterItems = [
-    { id: 'gateway-make', label: 'Make', icon: Building2 },
-    { id: 'gateway-model', label: 'Model', icon: Cpu },
-  ];
+  const toggleCollapse = () => {
+    setIsCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem('sab_sidebar_collapsed', String(next));
+      return next;
+    });
+  };
 
   const isTabActive = (id) => {
     if (id === 'devices') return activeTab === 'devices' || activeTab === 'gateways';
@@ -56,85 +44,115 @@ export const Sidebar = ({ activeTab, setActiveTab }) => {
     return activeTab === id;
   };
 
-  const isAnyMasterActive = [
-    'meter-make', 'make-master',
-    'meter-model', 'model-master',
-    'gateway-make', 'gateway-make-master',
-    'gateway-model', 'gateway-model-master',
-    'parameter-dictionary'
-  ].includes(activeTab);
-
-  const renderNavBtn = (item, level = 0) => {
-    const Icon = item.icon;
-    const active = isTabActive(item.id);
-
-    const padLeft = level === 0 ? '14px' : level === 1 ? '22px' : '30px';
+  const renderNavItem = (id, label, Icon, isChild = false) => {
+    const active = isTabActive(id);
 
     return (
       <button
-        key={item.id}
-        onClick={() => setActiveTab(item.id)}
+        key={id}
+        onClick={() => setActiveTab(id)}
+        title={isCollapsed ? label : undefined}
         style={{
           width: '100%',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: `9px 12px 9px ${padLeft}`,
-          borderRadius: '8px',
-          border: active
-            ? '1px solid transparent'
-            : '1px solid transparent',
-          backgroundColor: active
-            ? '#2271b1'
-            : 'transparent',
-          color: active ? '#ffffff' : '#a7aaad',
-          fontWeight: active ? 600 : 400,
-          fontSize: level > 0 ? '0.84rem' : '0.88rem',
+          gap: '10px',
+          padding: isCollapsed
+            ? '9px 0'
+            : isChild
+            ? '7px 12px 7px 28px'
+            : '8px 12px',
+          justifyContent: isCollapsed ? 'center' : 'flex-start',
+          borderRadius: 'var(--radius-sm)',
+          border: 'none',
+          backgroundColor: active ? 'var(--sidebar-active-bg)' : 'transparent',
+          color: active ? '#FFFFFF' : 'var(--text-sidebar-muted)',
+          fontSize: isChild ? '0.80rem' : '0.835rem',
+          fontWeight: active ? 600 : 450,
           cursor: 'pointer',
-          transition: 'all 0.15s ease',
+          transition: 'all 0.14s ease',
           textAlign: 'left',
-          boxShadow: 'none',
+          position: 'relative',
         }}
         onMouseEnter={(e) => {
           if (!active) {
-            e.currentTarget.style.backgroundColor = '#2c3338';
-            e.currentTarget.style.color = '#ffffff';
+            e.currentTarget.style.backgroundColor = 'var(--bg-sidebar-hover)';
+            e.currentTarget.style.color = 'var(--text-sidebar)';
           }
         }}
         onMouseLeave={(e) => {
           if (!active) {
             e.currentTarget.style.backgroundColor = 'transparent';
-            e.currentTarget.style.color = '#a7aaad';
+            e.currentTarget.style.color = 'var(--text-sidebar-muted)';
           }
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-          <Icon
-            size={level > 0 ? 15 : 17}
-            color={active ? '#ffffff' : '#8c8f94'}
-            style={{ flexShrink: 0 }}
-          />
-          <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {item.label}
-          </span>
-        </div>
-
-        {item.badge && (
+        {active && (
           <span
             style={{
-              fontSize: '0.62rem',
-              fontWeight: 700,
-              padding: '1px 6px',
-              borderRadius: '4px',
-              backgroundColor: active ? 'rgba(255,255,255,0.2)' : '#3c434a',
-              color: active ? '#ffffff' : '#a7aaad',
-              letterSpacing: '0.02em',
-              textTransform: 'uppercase',
+              position: 'absolute',
+              left: 0,
+              top: '4px',
+              bottom: '4px',
+              width: '3px',
+              borderRadius: '0 2px 2px 0',
+              backgroundColor: 'var(--sidebar-active-indicator)',
             }}
-          >
-            {item.badge}
+          />
+        )}
+        <Icon
+          size={17}
+          color={active ? 'var(--sidebar-active-indicator)' : 'var(--text-sidebar-dim)'}
+          style={{ flexShrink: 0 }}
+        />
+        {!isCollapsed && (
+          <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {label}
           </span>
         )}
+      </button>
+    );
+  };
+
+  const renderSectionHeader = (label, isOpen, onToggle) => {
+    if (isCollapsed) {
+      return (
+        <div
+          style={{
+            height: '1px',
+            backgroundColor: 'var(--border-sidebar)',
+            margin: '8px 10px',
+          }}
+        />
+      );
+    }
+
+    return (
+      <button
+        onClick={onToggle}
+        style={{
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '6px 10px 4px 10px',
+          marginTop: '10px',
+          backgroundColor: 'transparent',
+          border: 'none',
+          cursor: 'pointer',
+          color: 'var(--text-sidebar-dim)',
+          fontSize: '0.675rem',
+          fontWeight: 700,
+          textTransform: 'uppercase',
+          letterSpacing: '0.08em',
+          borderRadius: 'var(--radius-xs)',
+          textAlign: 'left',
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-sidebar)')}
+        onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-sidebar-dim)')}
+      >
+        <span>{label}</span>
+        {isOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
       </button>
     );
   };
@@ -142,9 +160,9 @@ export const Sidebar = ({ activeTab, setActiveTab }) => {
   return (
     <aside
       style={{
-        width: '254px',
-        backgroundColor: '#1d2327',
-        borderRight: '1px solid #1d2327',
+        width: isCollapsed ? '64px' : '244px',
+        backgroundColor: 'var(--bg-sidebar)',
+        borderRight: '1px solid var(--border-sidebar)',
         display: 'flex',
         flexDirection: 'column',
         height: '100vh',
@@ -152,210 +170,157 @@ export const Sidebar = ({ activeTab, setActiveTab }) => {
         top: 0,
         zIndex: 100,
         userSelect: 'none',
-        boxShadow: '2px 0 4px rgba(0, 0, 0, 0.1)',
+        transition: 'width 0.18s ease',
+        flexShrink: 0,
       }}
     >
       {/* Brand Header */}
       <div
         style={{
-          padding: '18px 16px',
+          height: '56px',
+          padding: isCollapsed ? '0 12px' : '0 16px',
           display: 'flex',
           alignItems: 'center',
-          gap: '12px',
-          borderBottom: '1px solid #3c434a',
-          backgroundColor: '#1d2327',
+          justifyContent: isCollapsed ? 'center' : 'space-between',
+          borderBottom: '1px solid var(--border-sidebar)',
+          backgroundColor: 'var(--bg-sidebar)',
+          flexShrink: 0,
         }}
       >
-        <div
-          style={{
-            width: '38px',
-            height: '38px',
-            borderRadius: '10px',
-            background: 'linear-gradient(135deg, #0284c7, #059669)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 4px 14px rgba(2, 132, 199, 0.45)',
-            flexShrink: 0,
-          }}
-        >
-          <Zap size={22} color="#ffffff" />
-        </div>
-        <div>
-          <h1
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+          <div
             style={{
-              fontSize: '1.05rem',
-              fontWeight: 700,
-              color: '#ffffff',
-              margin: 0,
-              letterSpacing: '-0.01em',
-            }}
-          >
-            SaB Energy
-          </h1>
-          <span
-            style={{
-              fontSize: '0.68rem',
-              color: '#72aee6',
-              fontWeight: 500,
+              width: '32px',
+              height: '32px',
+              borderRadius: 'var(--radius-md)',
+              background: 'linear-gradient(135deg, #16805D 0%, #0D5D45 100%)',
               display: 'flex',
               alignItems: 'center',
-              gap: '5px',
-              marginTop: '1px',
+              justifyContent: 'center',
+              flexShrink: 0,
+              boxShadow: '0 2px 6px rgba(0, 0, 0, 0.25)',
             }}
           >
-            <span
-              style={{
-                width: '6px',
-                height: '6px',
-                borderRadius: '50%',
-                backgroundColor: '#72aee6',
-                boxShadow: '0 0 6px #72aee6',
-              }}
-            />
-            SCADA Node Active
-          </span>
-        </div>
-      </div>
+            <Zap size={18} color="#FFFFFF" />
+          </div>
 
-      {/* Navigation */}
-      <nav
-        style={{
-          padding: '14px 10px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '3px',
-          flex: 1,
-          overflowY: 'auto',
-        }}
-      >
-        {/* Main top navigation items */}
-        {mainItems.map((item) => renderNavBtn(item, 0))}
-
-        {/* ── MASTER SECTION AS SUB-MENU ── */}
-        <div style={{ marginTop: '12px' }}>
-          {/* Master Section Toggle */}
-          <button
-            onClick={() => setIsMasterOpen((prev) => !prev)}
-            style={{
-              width: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '8px 12px',
-              backgroundColor: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              color: isAnyMasterActive ? '#72aee6' : '#a7aaad',
-              borderRadius: '4px',
-              transition: 'background-color 0.15s ease',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#2c3338')}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span
+          {!isCollapsed && (
+            <div style={{ minWidth: 0 }}>
+              <h1
                 style={{
-                  fontSize: '0.68rem',
+                  fontSize: '0.975rem',
                   fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.12em',
-                  color: isAnyMasterActive ? '#72aee6' : '#8c8f94',
+                  color: 'var(--text-sidebar)',
+                  margin: 0,
+                  letterSpacing: '-0.02em',
+                  whiteSpace: 'nowrap',
                 }}
               >
-                Master
+                SaB Energy
+              </h1>
+              <span
+                style={{
+                  fontSize: '0.65rem',
+                  color: 'var(--sidebar-active-indicator)',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  lineHeight: 1,
+                  marginTop: '1px',
+                }}
+              >
+                <span
+                  style={{
+                    width: '5px',
+                    height: '5px',
+                    borderRadius: '50%',
+                    backgroundColor: 'var(--sidebar-active-indicator)',
+                  }}
+                />
+                EMS Platform
               </span>
-            </div>
-            {isMasterOpen ? (
-              <ChevronDown size={14} color={isAnyMasterActive ? '#72aee6' : '#8c8f94'} />
-            ) : (
-              <ChevronRight size={14} color={isAnyMasterActive ? '#72aee6' : '#8c8f94'} />
-            )}
-          </button>
-
-          {isMasterOpen && (
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '2px',
-                marginTop: '4px',
-                paddingLeft: '4px',
-                borderLeft: '1px solid rgba(255, 255, 255, 0.08)',
-                marginLeft: '8px',
-              }}
-            >
-              {/* Group A: Meter Master */}
-              <div>
-                <button
-                  onClick={() => setIsMeterMasterOpen((prev) => !prev)}
-                  style={{
-                    width: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '6px 10px',
-                    backgroundColor: 'transparent',
-                    border: 'none',
-                    cursor: 'pointer',
-                    color: '#8c8f94',
-                    fontSize: '0.78rem',
-                    fontWeight: 600,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.04em',
-                    borderRadius: '4px',
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#2c3338')}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-                >
-                  <span style={{ color: '#8c8f94' }}>Meter</span>
-                  {isMeterMasterOpen ? <ChevronDown size={12} color="#8c8f94" /> : <ChevronRight size={12} color="#8c8f94" />}
-                </button>
-
-                {isMeterMasterOpen && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '2px' }}>
-                    {meterMasterItems.map((item) => renderNavBtn(item, 1))}
-                  </div>
-                )}
-              </div>
-
-              {/* Group B: Gateway Master */}
-              <div style={{ marginTop: '6px' }}>
-                <button
-                  onClick={() => setIsGatewayMasterOpen((prev) => !prev)}
-                  style={{
-                    width: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '6px 10px',
-                    backgroundColor: 'transparent',
-                    border: 'none',
-                    cursor: 'pointer',
-                    color: '#8c8f94',
-                    fontSize: '0.78rem',
-                    fontWeight: 600,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.04em',
-                    borderRadius: '4px',
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#2c3338')}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-                >
-                  <span style={{ color: '#8c8f94' }}>Gateway</span>
-                  {isGatewayMasterOpen ? <ChevronDown size={12} color="#8c8f94" /> : <ChevronRight size={12} color="#8c8f94" />}
-                </button>
-
-                {isGatewayMasterOpen && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '2px' }}>
-                    {gatewayMasterItems.map((item) => renderNavBtn(item, 1))}
-                  </div>
-                )}
-              </div>
             </div>
           )}
         </div>
+
+        {!isCollapsed && (
+          <button
+            onClick={toggleCollapse}
+            className="btn-icon"
+            style={{ color: 'var(--text-sidebar-dim)' }}
+            title="Collapse Sidebar"
+            aria-label="Collapse Sidebar"
+          >
+            <PanelLeftClose size={15} />
+          </button>
+        )}
+      </div>
+
+      {/* Navigation List */}
+      <nav
+        style={{
+          padding: isCollapsed ? '10px 6px' : '10px 10px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '2px',
+          flex: 1,
+          overflowY: 'auto',
+          overflowX: 'hidden',
+        }}
+      >
+        {/* 1. Overview */}
+        {renderNavItem('dashboard', 'Energy Dashboard', LayoutDashboard)}
+
+        {/* 2. Connectivity */}
+        {renderNavItem('devices', 'Gateways & Devices', Server)}
+        {renderNavItem('communication-config', 'Comm Configuration', Radio)}
+
+        {/* 3. Asset Management */}
+        {renderNavItem('asset-mapping', 'Asset-to-Meter Mapping', Activity)}
+
+        {/* 4. Device Profiles Accordion */}
+        {renderSectionHeader('Device Profiles', isProfilesOpen, () => setIsProfilesOpen((p) => !p))}
+        {(isProfilesOpen || isCollapsed) && (
+          <>
+            {renderNavItem('meter-profile', 'Meter Profiles', Layers, !isCollapsed)}
+            {renderNavItem('meter-make', 'Meter Makes', Building2, !isCollapsed)}
+            {renderNavItem('meter-model', 'Meter Models', Cpu, !isCollapsed)}
+            {renderNavItem('parameter-dictionary', 'Parameter Dictionary', Sliders, !isCollapsed)}
+          </>
+        )}
+
+        {/* 5. Gateway Management Accordion */}
+        {renderSectionHeader('Gateway Masters', isGatewaysOpen, () => setIsGatewaysOpen((p) => !p))}
+        {(isGatewaysOpen || isCollapsed) && (
+          <>
+            {renderNavItem('gateway-make', 'Gateway Makes', Building2, !isCollapsed)}
+            {renderNavItem('gateway-model', 'Gateway Models', Cpu, !isCollapsed)}
+          </>
+        )}
       </nav>
+
+      {/* Bottom Controls / Expand Action */}
+      {isCollapsed && (
+        <div
+          style={{
+            padding: '10px',
+            borderTop: '1px solid var(--border-sidebar)',
+            display: 'flex',
+            justifyContent: 'center',
+          }}
+        >
+          <button
+            onClick={toggleCollapse}
+            className="btn-icon"
+            style={{ color: 'var(--text-sidebar-muted)' }}
+            title="Expand Sidebar"
+            aria-label="Expand Sidebar"
+          >
+            <PanelLeftOpen size={16} />
+          </button>
+        </div>
+      )}
     </aside>
   );
 };

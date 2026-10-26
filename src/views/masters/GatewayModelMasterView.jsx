@@ -1,13 +1,15 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Edit3, Trash2, Search, Cpu, ArrowLeft, Save, X, CheckCircle2, AlertCircle, Building2 } from 'lucide-react';
+import { Plus, Edit3, Trash2, Search, Cpu, Building2, Save, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useEnergyData } from '../../context/EnergyDataContext';
+import { PageHeader } from '../../components/common/PageHeader';
+import { Modal } from '../../components/common/Modal';
 
-const EMPTY = { gw_make_id: '', gw_model_name: '' };
+const EMPTY = { gw_make_id: '', gw_model_name: '', channel_count: 4, firmware_version: 'v1.0.0' };
 
 export const GatewayModelMasterView = () => {
   const { gatewayMakes, gatewayModels, addGatewayModel, updateGatewayModel, deleteGatewayModel } = useEnergyData();
 
-  const [viewMode, setViewMode] = useState('list'); // 'list' | 'form'
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(EMPTY);
   const [searchTerm, setSearchTerm] = useState('');
@@ -18,7 +20,7 @@ export const GatewayModelMasterView = () => {
   const filtered = useMemo(() => {
     return gatewayModels.filter((m) => {
       const q = searchTerm.toLowerCase().trim();
-      const matchSearch = !q || (m.gw_model_name || '').toLowerCase().includes(q);
+      const matchSearch = !q || (m.gw_model_name || '').toLowerCase().includes(q) || (m.gw_model_id || '').toLowerCase().includes(q);
       const matchMake = filterMakeId === 'all' || m.gw_make_id === filterMakeId;
       return matchSearch && matchMake;
     });
@@ -27,9 +29,9 @@ export const GatewayModelMasterView = () => {
   const openAdd = () => {
     const def = filterMakeId !== 'all' ? filterMakeId : (gatewayMakes[0]?.gw_make_id || '');
     setEditingId(null);
-    setForm({ gw_make_id: def, gw_model_name: '' });
+    setForm({ gw_make_id: def, gw_model_name: '', channel_count: 4, firmware_version: 'v1.0.0' });
     setErrorMsg('');
-    setViewMode('form');
+    setIsModalOpen(true);
   };
 
   const openEdit = (m) => {
@@ -37,12 +39,22 @@ export const GatewayModelMasterView = () => {
     setForm({
       gw_make_id: m.gw_make_id,
       gw_model_name: m.gw_model_name || '',
+      channel_count: m.channel_count || 4,
+      firmware_version: m.firmware_version || 'v1.0.0',
     });
     setErrorMsg('');
-    setViewMode('form');
+    setIsModalOpen(true);
   };
 
-  const handleSave = () => {
+  const handleClose = () => {
+    setIsModalOpen(false);
+    setEditingId(null);
+    setForm(EMPTY);
+    setErrorMsg('');
+  };
+
+  const handleSave = (e) => {
+    if (e) e.preventDefault();
     setErrorMsg('');
     const trimmedModel = form.gw_model_name.trim();
 
@@ -59,281 +71,190 @@ export const GatewayModelMasterView = () => {
       updateGatewayModel(editingId, {
         gw_make_id: form.gw_make_id,
         gw_model_name: trimmedModel,
+        channel_count: Number(form.channel_count) || 4,
+        firmware_version: form.firmware_version.trim() || 'v1.0.0',
       });
-      setSuccessMsg(`✓ Model "${trimmedModel}" updated.`);
+      setSuccessMsg(`✓ Model "${trimmedModel}" updated successfully.`);
     } else {
       const exists = gatewayModels.some(
         (m) => m.gw_make_id === form.gw_make_id && m.gw_model_name.toLowerCase() === trimmedModel.toLowerCase()
       );
       if (exists) {
-        setErrorMsg(`Model "${trimmedModel}" already exists under this Make.`);
+        setErrorMsg(`Model "${trimmedModel}" already exists under the selected Make.`);
         return;
       }
-
       addGatewayModel({
         gw_make_id: form.gw_make_id,
         gw_model_name: trimmedModel,
+        channel_count: Number(form.channel_count) || 4,
+        firmware_version: form.firmware_version.trim() || 'v1.0.0',
       });
-      setSuccessMsg(`✓ Model "${trimmedModel}" added.`);
+      setSuccessMsg(`✓ Model "${trimmedModel}" added successfully.`);
     }
 
-    setViewMode('list');
+    handleClose();
     setTimeout(() => setSuccessMsg(''), 3500);
   };
 
   const handleDelete = (m) => {
-    const makeName = gatewayMakes.find((mk) => mk.gw_make_id === m.gw_make_id)?.gw_make_name || '';
-    if (window.confirm(`Delete model "${m.gw_model_name}" (${makeName})?`)) {
+    if (window.confirm(`Delete Gateway Model "${m.gw_model_name}"?`)) {
       deleteGatewayModel(m.gw_model_id);
       setSuccessMsg(`✓ Model "${m.gw_model_name}" deleted.`);
       setTimeout(() => setSuccessMsg(''), 3000);
     }
   };
 
-  // ─── FORM VIEW (ONLY MAKE AND MODEL NAME) ──────────────────────────────────
-  if (viewMode === 'form') {
-    return (
-      <div style={{ width: '100%', maxWidth: '700px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
-        {/* Header */}
-        <div style={card}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            <button onClick={() => setViewMode('list')} style={backBtn} title="Back">
-              <ArrowLeft size={17} />
-            </button>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div
-                style={{
-                  width: '38px',
-                  height: '38px',
-                  borderRadius: '9px',
-                  background: 'linear-gradient(135deg, #8b5cf6, #6d28d9)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Cpu size={18} color="#fff" />
-              </div>
-              <div>
-                <h2 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: '#0f172a' }}>
-                  {editingId ? 'Edit Gateway Model' : 'Add Gateway Model'}
-                </h2>
-              </div>
-            </div>
-          </div>
+  return (
+    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <PageHeader
+        title="Gateway Model Master"
+        subtitle="Configure physical hardware models, channel capacities (RS-485 / Ethernet slots), and firmware specifications."
+        icon={Cpu}
+        actions={
+          <button onClick={openAdd} className="btn btn-primary">
+            <Plus size={15} />
+            <span>Add Gateway Model</span>
+          </button>
+        }
+      />
+
+      {successMsg && (
+        <div
+          style={{
+            padding: '10px 14px',
+            backgroundColor: 'var(--status-success-bg)',
+            border: '1px solid var(--status-success-border)',
+            borderRadius: 'var(--radius-md)',
+            color: 'var(--status-success-text)',
+            fontSize: '0.8125rem',
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+          }}
+        >
+          <CheckCircle2 size={16} /> {successMsg}
         </div>
+      )}
 
-        {errorMsg && (
-          <div style={errBox}>
-            <AlertCircle size={15} /> {errorMsg}
-          </div>
-        )}
+      {/* Table Container with Integrated Toolbar */}
+      <div className="table-container">
+        <div className="table-toolbar">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            <div className="search-input-wrapper">
+              <Search size={14} />
+              <input
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search models by name or ID..."
+              />
+            </div>
 
-        {/* Form Body - Only Make and Model Name */}
-        <div style={card}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-            <div>
-              <label style={lbl}>Make (Manufacturer) *</label>
+            {/* Filter by Make */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                Manufacturer:
+              </span>
               <select
-                style={inp}
-                value={form.gw_make_id}
-                onChange={(e) => setForm((p) => ({ ...p, gw_make_id: e.target.value }))}
+                className="form-select"
+                style={{ width: '180px', height: '34px' }}
+                value={filterMakeId}
+                onChange={(e) => setFilterMakeId(e.target.value)}
               >
-                <option value="">-- Select Make --</option>
-                {gatewayMakes.map((m) => (
-                  <option key={m.gw_make_id} value={m.gw_make_id}>
-                    {m.gw_make_name}
+                <option value="all">All Manufacturers ({gatewayMakes.length})</option>
+                {gatewayMakes.map((mk) => (
+                  <option key={mk.gw_make_id} value={mk.gw_make_id}>
+                    {mk.gw_make_name}
                   </option>
                 ))}
               </select>
             </div>
+          </div>
 
-            <div>
-              <label style={lbl}>Model Name *</label>
-              <input
-                style={inp}
-                value={form.gw_model_name}
-                onChange={(e) => setForm((p) => ({ ...p, gw_model_name: e.target.value }))}
-                placeholder="e.g. SAB-GW-G2, EKI-1521, WAGO-750"
-                autoFocus
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleSave();
-                }}
-              />
-            </div>
+          <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 550 }}>
+            Showing: <strong style={{ color: 'var(--brand-primary)' }}>{filtered.length}</strong> of {gatewayModels.length} Models
           </div>
         </div>
 
-        {/* Buttons */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', ...card }}>
-          <button onClick={() => setViewMode('list')} style={cancelBtn}>
-            <X size={14} /> Cancel
-          </button>
-          <button onClick={handleSave} style={saveBtn}>
-            <Save size={14} /> {editingId ? 'Update Model' : 'Add Model'}
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // ─── LIST VIEW ─────────────────────────────────────────────────────────────
-  return (
-    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '18px' }}>
-      {/* Top Header Card */}
-      <div
-        style={{
-          ...card,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '12px',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div
-            style={{
-              width: '42px',
-              height: '42px',
-              borderRadius: '10px',
-              background: 'linear-gradient(135deg, #0284c7, #0369a1)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 4px 12px var(--primary-cyan-glow)',
-            }}
-          >
-            <Cpu size={20} color="#fff" />
-          </div>
-          <div>
-            <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-              Gateway Model Master
-            </h2>
-          </div>
-        </div>
-        <button onClick={openAdd} style={saveBtn}>
-          <Plus size={14} /> Add Model
-        </button>
-      </div>
-
-      {successMsg && (
-        <div style={succBox}>
-          <CheckCircle2 size={14} color="var(--accent-emerald)" /> {successMsg}
-        </div>
-      )}
-
-      {/* Filter / Search Bar */}
-      <div
-        style={{
-          ...card,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '10px',
-        }}
-      >
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-            Total Models: <strong style={{ color: 'var(--primary-cyan)' }}>{gatewayModels.length}</strong>
-          </span>
-          <select
-            style={{ ...inp, width: '180px', fontSize: '0.8rem' }}
-            value={filterMakeId}
-            onChange={(e) => setFilterMakeId(e.target.value)}
-          >
-            <option value="all">All Makes</option>
-            {gatewayMakes.map((m) => (
-              <option key={m.gw_make_id} value={m.gw_make_id}>
-                {m.gw_make_name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div style={{ position: 'relative' }}>
-          <Search
-            size={13}
-            color="var(--text-dim)"
-            style={{ position: 'absolute', left: '9px', top: '50%', transform: 'translateY(-50%)' }}
-          />
-          <input
-            style={{ ...inp, paddingLeft: '28px', width: '220px' }}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search models..."
-          />
-        </div>
-      </div>
-
-      {/* Table */}
-      <div
-        style={{
-          backgroundColor: 'var(--bg-card)',
-          borderRadius: '12px',
-          border: '1px solid var(--border-subtle)',
-          overflow: 'hidden',
-          boxShadow: 'var(--shadow-card)',
-        }}
-      >
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84rem' }}>
+        <table className="enterprise-table">
           <thead>
-            <tr
-              style={{
-                backgroundColor: 'var(--bg-table-header)',
-                borderBottom: '1px solid var(--border-subtle)',
-                color: 'var(--text-muted)',
-                fontSize: '0.74rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.04em',
-              }}
-            >
-              <th style={{ padding: '12px 16px', width: '60px', textAlign: 'left' }}>#</th>
-              <th style={{ padding: '12px 16px', textAlign: 'left' }}>Make (Manufacturer)</th>
-              <th style={{ padding: '12px 16px', textAlign: 'left' }}>Model Name</th>
-              <th style={{ padding: '12px 16px', textAlign: 'center', width: '130px' }}>Actions</th>
+            <tr>
+              <th style={{ width: '60px' }}>#</th>
+              <th>Model Identifier</th>
+              <th>Model Name</th>
+              <th>Manufacturer</th>
+              <th style={{ textAlign: 'center' }}>Channel Capacity</th>
+              <th style={{ textAlign: 'center' }}>Firmware</th>
+              <th style={{ textAlign: 'center', width: '120px' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={4} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                  No models found. Click <strong style={{ color: 'var(--primary-cyan)' }}>"Add Model"</strong> to create one.
+                <td colSpan={7} style={{ padding: '36px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  No gateway models found matching the search criteria.
                 </td>
               </tr>
             ) : (
-              filtered.map((m, i) => {
-                const makeName = gatewayMakes.find((mk) => mk.gw_make_id === m.gw_make_id)?.gw_make_name || '—';
+              filtered.map((m, index) => {
+                const mk = gatewayMakes.find((make) => make.gw_make_id === m.gw_make_id);
                 return (
-                  <tr
-                    key={m.gw_model_id}
-                    style={{ borderBottom: '1px solid var(--border-subtle)', transition: 'background-color 0.15s' }}
-                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-table-row-hover)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-                  >
-                    <td style={{ padding: '11px 16px', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
-                      {i + 1}
+                  <tr key={m.gw_model_id}>
+                    <td style={{ color: 'var(--text-muted)' }}>{index + 1}</td>
+                    <td className="mono-num" style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>
+                      {m.gw_model_id}
                     </td>
-                    <td style={{ padding: '11px 16px', color: 'var(--text-primary)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-                        <Building2 size={14} color="var(--text-muted)" />
-                        <span>{makeName}</span>
-                      </div>
-                    </td>
-                    <td style={{ padding: '11px 16px', color: 'var(--text-primary)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-                        <Cpu size={14} color="var(--text-muted)" />
+                    <td style={{ fontWeight: 600 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Cpu size={14} color="var(--brand-primary)" />
                         <span>{m.gw_model_name}</span>
                       </div>
                     </td>
-                    <td style={{ padding: '11px 16px', textAlign: 'center' }}>
-                      <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
-                        <button onClick={() => openEdit(m)} style={editBtnSt} title="Edit Model">
-                          <Edit3 size={12} /> Edit
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Building2 size={13} color="var(--text-muted)" />
+                        <span>{mk?.gw_make_name || m.gw_make_id}</span>
+                      </div>
+                    </td>
+                    <td style={{ textAlign: 'center' }}>
+                      <span
+                        className="mono-num"
+                        style={{
+                          fontSize: '0.75rem',
+                          padding: '2px 8px',
+                          borderRadius: 'var(--radius-xs)',
+                          backgroundColor: 'var(--bg-surface-secondary)',
+                          color: 'var(--text-primary)',
+                          border: '1px solid var(--border-default)',
+                          fontWeight: 600,
+                        }}
+                      >
+                        {m.channel_count || 4} Channels
+                      </span>
+                    </td>
+                    <td style={{ textAlign: 'center' }}>
+                      <span className="mono-num" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                        {m.firmware_version || 'v1.0.0'}
+                      </span>
+                    </td>
+                    <td style={{ textAlign: 'center' }}>
+                      <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+                        <button
+                          onClick={() => openEdit(m)}
+                          className="btn-icon"
+                          title="Edit Model"
+                          aria-label="Edit Model"
+                        >
+                          <Edit3 size={14} />
                         </button>
-                        <button onClick={() => handleDelete(m)} style={delBtnSt} title="Delete Model">
-                          <Trash2 size={12} />
+                        <button
+                          onClick={() => handleDelete(m)}
+                          className="btn-icon"
+                          style={{ color: 'var(--status-danger-text)' }}
+                          title="Delete Model"
+                          aria-label="Delete Model"
+                        >
+                          <Trash2 size={14} />
                         </button>
                       </div>
                     </td>
@@ -344,116 +265,100 @@ export const GatewayModelMasterView = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Add / Edit Modal */}
+      <Modal
+        isOpen={isModalOpen}
+        onClose={handleClose}
+        title={editingId ? 'Edit Gateway Model' : 'Add Gateway Model'}
+        subtitle="Configure model specifications, manufacturer association, and RS-485 port capacity."
+        maxWidth="540px"
+        footer={
+          <>
+            <button onClick={handleClose} className="btn btn-secondary">
+              Cancel
+            </button>
+            <button onClick={handleSave} className="btn btn-primary">
+              <Save size={14} />
+              <span>{editingId ? 'Update Model' : 'Save Model'}</span>
+            </button>
+          </>
+        }
+      >
+        <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {errorMsg && (
+            <div
+              style={{
+                padding: '9px 12px',
+                backgroundColor: 'var(--status-danger-bg)',
+                border: '1px solid var(--status-danger-border)',
+                borderRadius: 'var(--radius-md)',
+                color: 'var(--status-danger-text)',
+                fontSize: '0.80rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '7px',
+              }}
+            >
+              <AlertCircle size={15} />
+              <span>{errorMsg}</span>
+            </div>
+          )}
+
+          <div className="form-group">
+            <label className="form-label">Manufacturer (Make) *</label>
+            <select
+              className="form-select"
+              value={form.gw_make_id}
+              onChange={(e) => setForm({ ...form, gw_make_id: e.target.value })}
+            >
+              {gatewayMakes.map((mk) => (
+                <option key={mk.gw_make_id} value={mk.gw_make_id}>
+                  {mk.gw_make_name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Gateway Model Name *</label>
+            <input
+              className="form-input"
+              value={form.gw_model_name}
+              onChange={(e) => setForm({ ...form, gw_model_name: e.target.value })}
+              placeholder="e.g. SAB-GW-G1, EKI-1521, SIMATIC-IOT2050"
+              autoFocus
+            />
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+            <div className="form-group">
+              <label className="form-label">Channel Count (Slots) *</label>
+              <select
+                className="form-select"
+                value={form.channel_count}
+                onChange={(e) => setForm({ ...form, channel_count: Number(e.target.value) })}
+              >
+                <option value={1}>1 Channel</option>
+                <option value={2}>2 Channels</option>
+                <option value={4}>4 Channels</option>
+                <option value={8}>8 Channels</option>
+                <option value={16}>16 Channels</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Default Firmware Version</label>
+              <input
+                className="form-input"
+                value={form.firmware_version}
+                onChange={(e) => setForm({ ...form, firmware_version: e.target.value })}
+                placeholder="v1.0.0"
+              />
+            </div>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
-};
-
-const card = {
-  backgroundColor: 'var(--bg-card)',
-  borderRadius: '12px',
-  border: '1px solid var(--border-subtle)',
-  padding: '18px 22px',
-  boxShadow: 'var(--shadow-card)',
-};
-const lbl = {
-  display: 'block',
-  fontSize: '0.82rem',
-  color: 'var(--text-secondary)',
-  fontWeight: 700,
-  marginBottom: '6px',
-};
-const inp = {
-  width: '100%',
-  padding: '9px 12px',
-  border: '1px solid var(--border-subtle)',
-  borderRadius: '8px',
-  fontSize: '0.86rem',
-  color: 'var(--text-primary)',
-  outline: 'none',
-  boxSizing: 'border-box',
-  backgroundColor: 'var(--bg-input)',
-};
-const saveBtn = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '6px',
-  backgroundColor: 'var(--primary-cyan-deep)',
-  color: '#fff',
-  border: 'none',
-  borderRadius: '8px',
-  padding: '8px 16px',
-  fontSize: '0.82rem',
-  fontWeight: 700,
-  cursor: 'pointer',
-  boxShadow: 'var(--shadow-glow)',
-};
-const cancelBtn = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '5px',
-  backgroundColor: 'var(--bg-card-secondary)',
-  border: '1px solid var(--border-subtle)',
-  color: 'var(--text-secondary)',
-  borderRadius: '8px',
-  padding: '7px 14px',
-  fontSize: '0.8rem',
-  fontWeight: 600,
-  cursor: 'pointer',
-};
-const backBtn = {
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  width: '34px',
-  height: '34px',
-  borderRadius: '8px',
-  border: '1px solid var(--border-subtle)',
-  backgroundColor: 'var(--bg-card)',
-  color: 'var(--text-secondary)',
-  cursor: 'pointer',
-};
-const editBtnSt = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '4px',
-  padding: '4px 9px',
-  borderRadius: '6px',
-  border: '1px solid var(--primary-cyan-border)',
-  backgroundColor: 'var(--primary-cyan-glow)',
-  color: 'var(--primary-cyan)',
-  cursor: 'pointer',
-  fontSize: '0.74rem',
-  fontWeight: 600,
-};
-const delBtnSt = {
-  display: 'flex',
-  alignItems: 'center',
-  padding: '4px 7px',
-  borderRadius: '6px',
-  border: '1px solid var(--accent-rose-border)',
-  backgroundColor: 'var(--accent-rose-glow)',
-  color: 'var(--accent-rose)',
-  cursor: 'pointer',
-};
-const succBox = {
-  padding: '10px 14px',
-  backgroundColor: 'rgba(16, 185, 129, 0.12)',
-  border: '1px solid var(--accent-emerald-border)',
-  borderRadius: '8px',
-  color: 'var(--accent-emerald)',
-  fontSize: '0.82rem',
-  display: 'flex',
-  alignItems: 'center',
-  gap: '7px',
-};
-const errBox = {
-  padding: '10px 14px',
-  backgroundColor: 'rgba(244, 63, 94, 0.12)',
-  border: '1px solid var(--accent-rose-border)',
-  borderRadius: '8px',
-  color: 'var(--accent-rose)',
-  fontSize: '0.82rem',
-  display: 'flex',
-  alignItems: 'center',
-  gap: '7px',
 };

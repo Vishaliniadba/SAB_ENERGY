@@ -52,14 +52,23 @@ function AppContent() {
   };
 
   return (
-    <div style={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden', backgroundColor: 'var(--bg-app)' }}>
       {/* Fixed Left Navigation Sidebar */}
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
       {/* Main Content Area */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100vh', minWidth: 0, overflow: 'hidden' }}>
         <Header activeTab={activeTab} />
-        <main style={{ padding: '20px 24px', flex: 1, overflowY: 'auto', minHeight: 0 }}>
+        <main
+          style={{
+            padding: '24px 28px',
+            flex: 1,
+            overflowY: 'auto',
+            minHeight: 0,
+            backgroundColor: 'var(--bg-app)',
+            transition: 'background-color 0.18s ease',
+          }}
+        >
           {renderCurrentView()}
         </main>
       </div>

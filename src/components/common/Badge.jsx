@@ -1,57 +1,32 @@
 import React from 'react';
 
 export const Badge = ({ status, text }) => {
-  const label = text || status;
-  const s = (status || '').toLowerCase();
+  const label = text || (status === true ? 'Active' : status === false ? 'Inactive' : status) || 'Unknown';
+  const s = String(status ?? '').toLowerCase().trim();
 
-  let bg = 'rgba(148, 163, 184, 0.12)';
-  let color = 'var(--text-muted)';
-  let border = 'rgba(148, 163, 184, 0.25)';
+  let badgeClass = 'status-badge status-badge-info';
+  let dotColor = 'currentColor';
 
   if (s === 'active' || s === 'online' || status === true) {
-    bg = 'var(--accent-emerald-glow)';
-    color = 'var(--accent-emerald)';
-    border = 'var(--accent-emerald-border)';
-  } else if (s === 'offline' || s === 'inactive' || status === false) {
-    bg = 'var(--accent-rose-glow)';
-    color = 'var(--accent-rose)';
-    border = 'var(--accent-rose-border)';
-  } else if (s === 'standby' || s === 'warning') {
-    bg = 'var(--accent-amber-glow)';
-    color = 'var(--accent-amber)';
-    border = 'var(--accent-amber-border)';
+    badgeClass = 'status-badge status-badge-online';
+    dotColor = 'var(--status-success-text)';
+  } else if (s === 'offline' || s === 'inactive' || s === 'danger' || status === false) {
+    badgeClass = 'status-badge status-badge-offline';
+    dotColor = 'var(--status-danger-text)';
+  } else if (s === 'warning' || s === 'intermittent' || s === 'standby' || s === 'idle') {
+    badgeClass = 'status-badge status-badge-warning';
+    dotColor = 'var(--status-warning-text)';
   } else if (s === 'maintenance') {
-    bg = 'var(--accent-purple-glow)';
-    color = 'var(--accent-purple)';
-    border = 'rgba(139, 92, 246, 0.35)';
+    badgeClass = 'status-badge';
   }
 
+  const isLive = s === 'active' || s === 'online' || status === true;
+
   return (
-    <span
-      className="scada-badge"
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '6px',
-        padding: '3px 10px',
-        borderRadius: '20px',
-        fontSize: '0.74rem',
-        fontWeight: '700',
-        letterSpacing: '0.02em',
-        backgroundColor: bg,
-        color: color,
-        border: `1px solid ${border}`,
-        whiteSpace: 'nowrap'
-      }}
-    >
+    <span className={badgeClass} style={{ textTransform: 'capitalize' }}>
       <span
-        style={{
-          width: '6px',
-          height: '6px',
-          borderRadius: '50%',
-          backgroundColor: color,
-          boxShadow: (s === 'active' || s === 'online') ? '0 0 8px currentColor' : 'none'
-        }}
+        className={`pulse-dot ${isLive ? 'animate-pulse' : ''}`}
+        style={{ backgroundColor: dotColor }}
       />
       {label}
     </span>

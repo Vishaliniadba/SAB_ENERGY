@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Database, Sun, Moon } from 'lucide-react';
+import { Sun, Moon, Radio, Activity, ChevronRight } from 'lucide-react';
 import { useEnergyData } from '../../context/EnergyDataContext';
 
 export const Header = ({ activeTab }) => {
   const { config } = useEnergyData();
   const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString());
   const [theme, setTheme] = useState(() => {
-    // Default to clean enterprise light theme
-    const saved = localStorage.getItem('sab_theme_mode');
-    return saved || 'light';
+    return localStorage.getItem('sab_theme_mode') || 'light';
   });
 
   useEffect(() => {
@@ -17,7 +15,7 @@ export const Header = ({ activeTab }) => {
   }, [theme]);
 
   const toggleTheme = () => {
-    setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
+    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
   };
 
   useEffect(() => {
@@ -27,52 +25,55 @@ export const Header = ({ activeTab }) => {
     return () => clearInterval(timer);
   }, []);
 
-  const getBreadcrumbTitle = () => {
+  const getBreadcrumbs = () => {
     switch (activeTab) {
       case 'dashboard':
-        return 'Dashboard';
+        return { section: 'Overview', page: 'Energy Dashboard' };
       case 'devices':
       case 'gateways':
-        return 'Devices (ThingsBoard)';
+        return { section: 'Connectivity', page: 'Gateways & Devices' };
       case 'asset-mapping':
-        return 'Asset Mapping';
+        return { section: 'Asset Management', page: 'Asset-to-Meter Mapping' };
       case 'meter-profile':
       case 'meter-profiles':
-        return 'Meter Profile';
+        return { section: 'Device Profiles', page: 'Meter Profiles' };
       case 'meter-make':
       case 'make-master':
-        return 'Meter Master — Make';
+        return { section: 'Device Profiles', page: 'Meter Makes' };
       case 'meter-model':
       case 'model-master':
-        return 'Meter Master — Model';
+        return { section: 'Device Profiles', page: 'Meter Models' };
       case 'gateway-make':
       case 'gateway-make-master':
-        return 'Gateway Master — Make';
+        return { section: 'Gateway Management', page: 'Gateway Makes' };
       case 'gateway-model':
       case 'gateway-model-master':
-        return 'Gateway Master — Model';
+        return { section: 'Gateway Management', page: 'Gateway Models' };
       case 'parameter-dictionary':
-        return 'Meter Master — Parameter';
+        return { section: 'Device Profiles', page: 'Parameter Dictionary' };
       case 'communication-config':
       case 'comm-config':
       case 'config':
-        return 'Communication Config';
+        return { section: 'Connectivity', page: 'Communication Config' };
       default:
-        return 'SaB Energy';
+        return { section: 'SaB Energy', page: 'Dashboard' };
     }
   };
 
-  const pollingDisplay = config.polling_interval_unit === 'minutes'
-    ? `${config.polling_interval_value || Math.round((config.polling_interval_seconds || 60) / 60) || 1}m (${config.polling_interval_seconds}s)`
-    : `${config.polling_interval_seconds}s`;
+  const breadcrumbs = getBreadcrumbs();
+
+  const pollingDisplay =
+    config.polling_interval_unit === 'minutes'
+      ? `${config.polling_interval_value || Math.round((config.polling_interval_seconds || 60) / 60) || 1}m`
+      : `${config.polling_interval_seconds || 5}s`;
 
   return (
     <header
       style={{
         height: '56px',
         flexShrink: 0,
-        backgroundColor: '#1d2327',
-        borderBottom: '1px solid #3c434a',
+        backgroundColor: 'var(--bg-header)',
+        borderBottom: '1px solid var(--border-header)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -80,48 +81,53 @@ export const Header = ({ activeTab }) => {
         position: 'sticky',
         top: 0,
         zIndex: 90,
-        transition: 'background-color 0.25s ease, border-color 0.25s ease',
+        transition: 'background-color 0.18s ease, border-color 0.18s ease',
       }}
     >
-      <div>
-        <h2 style={{ fontSize: '1.05rem', fontWeight: 600, color: '#ffffff', margin: 0, letterSpacing: '-0.01em' }}>
-          {getBreadcrumbTitle()}
-        </h2>
+      {/* Breadcrumb Hierarchy */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8125rem' }}>
+        <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>
+          {breadcrumbs.section}
+        </span>
+        <ChevronRight size={14} color="var(--text-dim)" />
+        <span style={{ color: 'var(--text-primary)', fontWeight: 650 }}>
+          {breadcrumbs.page}
+        </span>
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-        {/* Live Status Badge */}
+        {/* Polling Interval Indicator */}
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '7px',
-            backgroundColor: 'rgba(0, 163, 42, 0.15)',
-            border: '1px solid rgba(0, 163, 42, 0.3)',
-            padding: '4px 11px',
-            borderRadius: '4px',
-            fontSize: '0.74rem',
-            color: '#68de7c',
+            gap: '6px',
+            backgroundColor: 'var(--status-success-bg)',
+            border: '1px solid var(--status-success-border)',
+            padding: '3px 9px',
+            borderRadius: 'var(--radius-xs)',
+            fontSize: '0.72rem',
+            color: 'var(--status-success-text)',
             fontWeight: 600,
-            letterSpacing: '0.02em',
           }}
+          title="Telemetry Polling Interval"
         >
-          <span className="pulse-dot" style={{ backgroundColor: '#68de7c' }} />
+          <span className="pulse-dot animate-pulse" style={{ backgroundColor: 'var(--status-success-text)' }} />
           <span>Polling: {pollingDisplay}</span>
         </div>
-
-
 
         {/* Real-time Clock */}
         <div
           className="mono-num"
           style={{
-            fontSize: '0.80rem',
-            color: '#c3c4c7',
-            fontWeight: 500,
-            minWidth: '85px',
+            fontSize: '0.78rem',
+            color: 'var(--text-secondary)',
+            fontWeight: 550,
+            minWidth: '80px',
             textAlign: 'right',
+            letterSpacing: '0.02em',
           }}
+          title="Current System Time"
         >
           {currentTime}
         </div>
@@ -134,35 +140,35 @@ export const Header = ({ activeTab }) => {
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
-            padding: '5px 10px',
-            borderRadius: '4px',
-            backgroundColor: 'rgba(255, 255, 255, 0.08)',
-            border: '1px solid rgba(255, 255, 255, 0.15)',
-            color: '#c3c4c7',
+            padding: '4px 10px',
+            borderRadius: 'var(--radius-sm)',
+            backgroundColor: 'var(--bg-surface-secondary)',
+            border: '1px solid var(--border-default)',
+            color: 'var(--text-secondary)',
             fontSize: '0.74rem',
-            fontWeight: 500,
+            fontWeight: 600,
             cursor: 'pointer',
-            transition: 'all 0.18s ease',
+            transition: 'all 0.15s ease',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = '#72aee6';
-            e.currentTarget.style.color = '#ffffff';
+            e.currentTarget.style.borderColor = 'var(--brand-primary)';
+            e.currentTarget.style.color = 'var(--text-primary)';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
-            e.currentTarget.style.color = '#c3c4c7';
+            e.currentTarget.style.borderColor = 'var(--border-default)';
+            e.currentTarget.style.color = 'var(--text-secondary)';
           }}
-          title={`Switch to ${theme === 'dark' ? 'Light' : 'SCADA Dark'} mode`}
+          title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`}
           aria-label="Toggle Theme"
         >
           {theme === 'dark' ? (
             <>
-              <Sun size={14} color="#f59e0b" />
+              <Sun size={13} color="#F2C66D" />
               <span>Light</span>
             </>
           ) : (
             <>
-              <Moon size={14} color="#0284c7" />
+              <Moon size={13} color="#475569" />
               <span>Dark</span>
             </>
           )}

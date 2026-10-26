@@ -1,138 +1,233 @@
 :root,
 [data-theme="light"] {
-  --font-heading: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-heading: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, Monaco, monospace;
 
   /* ═══════════════════════════════════════════════════════════════════
-     PROFESSIONAL WORDPRESS ADMIN STYLE — ENTERPRISE DASHBOARD THEME
-     Charcoal sidebar, crisp white cards, flat borders, clean blue accents
+     ENTERPRISE LIGHT THEME (Clean, High-Legibility Industrial Standard)
+     Schneider EcoStruxure & Siemens MindSphere inspired palette
      ═══════════════════════════════════════════════════════════════════ */
-  --bg-app: #f0f0f1;
-  --bg-sidebar: #1d2327;
-  --bg-sidebar-hover: #2c3338;
-  --bg-header: #1d2327;
-  --bg-card: #ffffff;
-  --bg-card-secondary: #f9f9f9;
-  --bg-card-hover: #f6f7f7;
-  --bg-card-border: #c3c4c7;
-  --bg-input: #ffffff;
-  --bg-input-focus: #ffffff;
-  --bg-table-header: #f9f9f9;
-  --bg-table-row: #ffffff;
-  --bg-table-row-hover: #f6f7f7;
-  --bg-table-border: #e5e5e5;
+  --bg-app: #F3F5F7;
+  --bg-surface: #FFFFFF;
+  --bg-surface-secondary: #F8FAFC;
+  --bg-surface-tertiary: #EEF2F6;
+  --bg-card: #FFFFFF;
+  --bg-card-secondary: #F8FAFC;
+  --bg-card-hover: #F1F5F9;
+  --bg-input: #FFFFFF;
+  --bg-input-focus: #FFFFFF;
 
-  /* Primary Accent: WordPress Admin Blue */
-  --primary-cyan: #2271b1;
-  --primary-cyan-deep: #135e96;
-  --primary-cyan-gradient: linear-gradient(135deg, #2271b1 0%, #135e96 100%);
-  --primary-cyan-glow: rgba(34, 113, 177, 0.12);
-  --primary-cyan-border: rgba(34, 113, 177, 0.3);
+  /* Sidebar Tokens (Dark Slate Architectural Anchor) */
+  --bg-sidebar: #17242E;
+  --bg-sidebar-secondary: #22323E;
+  --bg-sidebar-hover: #1F2E3A;
+  --text-sidebar: #E8EEF2;
+  --text-sidebar-muted: #A8B5BF;
+  --text-sidebar-dim: #718290;
+  --sidebar-active-bg: #29443D;
+  --sidebar-active-indicator: #36A879;
+  --border-sidebar: #22323E;
 
-  /* Status Accents */
-  --accent-emerald: #00a32a;
-  --accent-emerald-deep: #008a20;
-  --accent-emerald-glow: rgba(0, 163, 42, 0.1);
-  --accent-emerald-border: rgba(0, 163, 42, 0.25);
+  /* Header Tokens */
+  --bg-header: #FFFFFF;
+  --border-header: #D9E1E8;
 
-  --accent-amber: #dba617;
-  --accent-amber-glow: rgba(219, 166, 23, 0.12);
-  --accent-amber-border: rgba(219, 166, 23, 0.3);
-
-  --accent-rose: #d63638;
-  --accent-rose-glow: rgba(214, 54, 56, 0.1);
-  --accent-rose-border: rgba(214, 54, 56, 0.25);
-
-  --accent-purple: #7c3aed;
-  --accent-purple-glow: rgba(124, 58, 237, 0.12);
-
-  /* Typography Palette */
-  --text-primary: #1d2327;
-  --text-secondary: #50575e;
-  --text-muted: #787c82;
-  --text-dim: #a7aaad;
+  /* Typography Colors */
+  --text-primary: #17212B;
+  --text-secondary: #526170;
+  --text-muted: #718096;
+  --text-dim: #94A3B8;
 
   /* Borders & Dividers */
-  --border-subtle: #dcdcde;
-  --border-medium: #c3c4c7;
-  --border-focus: #2271b1;
-  --border-active: #2271b1;
+  --border-default: #D9E1E8;
+  --border-subtle: #E8EDF2;
+  --border-medium: #D0DBE5;
+  --border-focus: #16805D;
 
-  /* Radii */
+  /* Industrial Brand Green Tokens */
+  --brand-primary: #16805D;
+  --brand-primary-hover: #116B4D;
+  --brand-primary-deep: #0D5D45;
+  --brand-surface: #E8F5EE;
+  --brand-surface-hover: #D7EDE1;
+  --brand-border: #BCE3CE;
+  --brand-secondary-slate: #475569;
+
+  /* Semantic Status Tokens - Light */
+  --status-success-text: #146C43;
+  --status-success-bg: #E7F5EC;
+  --status-success-border: #B8E2C8;
+
+  --status-warning-text: #925C0A;
+  --status-warning-bg: #FFF4D6;
+  --status-warning-border: #F0D58A;
+
+  --status-danger-text: #B42332;
+  --status-danger-bg: #FDEBEC;
+  --status-danger-border: #F2C2C6;
+
+  --status-info-text: #245BA8;
+  --status-info-bg: #EAF2FF;
+  --status-info-border: #C7D9F7;
+
+  /* Legacy & Utility Aliases (Preserves component compatibility) */
+  --primary-cyan: #16805D;
+  --primary-cyan-deep: #0D5D45;
+  --primary-cyan-glow: rgba(22, 128, 93, 0.12);
+  --primary-cyan-border: rgba(22, 128, 93, 0.3);
+
+  --accent-emerald: #146C43;
+  --accent-emerald-deep: #0D5D45;
+  --accent-emerald-glow: rgba(20, 108, 67, 0.12);
+  --accent-emerald-border: #B8E2C8;
+
+  --accent-amber: #925C0A;
+  --accent-amber-glow: rgba(146, 92, 10, 0.12);
+  --accent-amber-border: #F0D58A;
+
+  --accent-rose: #B42332;
+  --accent-rose-glow: rgba(180, 35, 50, 0.1);
+  --accent-rose-border: #F2C2C6;
+
+  --accent-purple: #5B21B6;
+  --accent-purple-glow: rgba(91, 33, 182, 0.1);
+
+  --bg-table-header: #F8FAFC;
+  --bg-table-row: #FFFFFF;
+  --bg-table-row-hover: #F1F5F9;
+  --bg-table-border: #E8EDF2;
+
+  /* Elevation Shadows - Crisp Industrial Border Priority */
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow-card: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-hover: 0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -1px rgba(15, 23, 42, 0.04);
+  --shadow-modal: 0 20px 25px -5px rgba(15, 23, 42, 0.15), 0 10px 10px -5px rgba(15, 23, 42, 0.08);
+
+  /* Radii - Subtle & Precise (5-8px) */
+  --radius-xs: 3px;
   --radius-sm: 4px;
-  --radius-md: 4px;
-  --radius-lg: 4px;
-  --radius-xl: 6px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 10px;
 
-  /* Shadows & Elevation — Flat WP Admin style */
-  --shadow-card: 0 1px 1px rgba(0, 0, 0, 0.04);
-  --shadow-hover: 0 3px 8px rgba(0, 0, 0, 0.08);
-  --shadow-glow: 0 2px 8px rgba(34, 113, 177, 0.2);
-
-  /* Scrollbar */
-  --scrollbar-track: #f0f0f1;
-  --scrollbar-thumb: #c3c4c7;
-  --scrollbar-thumb-hover: #a7aaad;
+  /* Scrollbars */
+  --scrollbar-track: #F3F5F7;
+  --scrollbar-thumb: #CBD5E1;
+  --scrollbar-thumb-hover: #94A3B8;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   SCADA DARK THEME (Secondary Option)
+   SCADA DARK THEME (Professional Mission-Critical Control Room)
+   High contrast, deep navy surfaces, balanced eye-comfort illumination
    ═══════════════════════════════════════════════════════════════════ */
 [data-theme="dark"] {
-  --bg-app: #090e1a;
-  --bg-sidebar: #0c1322;
-  --bg-sidebar-hover: #15223c;
-  --bg-header: #0c1322;
-  --bg-card: #111a2e;
-  --bg-card-secondary: #0d1527;
-  --bg-card-hover: #162440;
-  --bg-card-border: #1e2d4a;
-  --bg-input: #090f1d;
-  --bg-input-focus: #0c1527;
-  --bg-table-header: #0b1222;
-  --bg-table-row: #111a2e;
-  --bg-table-row-hover: #15233e;
-  --bg-table-border: #1a2944;
+  --bg-app: #0E141A;
+  --bg-surface: #151D25;
+  --bg-surface-elevated: #1B2630;
+  --bg-surface-secondary: #202D38;
+  --bg-surface-tertiary: #273644;
+  --bg-card: #151D25;
+  --bg-card-secondary: #1B2630;
+  --bg-card-hover: #1E2B38;
+  --bg-input: #111A22;
+  --bg-input-focus: #151F2A;
 
-  --primary-cyan: #38bdf8;
-  --primary-cyan-deep: #0284c7;
-  --primary-cyan-gradient: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
-  --primary-cyan-glow: rgba(56, 189, 248, 0.2);
-  --primary-cyan-border: rgba(56, 189, 248, 0.35);
+  /* Sidebar Tokens - Dark */
+  --bg-sidebar: #10171F;
+  --bg-sidebar-secondary: #17222C;
+  --bg-sidebar-hover: #1B2835;
+  --text-sidebar: #E6EDF3;
+  --text-sidebar-muted: #81909D;
+  --text-sidebar-dim: #546472;
+  --sidebar-active-bg: #1B3B2E;
+  --sidebar-active-indicator: #42B883;
+  --border-sidebar: #1D2A37;
 
-  --accent-emerald: #10b981;
-  --accent-emerald-deep: #059669;
-  --accent-emerald-glow: rgba(16, 185, 129, 0.2);
-  --accent-emerald-border: rgba(16, 185, 129, 0.35);
+  /* Header Tokens - Dark */
+  --bg-header: #151D25;
+  --border-header: #273540;
 
-  --accent-amber: #f59e0b;
-  --accent-amber-glow: rgba(245, 158, 11, 0.2);
-  --accent-amber-border: rgba(245, 158, 11, 0.35);
+  /* Typography Colors - Dark */
+  --text-primary: #E6EDF3;
+  --text-secondary: #A8B5C1;
+  --text-muted: #81909D;
+  --text-dim: #5A6977;
 
-  --accent-rose: #f43f5e;
-  --accent-rose-glow: rgba(244, 63, 94, 0.2);
-  --accent-rose-border: rgba(244, 63, 94, 0.35);
+  /* Borders & Dividers - Dark */
+  --border-default: #34424F;
+  --border-subtle: #273540;
+  --border-medium: #3A4C5D;
+  --border-focus: #42B883;
 
-  --text-primary: #f8fafc;
-  --text-secondary: #cbd5e1;
-  --text-muted: #94a3b8;
-  --text-dim: #64748b;
+  /* Industrial Brand Green Tokens - Dark */
+  --brand-primary: #42B883;
+  --brand-primary-hover: #58C995;
+  --brand-primary-deep: #2EA26F;
+  --brand-surface: #18382D;
+  --brand-surface-hover: #214C3D;
+  --brand-border: #2D6A4B;
+  --brand-secondary-slate: #94A3B8;
 
-  --border-subtle: #1e2d4a;
-  --border-medium: #2a3c5e;
-  --border-focus: #0284c7;
-  --border-active: #38bdf8;
+  /* Semantic Status Tokens - Dark */
+  --status-success-text: #70D6A0;
+  --status-success-bg: #18382B;
+  --status-success-border: #2D6A4B;
 
-  --shadow-card: 0 4px 20px -2px rgba(0, 0, 0, 0.45), 0 2px 6px -1px rgba(0, 0, 0, 0.3);
-  --shadow-hover: 0 12px 30px -4px rgba(0, 0, 0, 0.6), 0 0 18px rgba(56, 189, 248, 0.15);
-  --shadow-glow: 0 0 24px rgba(2, 132, 199, 0.35);
+  --status-warning-text: #F2C66D;
+  --status-warning-bg: #3A2E19;
+  --status-warning-border: #725A2D;
 
-  --scrollbar-track: #090e1a;
-  --scrollbar-thumb: #1e2d4a;
-  --scrollbar-thumb-hover: #2a3c5e;
+  --status-danger-text: #FF929B;
+  --status-danger-bg: #401F25;
+  --status-danger-border: #75343D;
+
+  --status-info-text: #8DBAFF;
+  --status-info-bg: #1B2E49;
+  --status-info-border: #31517D;
+
+  /* Legacy & Utility Aliases - Dark */
+  --primary-cyan: #42B883;
+  --primary-cyan-deep: #2EA26F;
+  --primary-cyan-glow: rgba(66, 184, 131, 0.18);
+  --primary-cyan-border: rgba(66, 184, 131, 0.35);
+
+  --accent-emerald: #70D6A0;
+  --accent-emerald-deep: #42B883;
+  --accent-emerald-glow: rgba(112, 214, 160, 0.15);
+  --accent-emerald-border: #2D6A4B;
+
+  --accent-amber: #F2C66D;
+  --accent-amber-glow: rgba(242, 198, 109, 0.15);
+  --accent-amber-border: #725A2D;
+
+  --accent-rose: #FF929B;
+  --accent-rose-glow: rgba(255, 146, 155, 0.15);
+  --accent-rose-border: #75343D;
+
+  --accent-purple: #C084FC;
+  --accent-purple-glow: rgba(192, 132, 252, 0.15);
+
+  --bg-table-header: #1B2630;
+  --bg-table-row: #151D25;
+  --bg-table-row-hover: #1E2B38;
+  --bg-table-border: #273540;
+
+  /* Elevation Shadows - Dark */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-card: 0 2px 4px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.25);
+  --shadow-hover: 0 6px 12px rgba(0, 0, 0, 0.5);
+  --shadow-modal: 0 24px 38px rgba(0, 0, 0, 0.65), 0 9px 12px rgba(0, 0, 0, 0.45);
+
+  /* Scrollbars - Dark */
+  --scrollbar-track: #0E141A;
+  --scrollbar-thumb: #273540;
+  --scrollbar-thumb-hover: #3A4C5D;
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+   GLOBAL RESETS & TYPOGRAPHY
+   ═══════════════════════════════════════════════════════════════════ */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -142,135 +237,425 @@
 body {
   font-family: var(--font-body);
   background-color: var(--bg-app);
-  background-image: 
-    radial-gradient(circle at 15% 15%, rgba(2, 132, 199, 0.07) 0%, transparent 45%),
-    radial-gradient(circle at 85% 85%, rgba(16, 185, 129, 0.05) 0%, transparent 45%),
-    linear-gradient(180deg, var(--bg-app) 0%, var(--bg-app) 100%);
   color: var(--text-primary);
   min-height: 100vh;
   overflow-x: hidden;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  transition: background-color 0.25s ease, color 0.25s ease;
+  transition: background-color 0.18s ease, color 0.18s ease;
 }
 
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.015em;
   color: var(--text-primary);
+  font-weight: 600;
 }
 
 button, input, select, textarea {
   font-family: inherit;
+  font-size: 0.875rem;
+}
+
+/* Monospace Values */
+.mono-num, .font-mono {
+  font-family: var(--font-mono);
+  font-feature-settings: 'tnum' on, 'zero' on;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   TABLE TYPOGRAPHY: NORMAL FONT WEIGHT & NORMAL COLOR
+   REUSABLE ENTERPRISE UI PATTERNS
    ═══════════════════════════════════════════════════════════════════ */
-table {
-  font-weight: 400;
+
+/* Panel & Card Containers */
+.panel-card,
+.glass-panel {
+  background-color: var(--bg-card) !important;
+  border: 1px solid var(--border-default) !important;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  color: var(--text-primary);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.panel-card-hover:hover {
+  border-color: var(--border-medium) !important;
+  box-shadow: var(--shadow-hover);
+}
+
+/* Page Header Structure */
+.page-header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.page-header-title {
+  font-size: 1.35rem;
+  font-weight: 650;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.page-header-desc {
+  font-size: 0.825rem;
+  color: var(--text-muted);
+  margin-top: 3px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   ENTERPRISE DATA TABLE SYSTEM
+   ═══════════════════════════════════════════════════════════════════ */
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  background-color: var(--bg-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.enterprise-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.8125rem; /* ~13px */
   color: var(--text-primary);
 }
 
-table th {
-  font-weight: 500;
+.enterprise-table th {
+  font-weight: 600;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   color: var(--text-secondary);
+  background-color: var(--bg-table-header);
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-default);
   position: sticky;
   top: 0;
-  background-color: var(--bg-table-header);
   z-index: 2;
+  white-space: nowrap;
 }
 
-table td {
-  font-weight: 400;
+.enterprise-table td {
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  vertical-align: middle;
+}
+
+.enterprise-table tbody tr {
+  transition: background-color 0.12s ease;
+}
+
+.enterprise-table tbody tr:hover {
+  background-color: var(--bg-table-row-hover);
+}
+
+.enterprise-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Table Toolbar */
+.table-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  background-color: var(--bg-surface);
+  border-bottom: 1px solid var(--border-default);
+  flex-wrap: wrap;
+}
+
+.search-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 260px;
+}
+
+.search-input-wrapper svg {
+  position: absolute;
+  left: 10px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.search-input-wrapper input {
+  width: 100%;
+  height: 34px;
+  padding: 0 12px 0 32px;
+  font-size: 0.8125rem;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.search-input-wrapper input:focus {
+  border-color: var(--brand-primary);
+  outline: none;
+  box-shadow: 0 0 0 2px var(--primary-cyan-glow);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   BUTTONS & CONTROLS
+   ═══════════════════════════════════════════════════════════════════ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 13px;
+  font-size: 0.8125rem;
+  font-weight: 550;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.btn-primary {
+  background-color: var(--brand-primary);
+  color: #FFFFFF;
+  border-color: var(--brand-primary);
+}
+
+.btn-primary:hover {
+  background-color: var(--brand-primary-hover);
+  border-color: var(--brand-primary-hover);
+}
+
+.btn-secondary {
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
+  border-color: var(--border-default);
+}
+
+.btn-secondary:hover {
+  background-color: var(--bg-surface-secondary);
+  border-color: var(--border-medium);
+}
+
+.btn-danger {
+  background-color: var(--status-danger-bg);
+  color: var(--status-danger-text);
+  border-color: var(--status-danger-border);
+}
+
+.btn-danger:hover {
+  background-color: var(--status-danger-text);
+  color: #FFFFFF;
+}
+
+.btn-icon {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: transparent;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-icon:hover {
+  background-color: var(--bg-card-hover);
+  border-color: var(--border-default);
   color: var(--text-primary);
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   CUSTOM SCADA SCROLLBAR
+   FORM FIELDS & INPUTS
+   ═══════════════════════════════════════════════════════════════════ */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.form-label {
+  font-size: 0.775rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.01em;
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+  width: 100%;
+  height: 36px;
+  padding: 0 11px;
+  font-size: 0.8125rem;
+  background-color: var(--bg-input);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.form-textarea {
+  height: auto;
+  min-height: 72px;
+  padding: 8px 11px;
+  resize: vertical;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  border-color: var(--brand-primary);
+  outline: none;
+  box-shadow: 0 0 0 2px var(--primary-cyan-glow);
+}
+
+.form-helper {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   STATUS BADGES
+   ═══════════════════════════════════════════════════════════════════ */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2.5px 8px;
+  border-radius: var(--radius-xs);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.status-badge-online,
+.status-badge-active,
+.status-badge-success {
+  background-color: var(--status-success-bg);
+  color: var(--status-success-text);
+  border: 1px solid var(--status-success-border);
+}
+
+.status-badge-warning,
+.status-badge-intermittent {
+  background-color: var(--status-warning-bg);
+  color: var(--status-warning-text);
+  border: 1px solid var(--status-warning-border);
+}
+
+.status-badge-offline,
+.status-badge-danger {
+  background-color: var(--status-danger-bg);
+  color: var(--status-danger-text);
+  border: 1px solid var(--status-danger-border);
+}
+
+.status-badge-info {
+  background-color: var(--status-info-bg);
+  color: var(--status-info-text);
+  border: 1px solid var(--status-info-border);
+}
+
+.scada-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2.5px 8px;
+  border-radius: var(--radius-xs);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+/* Status Pulse Dot */
+.pulse-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+.animate-pulse {
+  animation: pulseGlow 2s infinite ease-in-out;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.18s ease-out forwards;
+}
+
+/* SCADA Diagnostic Terminal */
+.code-terminal {
+  background-color: #0B1015;
+  color: #8CE0B0;
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  line-height: 1.55;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid #1E2B38;
+  overflow-y: auto;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   CUSTOM SCROLLBAR
    ═══════════════════════════════════════════════════════════════════ */
 ::-webkit-scrollbar {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
   background: var(--scrollbar-track);
 }
 ::-webkit-scrollbar-thumb {
   background: var(--scrollbar-thumb);
-  border-radius: 4px;
+  border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--scrollbar-thumb-hover);
 }
 
-/* ═══════════════════════════════════════════════════════════════════
-   UTILITY & COMPONENT CLASSES
-   ═══════════════════════════════════════════════════════════════════ */
-.glass-panel {
-  background: var(--bg-card) !important;
-  border: 1px solid var(--border-subtle) !important;
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
-  color: var(--text-primary);
-  transition: all 0.2s ease;
+/* Accessibility Focus Visible */
+*:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 1px;
 }
 
-.scada-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 10px;
-  border-radius: 20px;
-  font-size: 0.74rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  white-space: nowrap;
-}
-
-/* Glow and Keyframes */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes pulseGlow {
-  0%, 100% { opacity: 0.8; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.15); }
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.25s ease-out forwards;
-}
-
-.pulse-dot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  animation: pulseGlow 2s infinite ease-in-out;
-}
-
-/* SCADA Monospace Numbers */
-.mono-num {
-  font-family: var(--font-mono);
-  font-feature-settings: 'tnum' on, 'zero' on;
-}
-
-/* Form Input & Select Styling */
-input::placeholder, textarea::placeholder {
-  color: var(--text-dim);
-}
-
-select option {
-  background-color: var(--bg-card);
-  color: var(--text-primary);
-}
-
-/* Form Input Focus Utility */
-input:focus, select:focus, textarea:focus {
-  border-color: var(--primary-cyan) !important;
-  box-shadow: 0 0 0 2px var(--primary-cyan-glow) !important;
-  outline: none;
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

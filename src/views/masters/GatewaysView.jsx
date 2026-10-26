@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   Plus,
   Search,
@@ -24,7 +24,10 @@ import {
   HardDrive,
   MoreVertical,
   Link2,
-  ShieldCheck
+  ShieldCheck,
+  Wifi,
+  WifiOff,
+  Loader2
 } from 'lucide-react';
 import { useEnergyData } from '../../context/EnergyDataContext';
 import { Badge } from '../../components/common/Badge';
@@ -51,6 +54,33 @@ export const GatewaysView = () => {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGatewayId, setSelectedGatewayId] = useState(gateways[0]?.Gateway_id || '');
+
+  // Communication test state: { [Meter_id]: 'testing' | 'online' | 'offline' }
+  const [commTestState, setCommTestState] = useState({});
+
+  const handleTestComm = useCallback((mtr) => {
+    setCommTestState(prev => ({ ...prev, [mtr.Meter_id]: 'testing' }));
+
+    const delay = 1400;
+    setTimeout(() => {
+      // Check if communication passes: if meter is offline/inactive, it fails
+      const result = (mtr.status === 'Active') ? 'online' : 'offline';
+      setCommTestState(prev => ({ ...prev, [mtr.Meter_id]: result }));
+
+      // If data doesn't pass, mark meter offline in store
+      if (result === 'offline') {
+        updateMeter(mtr.Meter_id, { status: 'Offline' });
+      }
+
+      setTimeout(() => {
+        setCommTestState(prev => {
+          const next = { ...prev };
+          delete next[mtr.Meter_id];
+          return next;
+        });
+      }, 6000);
+    }, delay);
+  }, [updateMeter]);
 
   // Modal States
   const [isGatewayModalOpen, setIsGatewayModalOpen] = useState(false);
@@ -741,6 +771,35 @@ export const GatewaysView = () => {
                                   </div>
 
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <button
+                                      onClick={() => handleTestComm(mtr)}
+                                      disabled={commTestState[mtr.Meter_id] === 'testing'}
+                                      style={{
+                                        border: commTestState[mtr.Meter_id] === 'offline' ? '1px solid #fca5a5' : '1px solid #bae6fd',
+                                        backgroundColor: commTestState[mtr.Meter_id] === 'offline' ? '#fff1f2' : commTestState[mtr.Meter_id] === 'online' ? '#f0fdf4' : '#f0f9ff',
+                                        color: commTestState[mtr.Meter_id] === 'offline' ? '#dc2626' : commTestState[mtr.Meter_id] === 'online' ? '#16a34a' : '#0284c7',
+                                        padding: '3px 8px',
+                                        borderRadius: '4px',
+                                        fontSize: '0.7rem',
+                                        fontWeight: 700,
+                                        cursor: 'pointer',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '4px'
+                                      }}
+                                      title="Test communication from meter to gateway"
+                                    >
+                                      {commTestState[mtr.Meter_id] === 'testing' ? (
+                                        <Loader2 size={11} className="spin-animate" />
+                                      ) : commTestState[mtr.Meter_id] === 'online' ? (
+                                        <Wifi size={11} />
+                                      ) : commTestState[mtr.Meter_id] === 'offline' ? (
+                                        <WifiOff size={11} />
+                                      ) : (
+                                        <Zap size={11} />
+                                      )}
+                                      {commTestState[mtr.Meter_id] === 'testing' ? 'Testing...' : commTestState[mtr.Meter_id] === 'online' ? 'Online' : commTestState[mtr.Meter_id] === 'offline' ? 'Offline' : 'Test Comm'}
+                                    </button>
                                     <button onClick={() => handleOpenEditMeter(mtr)} style={miniIconBtnStyle} title="Edit Meter">
                                       <Edit2 size={11} />
                                     </button>

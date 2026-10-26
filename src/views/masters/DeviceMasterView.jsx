@@ -21,10 +21,34 @@ const getDeviceStatus = (gw) => {
 
 const statusStyle = (status) => {
   switch (status) {
-    case 'Online': return { bg: 'rgba(16, 185, 129, 0.15)', color: '#34d399', border: 'rgba(16, 185, 129, 0.35)', dot: '#10b981' };
-    case 'Intermittent': return { bg: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24', border: 'rgba(245, 158, 11, 0.35)', dot: '#f59e0b' };
-    case 'Offline': return { bg: 'rgba(244, 63, 94, 0.15)', color: '#fb7185', border: 'rgba(244, 63, 94, 0.35)', dot: '#f43f5e' };
-    default: return { bg: 'rgba(148, 163, 184, 0.12)', color: '#94a3b8', border: 'rgba(148, 163, 184, 0.25)', dot: '#64748b' };
+    case 'Online':
+      return {
+        bg: 'var(--status-success-bg)',
+        color: 'var(--status-success-text)',
+        border: 'var(--status-success-border)',
+        dot: 'var(--status-success-text)',
+      };
+    case 'Intermittent':
+      return {
+        bg: 'var(--status-warning-bg)',
+        color: 'var(--status-warning-text)',
+        border: 'var(--status-warning-border)',
+        dot: 'var(--status-warning-text)',
+      };
+    case 'Offline':
+      return {
+        bg: 'var(--status-danger-bg)',
+        color: 'var(--status-danger-text)',
+        border: 'var(--status-danger-border)',
+        dot: 'var(--status-danger-text)',
+      };
+    default:
+      return {
+        bg: 'var(--status-info-bg)',
+        color: 'var(--status-info-text)',
+        border: 'var(--status-info-border)',
+        dot: 'var(--status-info-text)',
+      };
   }
 };
 
@@ -114,14 +138,18 @@ export const DeviceMasterView = () => {
   const [isTestModalOpen, setIsTestModalOpen] = useState(false);
   const [testingMeter, setTestingMeter] = useState(null);
   const [testingChannel, setTestingChannel] = useState(null);
+  const [testMode, setTestMode] = useState('auto'); // 'auto' | 'pass' | 'fail'
   const [testStatus, setTestStatus] = useState('idle'); // 'idle' | 'testing' | 'success' | 'failure'
   const [testProgress, setTestProgress] = useState(0);
   const [testLogs, setTestLogs] = useState([]);
   const [testSummary, setTestSummary] = useState(null);
+  const [quickTestingMeterId, setQuickTestingMeterId] = useState(null);
 
   const openTestMeter = (meter, channel) => {
     setTestingMeter(meter);
     setTestingChannel(channel);
+    // If meter is already offline or inactive, default to auto (which will detect fail) or let user choose
+    setTestMode(meter.status === 'Offline' || meter.status === 'Inactive' ? 'fail' : 'auto');
     setTestStatus('idle');
     setTestProgress(0);
     setTestLogs([]);
@@ -129,8 +157,9 @@ export const DeviceMasterView = () => {
     setIsTestModalOpen(true);
   };
 
-  const runCommunicationTest = () => {
+  const runCommunicationTest = (overrideMode) => {
     if (!testingMeter) return;
+    const activeMode = overrideMode || testMode;
     setTestStatus('testing');
     setTestProgress(10);
     setTestLogs([
@@ -142,47 +171,56 @@ export const DeviceMasterView = () => {
       setTestProgress(35);
       setTestLogs(prev => [
         ...prev,
-        { time: new Date().toLocaleTimeString(), text: `Socket established via Channel ${testingChannel?.Channel_name || 'Loop'} (Baud: ${testingMeter.baud_rate || '9600'}, Parity: ${testingMeter.parity_bit || 'None'}, Stop: ${testingMeter.stop_bit || '1'}).`, type: 'info' }
+        { time: new Date().toLocaleTimeString(), text: `Socket established via Channel ${testingChannel?.Channel_name || 'Loop'} (Baud: ${testingMeter.baud_rate || '9600'}, Parity: ${testingMeter.parity_bit || 'None'}, Stop: ${testingMeter.stop_bit || '1'}, Port: ${testingChannel?.port || 'COM1'}).`, type: 'info' }
       ]);
-    }, 600);
+    }, 500);
 
     // Step 2: Send Modbus query frame
     setTimeout(() => {
       setTestProgress(65);
       setTestLogs(prev => [
         ...prev,
-        { time: new Date().toLocaleTimeString(), text: `TX Frame [0x${Number(testingMeter.slave_id || 1).toString(16).padStart(2, '0')} 03 9C 41 00 02 CRC]: Reading holding register 40101 (Power Active Total)...`, type: 'info' }
+        { time: new Date().toLocaleTimeString(), text: `TX Frame [0x${Number(testingMeter.slave_id || 1).toString(16).padStart(2, '0')} 03 9C 41 00 02 CRC]: Transmitting read request to register 40101 (Power Active Total)...`, type: 'info' }
       ]);
-    }, 1200);
+    }, 1000);
 
-    // Step 3: Response frame & evaluate
+    // Step 3: Response frame & evaluate whether data is going from meter to gateway
     setTimeout(() => {
-      // If meter is inactive, simulate error or check status
-      const isMeterInactive = testingMeter.status === 'Inactive';
-      if (isMeterInactive) {
+      // Determine if data passes or fails
+      const shouldFail = activeMode === 'fail' ||
+        (activeMode === 'auto' && (testingMeter.status === 'Inactive' || testingMeter.status === 'Offline' || testingChannel?.status === 'Inactive'));
+
+      if (shouldFail) {
+        // DATA DOES NOT GET PASSED -> Mark the meter OFFLINE
         setTestStatus('failure');
         setTestProgress(100);
         setTestLogs(prev => [
           ...prev,
-          { time: new Date().toLocaleTimeString(), text: `RX Timeout Error: No response from Slave #${testingMeter.slave_id}. Meter is currently Inactive or powered down.`, type: 'error' },
-          { time: new Date().toLocaleTimeString(), text: `Recommendation: Check physical wiring, set Meter Status to "Active", and verify RS485 termination resistors.`, type: 'warning' }
+          { time: new Date().toLocaleTimeString(), text: `RX Timeout Error: No data response received from Slave #${testingMeter.slave_id}. Packets failed to reach Gateway.`, type: 'error' },
+          { time: new Date().toLocaleTimeString(), text: `[SYSTEM ACTION]: Data does not pass from meter to gateway. Meter ${testingMeter.Meter_id} marked as OFFLINE.`, type: 'warning' }
         ]);
         setTestSummary({
           success: false,
-          latencyMs: 1000,
+          latencyMs: 1500,
           packetsSent: 3,
           packetsReceived: 0,
           packetLoss: '100%',
-          errorReason: 'Slave Unresponsive (Meter status is Inactive / Offline)'
+          errorReason: 'No data response from meter to gateway (Timeout / CRC error). Meter marked OFFLINE.'
         });
+
+        // Update meter status in database/state to 'Offline'
+        updateMeter(testingMeter.Meter_id, { status: 'Offline' });
+        setTestingMeter(prev => prev ? { ...prev, status: 'Offline' } : null);
+        setSuccessMsg(`Communication Failed: Data does not pass from meter ${testingMeter.Meter_name} (${testingMeter.Meter_id}) to gateway. Marked as OFFLINE.`);
       } else {
+        // DATA PASSES SUCCESSFULLY -> Mark the meter ACTIVE (ONLINE)
         setTestStatus('success');
         setTestProgress(100);
-        const simLatency = Math.floor(45 + Math.random() * 35);
+        const simLatency = Math.floor(40 + Math.random() * 25);
         setTestLogs(prev => [
           ...prev,
           { time: new Date().toLocaleTimeString(), text: `RX Frame [0x${Number(testingMeter.slave_id || 1).toString(16).padStart(2, '0')} 03 04 43 4C 00 00 CRC]: Received valid 32-bit float response in ${simLatency}ms.`, type: 'success' },
-          { time: new Date().toLocaleTimeString(), text: `Communication verified! Register 40101 decoded: 412.80 W (Multiplier: 1.0, Unit: W). Modbus CRC valid.`, type: 'success' }
+          { time: new Date().toLocaleTimeString(), text: `[SYSTEM ACTION]: Data successfully received from Meter to Gateway. Meter verified ACTIVE / ONLINE.`, type: 'success' }
         ]);
         setTestSummary({
           success: true,
@@ -193,8 +231,32 @@ export const DeviceMasterView = () => {
           voltage: '230.4 V',
           sampleValue: '412.80 W'
         });
+
+        // Update meter status in database/state to 'Active'
+        updateMeter(testingMeter.Meter_id, { status: 'Active' });
+        setTestingMeter(prev => prev ? { ...prev, status: 'Active' } : null);
+        setSuccessMsg(`Communication Verified: Data successfully going from ${testingMeter.Meter_name} (${testingMeter.Meter_id}) to gateway. Marked as ACTIVE.`);
       }
-    }, 2000);
+    }, 1700);
+  };
+
+  // Quick inline test directly from card row
+  const handleQuickTest = (meter, channel) => {
+    setQuickTestingMeterId(meter.Meter_id);
+    setTimeout(() => {
+      // Toggle or evaluate based on current status
+      const willPass = meter.status !== 'Offline' && meter.status !== 'Inactive';
+      if (!willPass) {
+        // Test fails -> remains/becomes Offline
+        updateMeter(meter.Meter_id, { status: 'Offline' });
+        setSuccessMsg(`[Data Test]: Meter ${meter.Meter_name} (${meter.Meter_id}) data packet failed to reach gateway. Marked OFFLINE.`);
+      } else {
+        // If it was Active, simulate a live packet verify (or if user wants to test pass)
+        updateMeter(meter.Meter_id, { status: 'Active' });
+        setSuccessMsg(`[Data Test]: Meter ${meter.Meter_name} (${meter.Meter_id}) is communicating with Gateway (45ms). Status: ACTIVE.`);
+      }
+      setQuickTestingMeterId(null);
+    }, 1100);
   };
 
   // Channel modal state
@@ -529,6 +591,419 @@ export const DeviceMasterView = () => {
       setIsChannelModalOpen(false);
       setTimeout(() => setSuccessMsg(''), 4000);
     }
+  };
+
+  // ── Meter Communication Diagnostic Test Modal Component ──
+  const renderTestModal = () => {
+    const activeGateway = selectedGateway || (testingChannel ? gateways.find(g => g.Gateway_id === testingChannel.Gateway_id) : gateways[0]);
+
+    return (
+      <Modal
+        isOpen={isTestModalOpen}
+        onClose={() => setIsTestModalOpen(false)}
+        title={`Meter Communication Diagnostic Test`}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* Header context card */}
+          <div style={{
+            padding: '12px 14px',
+            backgroundColor: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            borderRadius: '10px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '10px'
+          }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0f172a' }}>
+                  {testingMeter?.Meter_name || 'Selected Meter'}
+                </span>
+                <span style={{
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                  backgroundColor: testingMeter?.status === 'Active' ? '#ecfdf5' : '#fff1f2',
+                  color: testingMeter?.status === 'Active' ? '#059669' : '#dc2626',
+                  border: `1px solid ${testingMeter?.status === 'Active' ? '#a7f3d0' : '#fca5a5'}`,
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}>
+                  {testingMeter?.status === 'Active' ? (
+                    <>
+                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10b981' }} />
+                      Active / Online
+                    </>
+                  ) : (
+                    <>
+                      <WifiOff size={10} color="#dc2626" />
+                      Offline
+                    </>
+                  )}
+                </span>
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', gap: '8px', marginTop: '3px' }}>
+                <span>ID: <code style={{ color: '#0f172a', fontWeight: 600 }}>{testingMeter?.Meter_id}</code></span>
+                <span>•</span>
+                <span>Model: <strong style={{ color: '#334155' }}>{testingMeter?.meter_model || testingMeter?.make_name || 'Meter'}</strong></span>
+                <span>•</span>
+                <span>Channel: <strong style={{ color: '#0284c7' }}>{testingChannel?.Channel_name || 'Loop'}</strong></span>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              <span style={{
+                fontSize: '0.72rem',
+                backgroundColor: '#e0f2fe',
+                color: '#0369a1',
+                padding: '3px 8px',
+                borderRadius: '6px',
+                fontFamily: 'monospace',
+                fontWeight: 600
+              }}>
+                Slave #{testingMeter?.slave_id || '1'}
+              </span>
+              <span style={{
+                fontSize: '0.72rem',
+                backgroundColor: '#f1f5f9',
+                color: '#334155',
+                padding: '3px 8px',
+                borderRadius: '6px',
+                fontFamily: 'monospace',
+                fontWeight: 600
+              }}>
+                {testingMeter?.baud_rate || '9600'} bps
+              </span>
+            </div>
+          </div>
+
+          {/* Verification Mode Selector */}
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+            backgroundColor: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            borderRadius: '10px',
+            padding: '12px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#1e293b' }}>
+                Test Data Flow Scenario:
+              </span>
+              <span style={{ fontSize: '0.7rem', color: '#64748b' }}>
+                Verify if data passes from meter to gateway
+              </span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={() => setTestMode('auto')}
+                style={{
+                  padding: '7px 10px',
+                  borderRadius: '6px',
+                  fontSize: '0.74rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  border: testMode === 'auto' ? '2px solid #0284c7' : '1px solid #cbd5e1',
+                  backgroundColor: testMode === 'auto' ? '#eff6ff' : '#ffffff',
+                  color: testMode === 'auto' ? '#0369a1' : '#475569',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <Activity size={13} color={testMode === 'auto' ? '#0284c7' : '#64748b'} />
+                Auto Ping Test
+              </button>
+              <button
+                type="button"
+                onClick={() => setTestMode('pass')}
+                style={{
+                  padding: '7px 10px',
+                  borderRadius: '6px',
+                  fontSize: '0.74rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  border: testMode === 'pass' ? '2px solid #10b981' : '1px solid #cbd5e1',
+                  backgroundColor: testMode === 'pass' ? '#ecfdf5' : '#ffffff',
+                  color: testMode === 'pass' ? '#065f46' : '#475569',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <CheckCircle2 size={13} color={testMode === 'pass' ? '#10b981' : '#64748b'} />
+                Simulate Data Pass (Online)
+              </button>
+              <button
+                type="button"
+                onClick={() => setTestMode('fail')}
+                style={{
+                  padding: '7px 10px',
+                  borderRadius: '6px',
+                  fontSize: '0.74rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  border: testMode === 'fail' ? '2px solid #ef4444' : '1px solid #cbd5e1',
+                  backgroundColor: testMode === 'fail' ? '#fff1f2' : '#ffffff',
+                  color: testMode === 'fail' ? '#9f1239' : '#475569',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <WifiOff size={13} color={testMode === 'fail' ? '#ef4444' : '#64748b'} />
+                Simulate No Data (Mark Offline)
+              </button>
+            </div>
+            <div style={{ fontSize: '0.7rem', color: '#64748b', fontStyle: 'italic', marginTop: '2px' }}>
+              {testMode === 'auto' && '• Auto Mode: Detects channel status and meter state to perform live Modbus query.'}
+              {testMode === 'pass' && '• Pass Mode: Simulates data successfully reaching gateway. Meter will be marked ACTIVE (ONLINE).'}
+              {testMode === 'fail' && '• Fail Mode: Simulates timeout (no data from meter). Meter will be automatically marked OFFLINE.'}
+            </div>
+          </div>
+
+          {/* Visual Data Flow Diagram */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '12px 18px',
+            backgroundColor: '#ffffff',
+            borderRadius: '10px',
+            border: '1px solid #e2e8f0'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#f0f9ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Server size={16} color="#0284c7" />
+              </div>
+              <div>
+                <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#0f172a' }}>{activeGateway?.Gateway_name || 'Gateway'}</div>
+                <div style={{ fontSize: '0.68rem', color: '#64748b', fontFamily: 'monospace' }}>IP: {activeGateway?.ip_address || '192.168.1.100'}</div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flex: 1, padding: '0 16px' }}>
+              <div style={{ fontSize: '0.68rem', fontWeight: 700, color: testStatus === 'failure' ? '#dc2626' : testStatus === 'success' ? '#16a34a' : testStatus === 'testing' ? '#0284c7' : '#64748b' }}>
+                {testStatus === 'testing' && '⇄ Transmitting Modbus Packets ⇄'}
+                {testStatus === 'failure' && '✕ No Data Returned (Link Break / Timeout) ✕'}
+                {testStatus === 'success' && '✓ Data Packet Received OK (412.8 W) ✓'}
+                {testStatus === 'idle' && 'Ready to verify data communication'}
+              </div>
+              <div style={{ width: '100%', height: '4px', backgroundColor: '#e2e8f0', borderRadius: '2px', position: 'relative', overflow: 'hidden' }}>
+                <div style={{
+                  height: '100%',
+                  width: '100%',
+                  backgroundColor: testStatus === 'failure' ? '#ef4444' : testStatus === 'success' ? '#22c55e' : testStatus === 'testing' ? '#0284c7' : '#94a3b8',
+                  transition: 'background-color 0.3s ease'
+                }} />
+              </div>
+              <div style={{ fontSize: '0.65rem', color: '#94a3b8' }}>Port: {testingChannel?.port || 'COM1'} • Baud: {testingMeter?.baud_rate || '9600'}</div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#0f172a' }}>{testingMeter?.Meter_name || 'Meter'}</div>
+                <div style={{ fontSize: '0.68rem', color: '#64748b', fontFamily: 'monospace' }}>Slave ID #{testingMeter?.slave_id || '1'}</div>
+              </div>
+              <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#f5f3ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Cpu size={16} color="#7c3aed" />
+              </div>
+            </div>
+          </div>
+
+          {/* Progress Bar & Status */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {testStatus === 'testing' && <RefreshCw size={13} className="spin-animate" color="#0284c7" />}
+                {testStatus === 'success' && <CheckCircle size={14} color="#15803d" />}
+                {testStatus === 'failure' && <AlertCircle size={14} color="#dc2626" />}
+                <span>
+                  {testStatus === 'idle' && 'Click Start Communication Test to send packet'}
+                  {testStatus === 'testing' && `Verifying data packet from Meter to Gateway... ${testProgress}%`}
+                  {testStatus === 'success' && 'Data verified! Successfully received by Gateway'}
+                  {testStatus === 'failure' && 'Data failed to reach Gateway. Meter marked OFFLINE!'}
+                </span>
+              </span>
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: testStatus === 'failure' ? '#dc2626' : '#0284c7' }}>
+                {testProgress}%
+              </span>
+            </div>
+
+            <div style={{ width: '100%', height: '8px', backgroundColor: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
+              <div style={{
+                height: '100%',
+                width: `${testProgress}%`,
+                backgroundColor: testStatus === 'failure' ? '#ef4444' : testStatus === 'success' ? '#22c55e' : '#0284c7',
+                transition: 'width 0.3s ease, background-color 0.3s ease'
+              }} />
+            </div>
+          </div>
+
+          {/* Live Diagnostic Logs */}
+          <div style={{
+            backgroundColor: '#0f172a',
+            color: '#f8fafc',
+            borderRadius: '8px',
+            padding: '12px',
+            fontFamily: 'monospace',
+            fontSize: '0.75rem',
+            maxHeight: '160px',
+            overflowY: 'auto',
+            border: '1px solid #1e293b',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '5px'
+          }}>
+            {testLogs.length === 0 ? (
+              <span style={{ color: '#64748b' }}>Logs will appear here once communication handshake starts...</span>
+            ) : (
+              testLogs.map((log, index) => {
+                let logColor = '#cbd5e1';
+                if (log.type === 'success') logColor = '#4ade80';
+                if (log.type === 'error') logColor = '#f87171';
+                if (log.type === 'warning') logColor = '#fbbf24';
+                if (log.type === 'info') logColor = '#38bdf8';
+                return (
+                  <div key={index} style={{ color: logColor, display: 'flex', gap: '8px', lineHeight: 1.4 }}>
+                    <span style={{ color: '#64748b', userSelect: 'none' }}>[{log.time}]</span>
+                    <span>{log.text}</span>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Summary results card if finished */}
+          {testSummary && (
+            <div style={{
+              padding: '14px 16px',
+              borderRadius: '8px',
+              backgroundColor: testSummary.success ? '#ecfdf5' : '#fff1f2',
+              border: `1.5px solid ${testSummary.success ? '#a7f3d0' : '#fecdd3'}`,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '12px'
+            }}>
+              <div>
+                <div style={{ fontSize: '0.84rem', fontWeight: 800, color: testSummary.success ? '#065f46' : '#9f1239' }}>
+                  {testSummary.success ? '✓ Diagnostic Passed: Data is successfully reaching Gateway' : '✕ Diagnostic Alert: Data does NOT reach Gateway'}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: testSummary.success ? '#047857' : '#be123c', marginTop: '3px' }}>
+                  {testSummary.success
+                    ? `Latency: ${testSummary.latencyMs}ms | Power Value: ${testSummary.sampleValue} | Status updated to ACTIVE.`
+                    : `${testSummary.errorReason} Status updated to OFFLINE.`
+                  }
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 800,
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  backgroundColor: testSummary.success ? '#10b981' : '#f43f5e',
+                  color: '#fff',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}>
+                  {testSummary.success ? 'COMM ACTIVE / ONLINE' : 'MARKED OFFLINE'}
+                </span>
+                {/* Manual toggle override */}
+                {testSummary.success ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      updateMeter(testingMeter.Meter_id, { status: 'Offline' });
+                      setTestingMeter(prev => prev ? { ...prev, status: 'Offline' } : null);
+                      setSuccessMsg(`Meter ${testingMeter.Meter_name} manually set to OFFLINE.`);
+                    }}
+                    style={{
+                      padding: '4px 8px',
+                      borderRadius: '6px',
+                      fontSize: '0.7rem',
+                      fontWeight: 700,
+                      backgroundColor: '#fff',
+                      border: '1px solid #fecdd3',
+                      color: '#dc2626',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Force Offline
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      updateMeter(testingMeter.Meter_id, { status: 'Active' });
+                      setTestingMeter(prev => prev ? { ...prev, status: 'Active' } : null);
+                      setSuccessMsg(`Meter ${testingMeter.Meter_name} manually set to ACTIVE.`);
+                    }}
+                    style={{
+                      padding: '4px 8px',
+                      borderRadius: '6px',
+                      fontSize: '0.7rem',
+                      fontWeight: 700,
+                      backgroundColor: '#fff',
+                      border: '1px solid #a7f3d0',
+                      color: '#059669',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Force Active
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Modal Actions */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '8px' }}>
+            <button
+              type="button"
+              onClick={() => setIsTestModalOpen(false)}
+              style={cancelBtnStyle}
+            >
+              Close
+            </button>
+            <button
+              type="button"
+              onClick={() => runCommunicationTest()}
+              disabled={testStatus === 'testing'}
+              style={{
+                ...saveBtnStyle,
+                backgroundColor: testStatus === 'testing' ? '#94a3b8' : '#0284c7',
+                cursor: testStatus === 'testing' ? 'not-allowed' : 'pointer'
+              }}
+            >
+              {testStatus === 'testing' ? (
+                <>
+                  <RefreshCw size={14} className="spin-animate" /> Verifying Data Flow...
+                </>
+              ) : (
+                <>
+                  <Zap size={14} /> Start Communication Test
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </Modal>
+    );
   };
 
   // ─── FORM VIEW ──────────────────────────────────────────────────────────────
@@ -923,26 +1398,84 @@ export const DeviceMasterView = () => {
                                   </div>
                                 </div>
                               </div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <span style={{
-                                  padding: '2px 8px',
-                                  borderRadius: '12px',
-                                  backgroundColor: meter.status === 'Active' ? '#ecfdf5' : '#fef2f2',
-                                  color: meter.status === 'Active' ? '#059669' : '#dc2626',
-                                  border: `1px solid ${meter.status === 'Active' ? '#a7f3d0' : '#fecaca'}`,
-                                  fontSize: '0.68rem',
-                                  fontWeight: 700,
-                                  whiteSpace: 'nowrap'
-                                }}>
-                                  {meter.status || 'Active'}
-                                </span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                                {/* Meter Status Badge */}
+                                {meter.status === 'Active' ? (
+                                  <span style={{
+                                    padding: '2px 8px',
+                                    borderRadius: '12px',
+                                    backgroundColor: '#ecfdf5',
+                                    color: '#059669',
+                                    border: '1px solid #a7f3d0',
+                                    fontSize: '0.68rem',
+                                    fontWeight: 700,
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    whiteSpace: 'nowrap'
+                                  }}>
+                                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10b981' }} />
+                                    Active
+                                  </span>
+                                ) : meter.status === 'Offline' ? (
+                                  <span style={{
+                                    padding: '2px 8px',
+                                    borderRadius: '12px',
+                                    backgroundColor: '#fff1f2',
+                                    color: '#dc2626',
+                                    border: '1px solid #fca5a5',
+                                    fontSize: '0.68rem',
+                                    fontWeight: 700,
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    whiteSpace: 'nowrap'
+                                  }}>
+                                    <WifiOff size={10} color="#dc2626" />
+                                    Offline
+                                  </span>
+                                ) : (
+                                  <span style={{
+                                    padding: '2px 8px',
+                                    borderRadius: '12px',
+                                    backgroundColor: '#fef2f2',
+                                    color: '#b91c1c',
+                                    border: '1px solid #fecaca',
+                                    fontSize: '0.68rem',
+                                    fontWeight: 700,
+                                    whiteSpace: 'nowrap'
+                                  }}>
+                                    {meter.status || 'Inactive'}
+                                  </span>
+                                )}
+
+                                {/* Quick inline testing indicator */}
+                                {quickTestingMeterId === meter.Meter_id && (
+                                  <span style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    padding: '2px 6px',
+                                    borderRadius: '6px',
+                                    backgroundColor: '#eff6ff',
+                                    color: '#0284c7',
+                                    fontSize: '0.68rem',
+                                    fontWeight: 700,
+                                    whiteSpace: 'nowrap'
+                                  }}>
+                                    <RefreshCw size={10} className="spin-animate" /> Pinging...
+                                  </span>
+                                )}
+
+                                {/* Test Communication Button */}
                                 <button
                                   type="button"
                                   onClick={() => openTestMeter(meter, channel)}
+                                  disabled={quickTestingMeterId === meter.Meter_id}
                                   style={{
-                                    border: '1px solid #bfdbfe',
-                                    background: '#eff6ff',
-                                    color: '#1d4ed8',
+                                    border: meter.status === 'Offline' ? '1px solid #fca5a5' : '1px solid #bfdbfe',
+                                    background: meter.status === 'Offline' ? '#fff1f2' : '#eff6ff',
+                                    color: meter.status === 'Offline' ? '#dc2626' : '#1d4ed8',
                                     padding: '3px 8px',
                                     borderRadius: '6px',
                                     cursor: 'pointer',
@@ -951,11 +1484,13 @@ export const DeviceMasterView = () => {
                                     gap: '4px',
                                     fontSize: '0.7rem',
                                     fontWeight: 700,
+                                    whiteSpace: 'nowrap',
                                     transition: 'all 0.15s ease'
                                   }}
-                                  title="Test Modbus communication to avoid failure"
+                                  title="Test data communication from meter to gateway"
                                 >
-                                  <Zap size={12} color="#2563eb" /> Test Comm
+                                  {meter.status === 'Offline' ? <WifiOff size={12} color="#dc2626" /> : <Zap size={12} color="#2563eb" />}
+                                  Test Comm
                                 </button>
                                 <button
                                   type="button"
@@ -1424,6 +1959,9 @@ export const DeviceMasterView = () => {
             </div>
           </form>
         </Modal>
+
+        {/* Meter Communication Diagnostic Test Modal */}
+        {renderTestModal()}
       </div>
     );
   }
@@ -1666,218 +2204,7 @@ export const DeviceMasterView = () => {
       </div>
 
       {/* Meter Communication Diagnostic Test Modal */}
-      <Modal
-        isOpen={isTestModalOpen}
-        onClose={() => setIsTestModalOpen(false)}
-        title={`Meter Communication Diagnostic Test`}
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {/* Header context card */}
-          <div style={{
-            padding: '12px 14px',
-            backgroundColor: '#f8fafc',
-            border: '1px solid #e2e8f0',
-            borderRadius: '10px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '10px'
-          }}>
-            <div>
-              <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#0f172a' }}>
-                {testingMeter?.Meter_name || 'Selected Meter'}
-              </div>
-              <div style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', gap: '8px', marginTop: '2px' }}>
-                <span>ID: <code style={{ color: '#0f172a' }}>{testingMeter?.Meter_id}</code></span>
-                <span>•</span>
-                <span>Channel: <strong>{testingChannel?.Channel_name || 'Assigned Channel'}</strong></span>
-                <span>•</span>
-                <span>Status: <strong style={{ color: testingMeter?.status === 'Active' ? '#15803d' : '#dc2626' }}>{testingMeter?.status || 'Active'}</strong></span>
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: '6px' }}>
-              <span style={{
-                fontSize: '0.72rem',
-                backgroundColor: '#e0f2fe',
-                color: '#0369a1',
-                padding: '3px 8px',
-                borderRadius: '6px',
-                fontFamily: 'monospace',
-                fontWeight: 600
-              }}>
-                Slave ID: {testingMeter?.slave_id || '1'}
-              </span>
-              <span style={{
-                fontSize: '0.72rem',
-                backgroundColor: '#f1f5f9',
-                color: '#334155',
-                padding: '3px 8px',
-                borderRadius: '6px',
-                fontFamily: 'monospace',
-                fontWeight: 600
-              }}>
-                {testingMeter?.baud_rate || '9600'} bps
-              </span>
-            </div>
-          </div>
-
-          {/* Test Parameters Overview */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
-            gap: '8px',
-            backgroundColor: '#ffffff',
-            border: '1px solid #e2e8f0',
-            borderRadius: '8px',
-            padding: '10px 12px'
-          }}>
-            <div>
-              <div style={{ fontSize: '0.68rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>Protocol</div>
-              <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#0f172a' }}>Modbus RTU</div>
-            </div>
-            <div>
-              <div style={{ fontSize: '0.68rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>Parity / Data</div>
-              <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#0f172a' }}>{testingMeter?.parity_bit || 'None'} / {testingMeter?.data_bit || '8'}</div>
-            </div>
-            <div>
-              <div style={{ fontSize: '0.68rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>Stop Bit</div>
-              <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#0f172a' }}>{testingMeter?.stop_bit || '1'}</div>
-            </div>
-            <div>
-              <div style={{ fontSize: '0.68rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>Port</div>
-              <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#0f172a' }}>{testingChannel?.port || 'COM1'}</div>
-            </div>
-          </div>
-
-          {/* Progress Bar & Status */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                {testStatus === 'running' && <RefreshCw size={13} className="spin-animate" color="#0284c7" />}
-                {testStatus === 'success' && <CheckCircle size={14} color="#15803d" />}
-                {testStatus === 'failure' && <AlertCircle size={14} color="#dc2626" />}
-                <span>
-                  {testStatus === 'idle' && 'Ready to initiate communication handshake'}
-                  {testStatus === 'running' && `Testing handshake... ${testProgress}%`}
-                  {testStatus === 'success' && 'Communication verified! 0% packet loss'}
-                  {testStatus === 'failure' && 'Communication Failed / Inactive Device Error'}
-                </span>
-              </span>
-              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: testStatus === 'failure' ? '#dc2626' : '#0284c7' }}>
-                {testProgress}%
-              </span>
-            </div>
-
-            <div style={{ width: '100%', height: '8px', backgroundColor: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
-              <div style={{
-                height: '100%',
-                width: `${testProgress}%`,
-                backgroundColor: testStatus === 'failure' ? '#ef4444' : testStatus === 'success' ? '#22c55e' : '#0284c7',
-                transition: 'width 0.3s ease, background-color 0.3s ease'
-              }} />
-            </div>
-          </div>
-
-          {/* Live Diagnostic Logs */}
-          <div style={{
-            backgroundColor: '#0f172a',
-            color: '#f8fafc',
-            borderRadius: '8px',
-            padding: '12px',
-            fontFamily: 'monospace',
-            fontSize: '0.75rem',
-            maxHeight: '160px',
-            overflowY: 'auto',
-            border: '1px solid #1e293b',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '5px'
-          }}>
-            {testLogs.map((log, index) => {
-              let logColor = '#cbd5e1';
-              if (log.type === 'success') logColor = '#4ade80';
-              if (log.type === 'error') logColor = '#f87171';
-              if (log.type === 'warning') logColor = '#fbbf24';
-              if (log.type === 'info') logColor = '#38bdf8';
-              return (
-                <div key={index} style={{ color: logColor, display: 'flex', gap: '8px', lineHeight: 1.4 }}>
-                  <span style={{ color: '#64748b', userSelect: 'none' }}>[{log.time}]</span>
-                  <span>{log.text}</span>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Summary results card if finished */}
-          {testSummary && (
-            <div style={{
-              padding: '12px 14px',
-              borderRadius: '8px',
-              backgroundColor: testSummary.success ? '#ecfdf5' : '#fff1f2',
-              border: `1px solid ${testSummary.success ? '#a7f3d0' : '#fecdd3'}`,
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: '10px'
-            }}>
-              <div>
-                <div style={{ fontSize: '0.82rem', fontWeight: 800, color: testSummary.success ? '#065f46' : '#9f1239' }}>
-                  {testSummary.success ? '✓ Diagnostic Passed: Meter is communicating reliably' : '✕ Diagnostic Alert: Meter communication timed out'}
-                </div>
-                <div style={{ fontSize: '0.74rem', color: testSummary.success ? '#047857' : '#be123c', marginTop: '2px' }}>
-                  {testSummary.success
-                    ? `Round-trip latency: ${testSummary.latencyMs}ms | Value read: ${testSummary.sampleValue} | Loss: ${testSummary.packetLoss}`
-                    : `Reason: ${testSummary.errorReason}`
-                  }
-                </div>
-              </div>
-              <span style={{
-                fontSize: '0.72rem',
-                fontWeight: 700,
-                padding: '3px 8px',
-                borderRadius: '6px',
-                backgroundColor: testSummary.success ? '#10b981' : '#f43f5e',
-                color: '#fff'
-              }}>
-                {testSummary.success ? 'COMM HEALTHY' : 'COMM FAILURE'}
-              </span>
-            </div>
-          )}
-
-          {/* Modal Actions */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '8px' }}>
-            <button
-              type="button"
-              onClick={() => setIsTestModalOpen(false)}
-              style={cancelBtnStyle}
-            >
-              Close
-            </button>
-            <button
-              type="button"
-              onClick={runCommunicationTest}
-              disabled={testStatus === 'running'}
-              style={{
-                ...saveBtnStyle,
-                backgroundColor: testStatus === 'running' ? '#94a3b8' : '#0284c7',
-                cursor: testStatus === 'running' ? 'not-allowed' : 'pointer'
-              }}
-            >
-              {testStatus === 'running' ? (
-                <>
-                  <RefreshCw size={14} className="spin-animate" /> Running Diagnostic...
-                </>
-              ) : (
-                <>
-                  <Zap size={14} /> Start Communication Test
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-      </Modal>
+      {renderTestModal()}
     </div>
   );
 };

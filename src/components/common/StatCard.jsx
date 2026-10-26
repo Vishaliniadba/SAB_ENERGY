@@ -1,93 +1,98 @@
 import React from 'react';
 
-export const StatCard = ({ title, value, subtext, icon: Icon, trend, color = 'cyan' }) => {
-  const colorMap = {
-    cyan: {
-      accent: 'var(--primary-cyan)',
-      bgGlow: 'var(--primary-cyan-glow)',
-      border: 'var(--primary-cyan-border)'
-    },
-    emerald: {
-      accent: 'var(--accent-emerald)',
-      bgGlow: 'var(--accent-emerald-glow)',
-      border: 'var(--accent-emerald-border)'
-    },
-    amber: {
-      accent: 'var(--accent-amber)',
-      bgGlow: 'var(--accent-amber-glow)',
-      border: 'var(--accent-amber-border)'
-    },
-    purple: {
-      accent: 'var(--accent-purple)',
-      bgGlow: 'var(--accent-purple-glow)',
-      border: 'rgba(139, 92, 246, 0.35)'
-    }
-  };
-
-  const scheme = colorMap[color] || colorMap.cyan;
-
+export const StatCard = ({ title, value, unit, subtext, icon: Icon, trend, color = 'green' }) => {
   return (
     <div
-      className="glass-panel"
+      className="panel-card panel-card-hover"
       style={{
-        padding: '20px 24px',
+        padding: '16px 18px',
         display: 'flex',
         flexDirection: 'column',
-        gap: '10px',
-        backgroundColor: 'var(--bg-card)',
-        border: '1px solid var(--border-subtle)',
-        borderRadius: '14px',
-        boxShadow: 'var(--shadow-card)',
-        transition: 'transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease',
-        cursor: 'default'
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.transform = 'translateY(-2px)';
-        e.currentTarget.style.boxShadow = 'var(--shadow-hover)';
-        e.currentTarget.style.borderColor = scheme.border;
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.transform = 'translateY(0)';
-        e.currentTarget.style.boxShadow = 'var(--shadow-card)';
-        e.currentTarget.style.borderColor = 'var(--border-subtle)';
+        gap: '8px',
+        position: 'relative',
+        borderRadius: 'var(--radius-lg)',
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)' }}>
+        <span
+          style={{
+            fontSize: '0.75rem',
+            fontWeight: 600,
+            textTransform: 'uppercase',
+            letterSpacing: '0.04em',
+            color: 'var(--text-secondary)',
+          }}
+        >
           {title}
         </span>
         {Icon && (
           <div
             style={{
-              padding: '8px',
-              borderRadius: '10px',
-              backgroundColor: scheme.bgGlow,
-              color: scheme.accent,
+              padding: '6px',
+              borderRadius: 'var(--radius-sm)',
+              backgroundColor: 'var(--bg-surface-secondary)',
+              color: 'var(--brand-primary)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              border: `1px solid ${scheme.border}`
+              border: '1px solid var(--border-subtle)',
             }}
           >
-            <Icon size={18} />
+            <Icon size={16} />
           </div>
         )}
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-        <h2 style={{ fontSize: '1.9rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '2px' }}>
+        <span
+          className="mono-num"
+          style={{
+            fontSize: '1.65rem',
+            fontWeight: 700,
+            color: 'var(--text-primary)',
+            letterSpacing: '-0.02em',
+            lineHeight: 1.1,
+          }}
+        >
           {value}
-        </h2>
+        </span>
+        {unit && (
+          <span
+            style={{
+              fontSize: '0.85rem',
+              fontWeight: 600,
+              color: 'var(--text-secondary)',
+            }}
+          >
+            {unit}
+          </span>
+        )}
       </div>
 
       {(subtext || trend) && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            fontSize: '0.72rem',
+            color: 'var(--text-muted)',
+            marginTop: '2px',
+            borderTop: '1px solid var(--border-subtle)',
+            paddingTop: '6px',
+          }}
+        >
+          {subtext && <span>{subtext}</span>}
           {trend && (
-            <span style={{ color: trend.startsWith('+') ? 'var(--accent-emerald)' : 'var(--accent-rose)', fontWeight: 700 }}>
+            <span
+              style={{
+                fontWeight: 600,
+                color: trend.startsWith('+') ? 'var(--status-success-text)' : 'var(--text-secondary)',
+              }}
+            >
               {trend}
             </span>
           )}
-          <span>{subtext}</span>
         </div>
       )}
     </div>
