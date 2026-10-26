@@ -36,21 +36,21 @@ export const Header = ({ activeTab }) => {
         return { section: 'Asset Management', page: 'Asset-to-Meter Mapping' };
       case 'meter-profile':
       case 'meter-profiles':
-        return { section: 'Device Profiles', page: 'Meter Profiles' };
+        return { section: 'Configuration', page: 'Meter Profiles' };
       case 'meter-make':
       case 'make-master':
-        return { section: 'Device Profiles', page: 'Meter Makes' };
+        return { section: 'Meter Masters', page: 'Meter Makes' };
       case 'meter-model':
       case 'model-master':
-        return { section: 'Device Profiles', page: 'Meter Models' };
+        return { section: 'Meter Masters', page: 'Meter Models' };
       case 'gateway-make':
       case 'gateway-make-master':
-        return { section: 'Gateway Management', page: 'Gateway Makes' };
+        return { section: 'Gateway Masters', page: 'Gateway Makes' };
       case 'gateway-model':
       case 'gateway-model-master':
-        return { section: 'Gateway Management', page: 'Gateway Models' };
+        return { section: 'Gateway Masters', page: 'Gateway Models' };
       case 'parameter-dictionary':
-        return { section: 'Device Profiles', page: 'Parameter Dictionary' };
+        return { section: 'Meter Masters', page: 'Parameter' };
       case 'communication-config':
       case 'comm-config':
       case 'config':

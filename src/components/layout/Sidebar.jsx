@@ -269,28 +269,24 @@ export const Sidebar = ({ activeTab, setActiveTab }) => {
           overflowX: 'hidden',
         }}
       >
-        {/* 1. Overview */}
+        {/* Main Menu Navigation */}
         {renderNavItem('dashboard', 'Energy Dashboard', LayoutDashboard)}
-
-        {/* 2. Connectivity */}
         {renderNavItem('devices', 'Gateways & Devices', Server)}
+        {renderNavItem('meter-profile', 'Meter Profiles', Layers)}
+        {renderNavItem('asset-mapping', 'Asset-to-Meter Mapping', Activity)}
         {renderNavItem('communication-config', 'Comm Configuration', Radio)}
 
-        {/* 3. Asset Management */}
-        {renderNavItem('asset-mapping', 'Asset-to-Meter Mapping', Activity)}
-
-        {/* 4. Device Profiles Accordion */}
-        {renderSectionHeader('Device Profiles', isProfilesOpen, () => setIsProfilesOpen((p) => !p))}
+        {/* Meter Masters Section */}
+        {renderSectionHeader('Meter Masters', isProfilesOpen, () => setIsProfilesOpen((p) => !p))}
         {(isProfilesOpen || isCollapsed) && (
           <>
-            {renderNavItem('meter-profile', 'Meter Profiles', Layers, !isCollapsed)}
             {renderNavItem('meter-make', 'Meter Makes', Building2, !isCollapsed)}
             {renderNavItem('meter-model', 'Meter Models', Cpu, !isCollapsed)}
-            {renderNavItem('parameter-dictionary', 'Parameter Dictionary', Sliders, !isCollapsed)}
+            {renderNavItem('parameter-dictionary', 'Parameter', Sliders, !isCollapsed)}
           </>
         )}
 
-        {/* 5. Gateway Management Accordion */}
+        {/* Gateway Masters Section */}
         {renderSectionHeader('Gateway Masters', isGatewaysOpen, () => setIsGatewaysOpen((p) => !p))}
         {(isGatewaysOpen || isCollapsed) && (
           <>
