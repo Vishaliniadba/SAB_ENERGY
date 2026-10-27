@@ -188,27 +188,24 @@ export const Sidebar = ({ activeTab, setActiveTab }) => {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-          <div
+          <img
+            src="/logo.png"
+            alt="SaB Energy Logo"
             style={{
               width: '32px',
               height: '32px',
-              borderRadius: 'var(--radius-md)',
-              background: 'linear-gradient(135deg, #16805D 0%, #0D5D45 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+              borderRadius: '8px',
+              objectFit: 'cover',
               flexShrink: 0,
               boxShadow: '0 2px 6px rgba(0, 0, 0, 0.25)',
             }}
-          >
-            <Zap size={18} color="#FFFFFF" />
-          </div>
+          />
 
           {!isCollapsed && (
             <div style={{ minWidth: 0 }}>
               <h1
                 style={{
-                  fontSize: '0.975rem',
+                  fontSize: '1rem',
                   fontWeight: 700,
                   color: 'var(--text-sidebar)',
                   margin: 0,
@@ -218,28 +215,6 @@ export const Sidebar = ({ activeTab, setActiveTab }) => {
               >
                 SaB Energy
               </h1>
-              <span
-                style={{
-                  fontSize: '0.65rem',
-                  color: 'var(--sidebar-active-indicator)',
-                  fontWeight: 600,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  lineHeight: 1,
-                  marginTop: '1px',
-                }}
-              >
-                <span
-                  style={{
-                    width: '5px',
-                    height: '5px',
-                    borderRadius: '50%',
-                    backgroundColor: 'var(--sidebar-active-indicator)',
-                  }}
-                />
-                EMS Platform
-              </span>
             </div>
           )}
         </div>
