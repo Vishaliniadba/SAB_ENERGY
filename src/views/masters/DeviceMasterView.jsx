@@ -109,6 +109,7 @@ export const DeviceMasterView = () => {
   const [errorMsg, setErrorMsg] = useState('');
   const [form, setForm] = useState(EMPTY_FORM);
   const [copiedKey, setCopiedKey] = useState(null);
+  const [isTotalGwHovered, setIsTotalGwHovered] = useState(false);
 
   // Meter modal state
   const [isMeterModalOpen, setIsMeterModalOpen] = useState(false);
@@ -1742,29 +1743,33 @@ export const DeviceMasterView = () => {
         {/* KPI 1: Total Gateways */}
         <div
           onClick={() => setStatusFilter('ALL')}
+          onMouseEnter={() => setIsTotalGwHovered(true)}
+          onMouseLeave={() => setIsTotalGwHovered(false)}
           style={{
-            backgroundColor: 'var(--bg-card)',
-            borderRadius: 'var(--radius-xl)',
-            border: `1px solid ${statusFilter === 'ALL' ? 'var(--status-info-border)' : 'var(--border-subtle)'}`,
+            backgroundColor: '#FFFFFF',
+            borderRadius: '12px',
+            border: isTotalGwHovered ? '1px solid #CBD5E1' : '1px solid #E2E8F0',
             padding: '16px 18px',
-            boxShadow: 'var(--shadow-card)',
+            boxShadow: isTotalGwHovered
+              ? '0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05)'
+              : '0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.03)',
             cursor: 'pointer',
-            transition: 'all 0.15s ease',
+            transition: 'box-shadow 0.2s ease, border-color 0.2s ease',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between'
           }}
         >
           <div>
-            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Total Gateways
+            <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              TOTAL GATEWAYS
             </span>
-            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '4px' }}>
+            <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#0F172A', marginTop: '4px', lineHeight: 1.1 }}>
               {stats.totalGw}
             </div>
           </div>
-          <div style={{ width: '40px', height: '40px', borderRadius: '10px', backgroundColor: 'var(--status-info-bg)', border: '1px solid var(--status-info-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--status-info-text)' }}>
-            <TotalGatewaysIcon size={20} />
+          <div style={{ width: '40px', height: '40px', borderRadius: '10px', backgroundColor: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#15803D' }}>
+            <TotalGatewaysIcon size={20} color="#15803D" />
           </div>
         </div>
 
