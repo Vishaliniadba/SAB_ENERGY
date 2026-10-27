@@ -33,6 +33,9 @@ import {
 } from 'lucide-react';
 import { useEnergyData } from '../../context/EnergyDataContext';
 import { Modal } from '../../components/common/Modal';
+import { SearchInput } from '../../components/common/SearchInput';
+import { DataTable } from '../../components/common/DataTable';
+import { InputField, SelectField } from '../../components/common/FormField';
 
 export const MeterProfileView = () => {
   const {
@@ -1030,7 +1033,7 @@ export const MeterProfileView = () => {
   // ═══════════════════════════════════════════════════════════════════════
   if (viewMode === 'list') {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '22px', maxWidth: '1300px', margin: '0 auto' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%' }}>
         {/* Page Header */}
         <div
           style={{
@@ -1072,7 +1075,7 @@ export const MeterProfileView = () => {
           {/* Add Meter Profile Button */}
           <button onClick={handleOpenCreatePage} style={btnPrimaryStyle}>
             <Plus size={16} />
-            <span>Add Meter Profile</span>
+            <span>+ Add Profile</span>
           </button>
         </div>
 
@@ -1084,239 +1087,240 @@ export const MeterProfileView = () => {
           </div>
         )}
 
-        {/* Filter & Search Bar */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: '12px',
-            backgroundColor: 'var(--bg-card)',
-            padding: '14px 20px',
-            borderRadius: '10px',
-            border: '1px solid var(--border-subtle)',
-          }}
-        >
-          <div style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-            Total Profiles: <strong style={{ color: 'var(--primary-cyan)' }}>{meterProfiles.length}</strong>
-          </div>
-
-          <div style={{ position: 'relative' }}>
-            <Search size={14} color="var(--text-dim)" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
-            <input
-              type="text"
-              placeholder="Search by Make, Model, Version..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={{
-                padding: '7px 12px 7px 32px',
-                border: '1px solid var(--border-subtle)',
-                backgroundColor: 'var(--bg-input)',
-                color: 'var(--text-primary)',
-                borderRadius: '6px',
-                fontSize: '0.82rem',
-                outline: 'none',
-                width: '260px',
-              }}
-            />
-          </div>
-        </div>
-
         {/* Table View of Created Profiles */}
-        <div
-          style={{
-            backgroundColor: 'var(--bg-card)',
-            borderRadius: '12px',
-            border: '1px solid var(--border-subtle)',
-            overflow: 'hidden',
-            boxShadow: 'var(--shadow-card)',
-          }}
-        >
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84rem', textAlign: 'left' }}>
-            <thead>
-              <tr style={{ backgroundColor: 'var(--bg-table-header)', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-muted)', fontSize: '0.76rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                <th style={{ padding: '12px 16px', width: '40px' }}>#</th>
-                <th style={{ padding: '12px 16px' }}>Make</th>
-                <th style={{ padding: '12px 16px' }}>Model</th>
-                <th style={{ padding: '12px 16px', textAlign: 'center' }}>Version</th>
-                <th style={{ padding: '12px 16px', textAlign: 'center' }}>Address Offset</th>
-                <th style={{ padding: '12px 16px', textAlign: 'center' }}>Holding Register</th>
-                <th style={{ padding: '12px 16px', textAlign: 'center' }}>Byte Order</th>
-                <th style={{ padding: '12px 16px', textAlign: 'center' }}>Registers Count</th>
-                <th style={{ padding: '12px 16px', textAlign: 'center', width: '170px' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredProfiles.length === 0 ? (
-                <tr>
-                  <td colSpan={9} style={{ padding: '48px', textAlign: 'center', color: '#94a3b8' }}>
-                    No meter profiles found. Click <strong>"Add Meter Profile"</strong> to create one.
-                  </td>
-                </tr>
-              ) : (
-                filteredProfiles.map((p, idx) => (
-                  <tr
-                    key={p.profile_id}
+        <DataTable
+          columns={[
+            {
+              header: '#',
+              width: '40px',
+              render: (_, idx) => <span style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>{idx + 1}</span>,
+            },
+            {
+              header: 'Make',
+              render: (p) => (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
+                  <Building2 size={16} color="var(--text-muted)" />
+                  <span>{p.make}</span>
+                </div>
+              ),
+            },
+            {
+              header: 'Model',
+              render: (p) => (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-primary)' }}>
+                  <Cpu size={15} color="var(--text-muted)" />
+                  <span>{p.model}</span>
+                </div>
+              ),
+            },
+            {
+              header: 'Version',
+              align: 'center',
+              render: (p) => (
+                <span
+                  style={{
+                    fontSize: '0.74rem',
+                    backgroundColor: 'var(--bg-card-secondary)',
+                    color: 'var(--text-secondary)',
+                    border: '1px solid var(--border-subtle)',
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    fontWeight: 500,
+                    fontFamily: 'var(--font-mono)',
+                  }}
+                >
+                  v{p.profile_version || '1.0.0'}
+                </span>
+              ),
+            },
+            {
+              header: 'Address Offset',
+              align: 'center',
+              render: (p) => (
+                <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>
+                  {p.address_offset}
+                </span>
+              ),
+            },
+            {
+              header: 'Function Code',
+              align: 'center',
+              render: (p) => (
+                <span
+                  style={{
+                    fontSize: '0.74rem',
+                    backgroundColor: 'var(--bg-card-secondary)',
+                    color: 'var(--text-secondary)',
+                    border: '1px solid var(--border-subtle)',
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    fontFamily: 'var(--font-mono)',
+                    fontWeight: 500,
+                  }}
+                >
+                  {Number(p.function_code) === 3
+                    ? '03 - Holding Reg'
+                    : Number(p.function_code) === 4
+                    ? '04 - Input Reg'
+                    : `FC 0${p.function_code || 3}`}
+                </span>
+              ),
+            },
+            {
+              header: 'Byte Order',
+              align: 'center',
+              render: (p) => (
+                <span
+                  style={{
+                    fontSize: '0.74rem',
+                    fontFamily: 'var(--font-mono)',
+                    fontWeight: 500,
+                    backgroundColor: 'var(--bg-card-secondary)',
+                    color: 'var(--text-secondary)',
+                    border: '1px solid var(--border-subtle)',
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                  }}
+                >
+                  {p.byte_order || 'CDAB'}
+                </span>
+              ),
+            },
+            {
+              header: 'Registers Count',
+              align: 'center',
+              render: (p) => (
+                <span
+                  style={{
+                    fontSize: '0.78rem',
+                    fontWeight: 500,
+                    color: 'var(--text-secondary)',
+                    backgroundColor: 'var(--bg-card-secondary)',
+                    border: '1px solid var(--border-subtle)',
+                    padding: '3px 10px',
+                    borderRadius: '12px',
+                  }}
+                >
+                  {p.parameters?.length || 0} registers
+                </span>
+              ),
+            },
+            {
+              header: 'Actions',
+              align: 'center',
+              width: '170px',
+              render: (p) => (
+                <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                  {/* Test Button */}
+                  <button
+                    onClick={() => handleOpenTestProfile(p)}
                     style={{
-                      borderBottom: '1px solid var(--border-subtle)',
-                      transition: 'background-color 0.15s ease',
+                      padding: '5px 10px',
+                      borderRadius: '6px',
+                      border: '1px solid rgba(0, 163, 42, 0.35)',
+                      backgroundColor: 'rgba(0, 163, 42, 0.08)',
+                      color: 'var(--accent-emerald)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontSize: '0.76rem',
+                      fontWeight: 600,
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-table-row-hover)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                    title="Test meter profile telemetry with gateway"
                   >
-                    <td style={{ padding: '12px 16px', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
-                      {idx + 1}
-                    </td>
+                    <Activity size={13} />
+                    <span>Test</span>
+                  </button>
 
-                    {/* Make */}
-                    <td style={{ padding: '12px 16px', color: 'var(--text-primary)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Building2 size={16} color="var(--text-muted)" />
-                        <span>{p.make}</span>
-                      </div>
-                    </td>
+                  {/* JSON View Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setJsonModalProfile(p);
+                      setJsonTab('view');
+                      setJsonImportError('');
+                      setIsJsonModalOpen(true);
+                    }}
+                    style={{
+                      padding: '5px 10px',
+                      borderRadius: '6px',
+                      border: '1px solid var(--primary-cyan-border)',
+                      backgroundColor: 'rgba(56, 189, 248, 0.08)',
+                      color: 'var(--primary-cyan)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontSize: '0.76rem',
+                      fontWeight: 600,
+                    }}
+                    title="View & copy profile JSON configuration"
+                  >
+                    <FileJson size={13} />
+                    <span>JSON</span>
+                  </button>
 
-                    {/* Model */}
-                    <td style={{ padding: '12px 16px', color: 'var(--text-primary)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <Cpu size={15} color="var(--text-muted)" />
-                        <span>{p.model}</span>
-                      </div>
-                    </td>
+                  <button
+                    onClick={() => handleOpenEditPage(p)}
+                    style={{
+                      padding: '5px 10px',
+                      borderRadius: '6px',
+                      border: '1px solid var(--primary-cyan-border)',
+                      backgroundColor: 'var(--primary-cyan-glow)',
+                      color: 'var(--primary-cyan)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontSize: '0.76rem',
+                      fontWeight: 600,
+                    }}
+                    title="Edit Profile"
+                  >
+                    <Edit3 size={13} />
+                    <span>Edit</span>
+                  </button>
 
-                    {/* Version */}
-                    <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                      <span style={{ fontSize: '0.74rem', backgroundColor: 'var(--bg-card-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border-subtle)', padding: '2px 8px', borderRadius: '4px', fontWeight: 500, fontFamily: 'var(--font-mono)' }}>
-                        v{p.profile_version || '1.0.0'}
-                      </span>
-                    </td>
+                  <button
+                    onClick={() => handleDeleteProfile(p.profile_id, p.make, p.model)}
+                    style={{
+                      padding: '5px 8px',
+                      borderRadius: '6px',
+                      border: '1px solid var(--accent-rose-border)',
+                      backgroundColor: 'var(--accent-rose-glow)',
+                      color: 'var(--accent-rose)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      fontSize: '0.76rem',
+                    }}
+                    title="Delete Profile"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              ),
+            },
+          ]}
+          data={filteredProfiles}
+          rowKey="profile_id"
+          toolbar={
+            <>
+              <div style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                Total Profiles: <strong style={{ color: 'var(--primary-cyan)' }}>{meterProfiles.length}</strong>
+              </div>
 
-                    {/* Offset */}
-                    <td style={{ padding: '12px 16px', textAlign: 'center', fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>
-                      {p.address_offset}
-                    </td>
-
-                    {/* Holding Register */}
-                    <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                      <span style={{ fontSize: '0.74rem', backgroundColor: 'var(--bg-card-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border-subtle)', padding: '2px 8px', borderRadius: '4px', fontFamily: 'var(--font-mono)', fontWeight: 500 }}>
-                        {Number(p.function_code) === 3 ? '03 - Holding Reg' : (Number(p.function_code) === 4 ? '04 - Input Reg' : `FC 0${p.function_code || 3}`)}
-                      </span>
-                    </td>
-
-                    {/* Byte Order */}
-                    <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                      <span style={{ fontSize: '0.74rem', fontFamily: 'var(--font-mono)', fontWeight: 500, backgroundColor: 'var(--bg-card-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border-subtle)', padding: '2px 8px', borderRadius: '4px' }}>
-                        {p.byte_order || 'CDAB'}
-                      </span>
-                    </td>
-
-                    {/* Registers count */}
-                    <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                      <span style={{ fontSize: '0.78rem', fontWeight: 500, color: 'var(--text-secondary)', backgroundColor: 'var(--bg-card-secondary)', border: '1px solid var(--border-subtle)', padding: '3px 10px', borderRadius: '12px' }}>
-                        {p.parameters?.length || 0} registers
-                      </span>
-                    </td>
-
-                    {/* Actions */}
-                    <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                        {/* Test Button */}
-                        <button
-                          onClick={() => handleOpenTestProfile(p)}
-                          style={{
-                            padding: '5px 10px',
-                            borderRadius: '6px',
-                            border: '1px solid rgba(0, 163, 42, 0.35)',
-                            backgroundColor: 'rgba(0, 163, 42, 0.08)',
-                            color: 'var(--accent-emerald)',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            fontSize: '0.76rem',
-                            fontWeight: 600,
-                          }}
-                          title="Test meter profile telemetry with gateway"
-                        >
-                          <Activity size={13} />
-                          <span>Test</span>
-                        </button>
-
-                        {/* JSON View Button */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setJsonModalProfile(p);
-                            setJsonTab('view');
-                            setJsonImportError('');
-                            setIsJsonModalOpen(true);
-                          }}
-                          style={{
-                            padding: '5px 10px',
-                            borderRadius: '6px',
-                            border: '1px solid var(--primary-cyan-border)',
-                            backgroundColor: 'rgba(56, 189, 248, 0.08)',
-                            color: 'var(--primary-cyan)',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            fontSize: '0.76rem',
-                            fontWeight: 600,
-                          }}
-                          title="View & copy profile JSON configuration"
-                        >
-                          <FileJson size={13} />
-                          <span>JSON</span>
-                        </button>
-
-                        <button
-                          onClick={() => handleOpenEditPage(p)}
-                          style={{
-                            padding: '5px 10px',
-                            borderRadius: '6px',
-                            border: '1px solid var(--primary-cyan-border)',
-                            backgroundColor: 'var(--primary-cyan-glow)',
-                            color: 'var(--primary-cyan)',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            fontSize: '0.76rem',
-                            fontWeight: 600,
-                          }}
-                          title="Edit Profile"
-                        >
-                          <Edit3 size={13} />
-                          <span>Edit</span>
-                        </button>
-
-                        <button
-                          onClick={() => handleDeleteProfile(p.profile_id, p.make, p.model)}
-                          style={{
-                            padding: '5px 8px',
-                            borderRadius: '6px',
-                            border: '1px solid var(--accent-rose-border)',
-                            backgroundColor: 'var(--accent-rose-glow)',
-                            color: 'var(--accent-rose)',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            fontSize: '0.76rem',
-                          }}
-                          title="Delete Profile"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+              <SearchInput
+                placeholder="Search by Make, Model, Version..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                width="260px"
+              />
+            </>
+          }
+          emptyMessage="No meter profiles found. Click 'Add Meter Profile' to create one."
+        />
 
         {/* ── METER PROFILE GATEWAY COMMUNICATION TEST MODAL ── */}
         <Modal
@@ -1540,14 +1544,14 @@ export const MeterProfileView = () => {
                 >
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
                     <thead>
-                      <tr style={{ backgroundColor: 'var(--bg-table-header)', borderBottom: '1px solid var(--border-subtle)' }}>
-                        <th style={{ padding: '8px 12px', textAlign: 'left', width: '36px' }}>#</th>
-                        <th style={{ padding: '8px 12px', textAlign: 'left' }}>Register Key</th>
-                        <th style={{ padding: '8px 12px', textAlign: 'left' }}>Display Name</th>
-                        <th style={{ padding: '8px 12px', textAlign: 'center' }}>Modbus Addr</th>
-                        <th style={{ padding: '8px 12px', textAlign: 'center' }}>Type</th>
-                        <th style={{ padding: '8px 12px', textAlign: 'right' }}>Live Reading</th>
-                        <th style={{ padding: '8px 12px', textAlign: 'center', width: '90px' }}>Status</th>
+                      <tr style={{ backgroundColor: 'var(--bg-table-header)', borderBottom: '1px solid var(--border-table-header, var(--border-subtle))', color: '#FFFFFF', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        <th style={{ padding: '8px 12px', textAlign: 'left', width: '36px', color: '#FFFFFF' }}>#</th>
+                        <th style={{ padding: '8px 12px', textAlign: 'left', color: '#FFFFFF' }}>Register Key</th>
+                        <th style={{ padding: '8px 12px', textAlign: 'left', color: '#FFFFFF' }}>Display Name</th>
+                        <th style={{ padding: '8px 12px', textAlign: 'center', color: '#FFFFFF' }}>Modbus Addr</th>
+                        <th style={{ padding: '8px 12px', textAlign: 'center', color: '#FFFFFF' }}>Type</th>
+                        <th style={{ padding: '8px 12px', textAlign: 'right', color: '#FFFFFF' }}>Live Reading</th>
+                        <th style={{ padding: '8px 12px', textAlign: 'center', width: '90px', color: '#FFFFFF' }}>Status</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1642,8 +1646,8 @@ export const MeterProfileView = () => {
   // VIEW 2: CREATE / EDIT METER PROFILE PAGE (SHOWN WHEN ADD METER PROFILE IS CLICKED)
   // ═══════════════════════════════════════════════════════════════════════
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '22px', maxWidth: '1300px', margin: '0 auto' }}>
-      {/* ── TOP HEADER WITH BACK BUTTON ── */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%' }}>
+      {/* ── TOP HEADER WITH BACK BUTTON & ACTIONS ── */}
       <div
         style={{
           display: 'flex',
@@ -1652,8 +1656,8 @@ export const MeterProfileView = () => {
           flexWrap: 'wrap',
           gap: '14px',
           backgroundColor: 'var(--bg-card)',
-          padding: '18px 24px',
-          borderRadius: '12px',
+          padding: '16px 22px',
+          borderRadius: 'var(--radius-lg)',
           border: '1px solid var(--border-subtle)',
           boxShadow: 'var(--shadow-card)',
         }}
@@ -1667,23 +1671,40 @@ export const MeterProfileView = () => {
               justifyContent: 'center',
               width: '36px',
               height: '36px',
-              borderRadius: '8px',
-              border: '1px solid var(--border-subtle)',
-              backgroundColor: 'var(--bg-card-secondary)',
-              color: 'var(--text-secondary)',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border-default)',
+              backgroundColor: 'var(--bg-surface)',
+              color: 'var(--text-primary)',
               cursor: 'pointer',
               transition: 'all 0.15s ease',
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-table-row-hover)')}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-card-secondary)')}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-surface-secondary)')}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-surface)')}
             title="Back to Profiles"
           >
-            <ArrowLeft size={18} />
+            <ArrowLeft size={16} />
           </button>
 
-          <h2 style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-            {currentProfileId === 'NEW' ? 'Create Meter Profile' : `Edit Profile: ${profileForm.make} ${profileForm.model}`}
-          </h2>
+          <div>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+              {currentProfileId === 'NEW' ? 'Create Meter Profile' : `Edit Profile: ${profileForm.make} ${profileForm.model}`}
+            </h2>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <button onClick={() => setViewMode('list')} className="btn btn-secondary">
+            Cancel
+          </button>
+          <button
+            onClick={handleSaveProfile}
+            className="btn btn-primary"
+            disabled={hasDuplicateRowKeys}
+            title={hasDuplicateRowKeys ? 'Cannot save profile with duplicate parameter keys' : 'Save Meter Profile'}
+          >
+            <Save size={15} />
+            <span>Save Profile</span>
+          </button>
         </div>
       </div>
 
@@ -1695,134 +1716,107 @@ export const MeterProfileView = () => {
         </div>
       )}
 
-      {/* ── FIRST ROW & SECOND ROW FORM ── */}
+      {/* ── PROFILE GENERAL CONFIGURATION ── */}
       <div
         style={{
           backgroundColor: 'var(--bg-card)',
-          borderRadius: '12px',
+          borderRadius: 'var(--radius-lg)',
           border: '1px solid var(--border-subtle)',
-          padding: '22px 24px',
+          padding: '20px 22px',
           boxShadow: 'var(--shadow-card)',
           display: 'flex',
           flexDirection: 'column',
-          gap: '18px',
+          gap: '16px',
         }}
       >
-        {/* FIRST ROW: Profile version, make (dropdown), model (dropdown) */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px' }}>
-          {/* Profile version */}
-          <div>
-            <label style={labelStyle}>Profile version</label>
-            <input
-              type="text"
-              value={profileForm.profile_version}
-              onChange={(e) => setProfileForm({ ...profileForm, profile_version: e.target.value })}
-              placeholder="e.g. 1.0.0"
-              style={inputStyle}
-            />
-          </div>
+        {/* ROW 1: Profile Version, Make, Model */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '18px' }}>
+          <InputField
+            label="Profile Version"
+            required
+            value={profileForm.profile_version}
+            onChange={(e) => setProfileForm({ ...profileForm, profile_version: e.target.value })}
+            placeholder="e.g. 1.0.0"
+          />
 
-          {/* make (dropdown) */}
-          <div>
-            <label style={labelStyle}>Make</label>
-            <select
-              value={profileForm.make_id}
-              onChange={(e) => handleMakeChange(e.target.value)}
-              style={selectStyle}
-            >
-              {makes.map((m) => (
-                <option key={m.make_id} value={m.make_id}>
-                  {m.make_name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <SelectField
+            label="Make"
+            required
+            value={profileForm.make_id}
+            onChange={(e) => handleMakeChange(e.target.value)}
+            options={makes.map((m) => ({
+              value: m.make_id,
+              label: m.make_name,
+            }))}
+          />
 
-          {/* model (dropdown) */}
-          <div>
-            <label style={labelStyle}>Model</label>
-            <select
-              value={profileForm.model_id}
-              onChange={(e) => handleModelChange(e.target.value)}
-              style={selectStyle}
-            >
-              {availableModels.map((mod) => (
-                <option key={mod.model_id} value={mod.model_id}>
-                  {mod.model_name}
-                </option>
-              ))}
-              {availableModels.length === 0 && (
-                <option value="">No models registered for {profileForm.make}</option>
-              )}
-            </select>
-          </div>
+          <SelectField
+            label="Model"
+            required
+            value={profileForm.model_id}
+            onChange={(e) => handleModelChange(e.target.value)}
+            options={availableModels.map((mod) => ({
+              value: mod.model_id,
+              label: mod.model_name,
+            }))}
+          />
         </div>
 
-        {/* SECOND ROW: Address Offset, Function code, byte order */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px' }}>
-          {/* Address Offset */}
-          <div>
-            <label style={labelStyle}>Address Offset</label>
-            <input
-              type="number"
-              value={profileForm.address_offset}
-              onChange={(e) => setProfileForm({ ...profileForm, address_offset: Number(e.target.value) })}
-              placeholder="-40001"
-              style={inputStyle}
-            />
-          </div>
+        {/* ROW 2: Address Offset, Function Code, Byte Order */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '18px' }}>
+          <InputField
+            label="Address Offset"
+            type="number"
+            value={profileForm.address_offset}
+            onChange={(e) => setProfileForm({ ...profileForm, address_offset: Number(e.target.value) })}
+            placeholder="-40001"
+          />
 
-          {/* Holding Register */}
-          <div>
-            <label style={labelStyle}>Holding Register</label>
-            <select
-              value={profileForm.function_code}
-              onChange={(e) => setProfileForm({ ...profileForm, function_code: Number(e.target.value) })}
-              style={selectStyle}
-            >
-              <option value={3}>Holding Register (03 — Read Holding Registers)</option>
-              <option value={4}>Input Register (04 — Read Input Registers)</option>
-              <option value={1}>Coil Status (01 — Read Coils)</option>
-              <option value={2}>Input Status (02 — Read Discrete Inputs)</option>
-            </select>
-          </div>
+          <SelectField
+            label="Function Code"
+            value={profileForm.function_code}
+            onChange={(e) => setProfileForm({ ...profileForm, function_code: Number(e.target.value) })}
+            options={[
+              { value: 3, label: 'Holding Register' },
+              { value: 4, label: 'Input Register' },
+              { value: 1, label: 'Coil Status' },
+              { value: 2, label: 'Discrete Input' },
+            ]}
+          />
 
-          {/* byte order */}
-          <div>
-            <label style={labelStyle}>Byte order</label>
-            <select
-              value={profileForm.byte_order}
-              onChange={(e) => {
-                const val = e.target.value;
-                if (val === '__custom__') {
-                  const custom = window.prompt('Enter byte order (e.g. CDAB, ABCD, BADC, DCBA):');
-                  if (custom && custom.trim()) {
-                    setProfileForm({ ...profileForm, byte_order: custom.trim().toUpperCase() });
-                  }
-                } else {
-                  setProfileForm({ ...profileForm, byte_order: val });
+          <SelectField
+            label="Byte Order"
+            value={profileForm.byte_order}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (val === '__custom__') {
+                const custom = window.prompt('Enter byte order (e.g. CDAB, ABCD, BADC, DCBA):');
+                if (custom && custom.trim()) {
+                  setProfileForm({ ...profileForm, byte_order: custom.trim().toUpperCase() });
                 }
-              }}
-              style={selectStyle}
-            >
-              <option value="CDAB">CDAB (Little-endian with byte swap · Standard)</option>
-              <option value="ABCD">ABCD (Big-endian)</option>
-              <option value="BADC">BADC (Mid-Little-endian)</option>
-              <option value="DCBA">DCBA (Little-endian)</option>
-              {profileForm.byte_order && !['CDAB', 'ABCD', 'BADC', 'DCBA'].includes(profileForm.byte_order) && (
-                <option value={profileForm.byte_order}>{profileForm.byte_order}</option>
-              )}
-              <option value="__custom__">➕ Custom Byte Order...</option>
-            </select>
-          </div>
+              } else {
+                setProfileForm({ ...profileForm, byte_order: val });
+              }
+            }}
+            options={[
+              { value: 'CDAB', label: 'CDAB' },
+              { value: 'ABCD', label: 'ABCD' },
+              { value: 'BADC', label: 'BADC' },
+              { value: 'DCBA', label: 'DCBA' },
+              ...(profileForm.byte_order && !['CDAB', 'ABCD', 'BADC', 'DCBA'].includes(profileForm.byte_order)
+                ? [{ value: profileForm.byte_order, label: profileForm.byte_order }]
+                : []),
+              { value: '__custom__', label: '+ Custom...' },
+            ]}
+          />
         </div>
       </div>
 
-      {/* ── SEPARATE BOX BELOW THESE FIELDS: "PARAMETER BOX" ── */}
+      {/* ── PARAMETER REGISTERS PANEL ── */}
       <div
         style={{
           backgroundColor: 'var(--bg-card)',
-          borderRadius: '12px',
+          borderRadius: 'var(--radius-lg)',
           border: '1px solid var(--border-subtle)',
           boxShadow: 'var(--shadow-card)',
           overflow: 'hidden',
@@ -1830,12 +1824,12 @@ export const MeterProfileView = () => {
           flexDirection: 'column',
         }}
       >
-        {/* Parameter Box Top Header */}
+        {/* Panel Header */}
         <div
           style={{
-            padding: '16px 22px',
-            backgroundColor: 'var(--bg-table-header)',
-            borderBottom: '1px solid var(--border-subtle)',
+            padding: '14px 20px',
+            backgroundColor: 'var(--bg-surface-secondary)',
+            borderBottom: '1px solid var(--border-default)',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
@@ -1844,27 +1838,42 @@ export const MeterProfileView = () => {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Parameter Box
-            </h3>
-            <span
+            <div
               style={{
-                fontSize: '0.74rem',
-                backgroundColor: 'rgba(56, 189, 248, 0.12)',
-                color: 'var(--primary-cyan)',
-                border: '1px solid var(--primary-cyan-border)',
-                fontWeight: 700,
-                padding: '2px 8px',
-                borderRadius: '12px',
-                fontFamily: 'var(--font-mono)'
+                width: '32px',
+                height: '32px',
+                borderRadius: 'var(--radius-md)',
+                backgroundColor: 'var(--brand-surface)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--brand-primary)',
               }}
             >
-              {parameterRows.length} Rows
-            </span>
+              <Layers size={17} />
+            </div>
+            <div>
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                Parameter Registers
+              </h3>
+              <span
+                className="mono-num"
+                style={{
+                  fontSize: '0.72rem',
+                  padding: '2px 8px',
+                  borderRadius: 'var(--radius-xs)',
+                  backgroundColor: 'var(--bg-surface)',
+                  border: '1px solid var(--border-subtle)',
+                  color: 'var(--brand-primary)',
+                  fontWeight: 650,
+                }}
+              >
+                {parameterRows.length} {parameterRows.length === 1 ? 'Parameter' : 'Parameters'}
+              </span>
+            </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            {/* JSON View Button */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <button
               type="button"
               id="btn-profile-json-view"
@@ -1874,81 +1883,47 @@ export const MeterProfileView = () => {
                 setJsonImportError('');
                 setIsJsonModalOpen(true);
               }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                backgroundColor: 'rgba(56, 189, 248, 0.1)',
-                color: 'var(--primary-cyan)',
-                border: '1px solid var(--primary-cyan-border)',
-                borderRadius: '8px',
-                padding: '9px 16px',
-                fontSize: '0.84rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(56, 189, 248, 0.2)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(56, 189, 248, 0.1)';
-              }}
-              title="View & copy profile JSON configuration"
+              className="btn btn-secondary"
+              style={{ height: '34px', fontSize: '0.78rem' }}
+              title="View JSON configuration"
             >
-              <FileJson size={16} />
+              <FileJson size={14} />
               <span>JSON View</span>
             </button>
 
-            {/* Add Row Button in top right of the box */}
             <button
               type="button"
               id="btn-add-parameter-row"
               onClick={handleAddRow}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                backgroundColor: 'var(--accent-emerald)',
-                color: '#ffffff',
-                border: 'none',
-                borderRadius: '8px',
-                padding: '9px 18px',
-                fontSize: '0.84rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                boxShadow: '0 2px 6px rgba(16, 185, 129, 0.25)',
-                transition: 'background-color 0.15s ease',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--accent-emerald-deep)')}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'var(--accent-emerald)')}
+              className="btn btn-primary"
+              style={{ height: '34px', fontSize: '0.78rem' }}
             >
-              <Plus size={16} />
-              <span>Add Row</span>
+              <Plus size={14} />
+              <span>Add Parameter</span>
             </button>
           </div>
         </div>
 
         {/* Multiple Rows Table inside Parameter Box */}
         <div style={{ overflowX: 'auto', padding: '16px' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', textAlign: 'left' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8125rem', textAlign: 'left' }}>
             <thead>
-              <tr style={{ backgroundColor: 'var(--bg-table-header)', color: 'var(--text-muted)', fontSize: '0.76rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                <th style={{ padding: '10px 12px', width: '38px', borderRadius: '6px 0 0 6px' }}>#</th>
-                <th style={{ padding: '10px 12px', width: '22%' }}>Key</th>
-                <th style={{ padding: '10px 12px', width: '22%' }}>Display Name</th>
-                <th style={{ padding: '10px 12px', width: '13%' }}>Address</th>
-                <th style={{ padding: '10px 12px', width: '15%' }}>Data Type</th>
-                <th style={{ padding: '10px 12px', width: '10%' }}>Multiplier</th>
-                <th style={{ padding: '10px 12px', width: '10%' }}>Unit</th>
-                <th style={{ padding: '10px 12px', textAlign: 'center', width: '90px', borderRadius: '0 6px 6px 0' }}>Actions</th>
+              <tr style={{ backgroundColor: 'var(--bg-table-header)', color: '#FFFFFF', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <th style={{ padding: '11px 12px', width: '42px', color: '#FFFFFF', fontWeight: 700, textAlign: 'center', borderRadius: '6px 0 0 6px' }}>#</th>
+                <th style={{ padding: '11px 12px', width: '22%', color: '#FFFFFF', fontWeight: 700 }}>Key</th>
+                <th style={{ padding: '11px 12px', width: '22%', color: '#FFFFFF', fontWeight: 700 }}>Display Name</th>
+                <th style={{ padding: '11px 12px', width: '13%', color: '#FFFFFF', fontWeight: 700, textAlign: 'center' }}>Address</th>
+                <th style={{ padding: '11px 12px', width: '15%', color: '#FFFFFF', fontWeight: 700 }}>Data Type</th>
+                <th style={{ padding: '11px 12px', width: '10%', color: '#FFFFFF', fontWeight: 700, textAlign: 'center' }}>Multiplier</th>
+                <th style={{ padding: '11px 12px', width: '10%', color: '#FFFFFF', fontWeight: 700, textAlign: 'center' }}>Unit</th>
+                <th style={{ padding: '11px 12px', textAlign: 'center', width: '85px', color: '#FFFFFF', fontWeight: 700, borderRadius: '0 6px 6px 0' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {parameterRows.length === 0 ? (
                 <tr>
                   <td colSpan={8} style={{ padding: '42px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                    No rows in Parameter Box. Click <strong style={{ color: 'var(--primary-cyan)' }}>"Add Row"</strong> in the top right to start adding registers.
+                    No parameters configured. Click <strong style={{ color: 'var(--brand-primary)' }}>"Add Parameter"</strong> to start adding registers.
                   </td>
                 </tr>
               ) : (
@@ -1997,16 +1972,16 @@ export const MeterProfileView = () => {
                                   borderColor: isRowKeyDuplicate ? 'var(--status-danger-border, #ef4444)' : undefined,
                                 }}
                               >
-                                <option value="">-- Select Key --</option>
+                                <option value="">Select Key</option>
                                 {standardParameters.map((sp) => (
                                   <option key={sp.key} value={sp.key}>
-                                    {sp.key}{sp.unit ? ` (${sp.unit})` : ''}
+                                    {sp.key}
                                   </option>
                                 ))}
                                 {row.key && !standardParameters.some((sp) => sp.key === row.key) && (
                                   <option value={row.key}>{row.key}</option>
                                 )}
-                                <option value="__custom__">➕ Custom Key...</option>
+                                <option value="__custom__">+ Custom Key...</option>
                               </select>
                               {isRowKeyDuplicate && (
                                 <div style={{ marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--status-danger-text)', fontSize: '0.70rem', fontWeight: 650 }}>
@@ -2040,7 +2015,6 @@ export const MeterProfileView = () => {
                             ...tableInputStyle,
                             fontFamily: 'monospace',
                             fontWeight: 700,
-                            color: '#0f172a',
                             textAlign: 'center',
                           }}
                         />
@@ -2058,11 +2032,11 @@ export const MeterProfileView = () => {
                             cursor: 'pointer',
                           }}
                         >
-                          <option value="float32">float32 (2 Regs)</option>
-                          <option value="uint32">uint32 (2 Regs)</option>
-                          <option value="int32">int32 (2 Regs)</option>
-                          <option value="uint16">uint16 (1 Reg)</option>
-                          <option value="int16">int16 (1 Reg)</option>
+                          <option value="float32">float32</option>
+                          <option value="uint32">uint32</option>
+                          <option value="int32">int32</option>
+                          <option value="uint16">uint16</option>
+                          <option value="int16">int16</option>
                         </select>
                       </td>
 
@@ -2096,13 +2070,11 @@ export const MeterProfileView = () => {
                           style={{
                             ...tableInputStyle,
                             textAlign: 'center',
-                            fontWeight: 700,
-                            color: '#0f172a',
+                            fontWeight: 650,
                             cursor: 'pointer',
-                            backgroundColor: '#ffffff'
                           }}
                         >
-                          <option value="">— Select Unit —</option>
+                          <option value="">Select Unit</option>
                           {/* Units dynamically extracted from Parameter Master */}
                           {(() => {
                             const masterUnits = Array.from(
@@ -2193,38 +2165,6 @@ export const MeterProfileView = () => {
         </datalist>
       </div>
 
-      {/* ── BOTTOM ACTIONS BAR ── */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          backgroundColor: 'var(--bg-card)',
-          padding: '16px 24px',
-          borderRadius: '12px',
-          border: '1px solid var(--border-subtle)',
-          boxShadow: 'var(--shadow-card)',
-        }}
-      >
-        <button onClick={() => setViewMode('list')} style={btnSecondaryStyle}>
-          Cancel & Return to List
-        </button>
-
-        <button
-          onClick={handleSaveProfile}
-          style={{
-            ...btnPrimaryStyle,
-            opacity: hasDuplicateRowKeys ? 0.6 : 1,
-            cursor: hasDuplicateRowKeys ? 'not-allowed' : 'pointer',
-          }}
-          disabled={hasDuplicateRowKeys}
-          title={hasDuplicateRowKeys ? 'Cannot save profile with duplicate parameter keys' : 'Save Meter Profile'}
-        >
-          <Save size={15} />
-          <span>{hasDuplicateRowKeys ? 'Duplicate Parameter in Profile' : 'Save Meter Profile'}</span>
-        </button>
-      </div>
-
       {/* ── Profile JSON View Modal ── */}
       {renderJsonModal()}
     </div>
@@ -2267,14 +2207,16 @@ const selectStyle = {
 
 const tableInputStyle = {
   width: '100%',
-  padding: '6px 8px',
+  height: '34px',
+  padding: '0 8px',
   backgroundColor: 'var(--bg-input)',
-  border: '1px solid var(--border-subtle)',
-  borderRadius: '6px',
-  fontSize: '0.82rem',
+  border: '1px solid var(--border-default)',
+  borderRadius: 'var(--radius-sm)',
+  fontSize: '0.8125rem',
   color: 'var(--text-primary)',
   outline: 'none',
   boxSizing: 'border-box',
+  transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
 };
 
 const btnPrimaryStyle = {

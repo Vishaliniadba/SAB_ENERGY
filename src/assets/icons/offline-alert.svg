@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+  <!-- Outer severed arc segments -->
+  <path d="M2.5 8C4.3 6.3 6.4 5.1 8.8 4.4" stroke="#DC2626" stroke-width="2" stroke-linecap="round" opacity="0.6" />
+  <path d="M15.2 4.4C17.6 5.1 19.7 6.3 21.5 8" stroke="#DC2626" stroke-width="2" stroke-linecap="round" opacity="0.6" />
+
+  <!-- Mid severed arc segments -->
+  <path d="M5.8 11.5C7 10.3 8.4 9.5 9.9 9.1" stroke="#DC2626" stroke-width="2" stroke-linecap="round" opacity="0.8" />
+  <path d="M14.1 9.1C15.6 9.5 17 10.3 18.2 11.5" stroke="#DC2626" stroke-width="2" stroke-linecap="round" opacity="0.8" />
+
+  <!-- Inner arc segment -->
+  <path d="M9 15C9.8 14.3 10.9 13.8 12 13.8" stroke="#DC2626" stroke-width="2" stroke-linecap="round" />
+
+  <!-- Severed slash line -->
+  <line x1="2.5" y1="2.5" x2="21.5" y2="21.5" stroke="#DC2626" stroke-width="2.4" stroke-linecap="round" />
+
+  <!-- Offline beacon core -->
+  <circle cx="12" cy="19" r="1.6" fill="#DC2626" />
+</svg>

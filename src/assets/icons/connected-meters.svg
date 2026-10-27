@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+  <!-- Meter chassis with soft amber tint -->
+  <rect x="4" y="3" width="16" height="17" rx="2.5" stroke="#D97706" stroke-width="2" fill="#D97706" fill-opacity="0.12" />
+
+  <!-- Digital LCD display window -->
+  <rect x="7" y="6" width="10" height="4" rx="1" stroke="#D97706" stroke-width="1.4" fill="#D97706" fill-opacity="0.25" />
+  <line x1="9" y1="8" x2="15" y2="8" stroke="#D97706" stroke-width="1.4" stroke-dasharray="1.5 1" stroke-linecap="round" />
+
+  <!-- Energy lightning bolt (vibrant amber gold) -->
+  <path d="M12.5 11.5L9.8 14.5H13L11.5 17.8" stroke="#F59E0B" stroke-width="2" stroke-linejoin="miter" stroke-linecap="round" fill="#F59E0B" fill-opacity="0.35" />
+
+  <!-- Bottom terminal pins -->
+  <line x1="8" y1="20" x2="8" y2="23" stroke="#D97706" stroke-width="2" stroke-linecap="round" />
+  <line x1="12" y1="20" x2="12" y2="23" stroke="#D97706" stroke-width="2" stroke-linecap="round" />
+  <line x1="16" y1="20" x2="16" y2="23" stroke="#D97706" stroke-width="2" stroke-linecap="round" />
+</svg>

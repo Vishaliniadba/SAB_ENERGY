@@ -1,14 +1,22 @@
 import React, { useState, useMemo } from 'react';
 import {
   Plus, Search, Edit3, Trash2, Server, Wifi, WifiOff, Clock, CheckCircle2,
-  AlertCircle, ArrowLeft, Save, X, RotateCcw, Building2, Cpu, Hash,
-  Globe, Fingerprint, ShieldCheck, Activity, ChevronRight, Settings, Network,
-  Play, RefreshCw, Send, CheckCircle, Zap
+  AlertCircle, ArrowLeft, Save, X, Cpu, Fingerprint, Network,
+  RefreshCw, Zap, Copy, Check, ArrowUpRight
 } from 'lucide-react';
 import { useEnergyData } from '../../context/EnergyDataContext';
 import { Modal } from '../../components/common/Modal';
+import { SearchInput } from '../../components/common/SearchInput';
+import { DataTable } from '../../components/common/DataTable';
+import { FormField, InputField, SelectField } from '../../components/common/FormField';
+import {
+  TotalGatewaysIcon,
+  OnlineActiveIcon,
+  OfflineAlertIcon,
+  ConnectedMetersIcon
+} from '../../components/common/CardIcons';
 
-// ── Helper: derive status from gateway status and telemetry ping ──
+// ── Helper: Derive gateway status from gateway status and telemetry ping ──
 const getDeviceStatus = (gw) => {
   if (gw.status === 'Offline' || gw.status === 'Inactive') return 'Offline';
   if (!gw.last_communicate_time) {
@@ -17,44 +25,9 @@ const getDeviceStatus = (gw) => {
   const lastMs = new Date(gw.last_communicate_time).getTime();
   const keepAliveMs = (Number(gw.keep_alive_seconds) || 30) * 1000;
   const diffMs = Date.now() - lastMs;
-  if (diffMs <= keepAliveMs * 10) return 'Online';
-  if (diffMs <= keepAliveMs * 30) return 'Intermittent';
+  if (diffMs <= keepAliveMs * 4) return 'Online';
+  if (diffMs <= keepAliveMs * 12) return 'Intermittent';
   return 'Offline';
-};
-
-const statusStyle = (status) => {
-  switch (status) {
-    case 'Online':
-    case 'Active':
-      return {
-        bg: 'var(--status-success-bg)',
-        color: 'var(--status-success-text)',
-        border: 'var(--status-success-border)',
-        dot: 'var(--status-success-text)',
-      };
-    case 'Intermittent':
-      return {
-        bg: 'var(--status-warning-bg)',
-        color: 'var(--status-warning-text)',
-        border: 'var(--status-warning-border)',
-        dot: 'var(--status-warning-text)',
-      };
-    case 'Offline':
-    case 'Inactive':
-      return {
-        bg: 'var(--status-danger-bg)',
-        color: 'var(--status-danger-text)',
-        border: 'var(--status-danger-border)',
-        dot: 'var(--status-danger-text)',
-      };
-    default:
-      return {
-        bg: 'var(--status-success-bg)',
-        color: 'var(--status-success-text)',
-        border: 'var(--status-success-border)',
-        dot: 'var(--status-success-text)',
-      };
-  }
 };
 
 const formatTime = (iso) => {
@@ -81,9 +54,7 @@ const formatTime = (iso) => {
     elapsedStr = `${secs}s ago`;
   }
 
-  // Exact local time in HH:mm:ss format
   const exactTime = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-
   return { elapsed: elapsedStr, exact: exactTime, diffMs };
 };
 
@@ -97,7 +68,7 @@ const EMPTY_FORM = {
   gw_model_id: '',
   gw_model_name: '',
   firmware_version: '',
-  channel_count: 4,
+  channel_count: 2,
   channel_names: [],
   keep_alive_seconds: 30,
   status: 'Active',
@@ -133,10 +104,11 @@ export const DeviceMasterView = () => {
   const [selectedGatewayId, setSelectedGatewayId] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('ALL'); // 'ALL' | 'ONLINE' | 'OFFLINE'
+  const [statusFilter, setStatusFilter] = useState('ALL'); // 'ALL' | 'ONLINE' | 'INTERMITTENT' | 'OFFLINE'
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [form, setForm] = useState(EMPTY_FORM);
+  const [copiedKey, setCopiedKey] = useState(null);
 
   // Meter modal state
   const [isMeterModalOpen, setIsMeterModalOpen] = useState(false);
@@ -145,7 +117,21 @@ export const DeviceMasterView = () => {
   const [meterForm, setMeterForm] = useState(EMPTY_METER_FORM);
   const [meterModalError, setMeterModalError] = useState('');
 
-  // ── Meter Communication Test Modal State & Runner ──
+  // Channel modal state
+  const [isChannelModalOpen, setIsChannelModalOpen] = useState(false);
+  const [editingChannelId, setEditingChannelId] = useState(null);
+  const [channelForm, setChannelForm] = useState({
+    Channel_name: '',
+    port: 'COM1',
+    baud_rate: '9600',
+    protocol: 'Modbus RTU',
+    parity_bit: 'None',
+    stop_bit: '1',
+    data_bit: '8',
+    status: 'Active'
+  });
+
+  // Diagnostic Test Modal State
   const [isTestModalOpen, setIsTestModalOpen] = useState(false);
   const [testingMeter, setTestingMeter] = useState(null);
   const [testingChannel, setTestingChannel] = useState(null);
@@ -154,12 +140,73 @@ export const DeviceMasterView = () => {
   const [testProgress, setTestProgress] = useState(0);
   const [testLogs, setTestLogs] = useState([]);
   const [testSummary, setTestSummary] = useState(null);
-  const [quickTestingMeterId, setQuickTestingMeterId] = useState(null);
 
+  // Selected Gateway resolution
+  const selectedGateway = useMemo(() => {
+    return gateways.find(g => g.Gateway_id === selectedGatewayId) || null;
+  }, [gateways, selectedGatewayId]);
+
+  const selectedChannels = useMemo(() => {
+    if (!selectedGateway) return [];
+    return channels.filter(c => c.Gateway_id === selectedGateway.Gateway_id);
+  }, [selectedGateway, channels]);
+
+  // Copy helper
+  const handleCopy = (text, key) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey(null), 2000);
+  };
+
+  // Fleet Statistics
+  const stats = useMemo(() => {
+    let online = 0;
+    let intermittent = 0;
+    let offline = 0;
+    gateways.forEach(gw => {
+      const st = getDeviceStatus(gw);
+      if (st === 'Online') online++;
+      else if (st === 'Intermittent') intermittent++;
+      else offline++;
+    });
+    return {
+      totalGw: gateways.length,
+      online,
+      intermittent,
+      offline,
+      totalChannels: channels.length,
+      totalMeters: meters.length,
+      activeMeters: meters.filter(m => m.status === 'Active').length
+    };
+  }, [gateways, channels, meters]);
+
+  // Filtered Gateways
+  const filteredGateways = useMemo(() => {
+    return gateways.filter(gw => {
+      const st = getDeviceStatus(gw);
+      if (statusFilter === 'ONLINE' && st !== 'Online') return false;
+      if (statusFilter === 'INTERMITTENT' && st !== 'Intermittent') return false;
+      if (statusFilter === 'OFFLINE' && st !== 'Offline') return false;
+
+      if (!searchTerm.trim()) return true;
+      const term = searchTerm.toLowerCase();
+      return (
+        (gw.Gateway_name || '').toLowerCase().includes(term) ||
+        (gw.Gateway_id || '').toLowerCase().includes(term) ||
+        (gw.serial_number || '').toLowerCase().includes(term) ||
+        (gw.ip_address || '').toLowerCase().includes(term) ||
+        (gw.mac_address || '').toLowerCase().includes(term) ||
+        (gw.gw_make_name || '').toLowerCase().includes(term) ||
+        (gw.gw_model_name || '').toLowerCase().includes(term)
+      );
+    });
+  }, [gateways, statusFilter, searchTerm]);
+
+  // ── Communication Test Runner ──
   const openTestMeter = (meter, channel) => {
     setTestingMeter(meter);
     setTestingChannel(channel);
-    // If meter is already offline or inactive, default to auto (which will detect fail) or let user choose
     setTestMode(meter.status === 'Offline' || meter.status === 'Inactive' ? 'fail' : 'auto');
     setTestStatus('idle');
     setTestProgress(0);
@@ -177,38 +224,34 @@ export const DeviceMasterView = () => {
       { time: new Date().toLocaleTimeString(), text: `Initiating Modbus RTU / TCP handshake for Slave #${testingMeter.slave_id || '1'}...`, type: 'info' }
     ]);
 
-    // Step 1: Open COM port / Gateway socket
     setTimeout(() => {
-      setTestProgress(35);
+      setTestProgress(40);
       setTestLogs(prev => [
         ...prev,
-        { time: new Date().toLocaleTimeString(), text: `Socket established via Channel ${testingChannel?.Channel_name || 'Loop'} (Baud: ${testingMeter.baud_rate || '9600'}, Parity: ${testingMeter.parity_bit || 'None'}, Stop: ${testingMeter.stop_bit || '1'}, Port: ${testingChannel?.port || 'COM1'}).`, type: 'info' }
+        { time: new Date().toLocaleTimeString(), text: `Link established via Channel ${testingChannel?.Channel_name || 'Port'} (Baud: ${testingMeter.baud_rate || '9600'}, Parity: ${testingMeter.parity_bit || 'None'}).`, type: 'info' }
       ]);
-    }, 500);
+    }, 450);
 
-    // Step 2: Send Modbus query frame
     setTimeout(() => {
-      setTestProgress(65);
+      setTestProgress(70);
+      const slaveHex = Number(testingMeter.slave_id || 1).toString(16).padStart(2, '0');
       setTestLogs(prev => [
         ...prev,
-        { time: new Date().toLocaleTimeString(), text: `TX Frame [0x${Number(testingMeter.slave_id || 1).toString(16).padStart(2, '0')} 03 9C 41 00 02 CRC]: Transmitting read request to register 40101 (Power Active Total)...`, type: 'info' }
+        { time: new Date().toLocaleTimeString(), text: `TX Frame [0x${slaveHex} 03 9C 41 00 02 CRC]: Reading register 40101 (Active Power kW)...`, type: 'info' }
       ]);
-    }, 1000);
+    }, 900);
 
-    // Step 3: Response frame & evaluate whether data is going from meter to gateway
     setTimeout(() => {
-      // Determine if data passes or fails
       const shouldFail = activeMode === 'fail' ||
         (activeMode === 'auto' && (testingMeter.status === 'Inactive' || testingMeter.status === 'Offline' || testingChannel?.status === 'Inactive'));
 
       if (shouldFail) {
-        // DATA DOES NOT GET PASSED -> Mark the meter OFFLINE
         setTestStatus('failure');
         setTestProgress(100);
         setTestLogs(prev => [
           ...prev,
-          { time: new Date().toLocaleTimeString(), text: `RX Timeout Error: No data response received from Slave #${testingMeter.slave_id}. Packets failed to reach Gateway.`, type: 'error' },
-          { time: new Date().toLocaleTimeString(), text: `[SYSTEM ACTION]: Data does not pass from meter to gateway. Meter ${testingMeter.Meter_id} marked as OFFLINE.`, type: 'warning' }
+          { time: new Date().toLocaleTimeString(), text: `RX Timeout Error: No response received from Slave #${testingMeter.slave_id}. Connection timed out after 1500ms.`, type: 'error' },
+          { time: new Date().toLocaleTimeString(), text: `[SYSTEM ACTION]: Meter marked as OFFLINE in system registry.`, type: 'warning' }
         ]);
         setTestSummary({
           success: false,
@@ -216,22 +259,20 @@ export const DeviceMasterView = () => {
           packetsSent: 3,
           packetsReceived: 0,
           packetLoss: '100%',
-          errorReason: 'No data response from meter to gateway (Timeout / CRC error). Meter marked OFFLINE.'
+          errorReason: 'No response from device. Check RS-485 termination resistor and Slave ID.'
         });
-
-        // Update meter status in database/state to 'Offline'
         updateMeter(testingMeter.Meter_id, { status: 'Offline' });
-        setTestingMeter(prev => prev ? { ...prev, status: 'Offline' } : null);
-        setSuccessMsg(`Communication Failed: Data does not pass from meter ${testingMeter.Meter_name} (${testingMeter.Meter_id}) to gateway. Marked as OFFLINE.`);
+        setTestingMeter(p => p ? { ...p, status: 'Offline' } : null);
+        setSuccessMsg(`Diagnostic Alert: Meter ${testingMeter.Meter_name} failed telemetry handshake and was set to Offline.`);
       } else {
-        // DATA PASSES SUCCESSFULLY -> Mark the meter ACTIVE (ONLINE)
         setTestStatus('success');
         setTestProgress(100);
-        const simLatency = Math.floor(40 + Math.random() * 25);
+        const simLatency = Math.floor(18 + Math.random() * 22);
+        const slaveHex = Number(testingMeter.slave_id || 1).toString(16).padStart(2, '0');
         setTestLogs(prev => [
           ...prev,
-          { time: new Date().toLocaleTimeString(), text: `RX Frame [0x${Number(testingMeter.slave_id || 1).toString(16).padStart(2, '0')} 03 04 43 4C 00 00 CRC]: Received valid 32-bit float response in ${simLatency}ms.`, type: 'success' },
-          { time: new Date().toLocaleTimeString(), text: `[SYSTEM ACTION]: Data successfully received from Meter to Gateway. Meter verified ACTIVE / ONLINE.`, type: 'success' }
+          { time: new Date().toLocaleTimeString(), text: `RX Frame [0x${slaveHex} 03 04 43 4C 00 00 CRC OK]: Valid response packet received in ${simLatency}ms.`, type: 'success' },
+          { time: new Date().toLocaleTimeString(), text: `[SYSTEM ACTION]: Telemetry link verified. Meter marked as ACTIVE.`, type: 'success' }
         ]);
         setTestSummary({
           success: true,
@@ -240,93 +281,18 @@ export const DeviceMasterView = () => {
           packetsReceived: 1,
           packetLoss: '0%',
           voltage: '230.4 V',
-          sampleValue: '412.80 W'
+          sampleValue: '412.8 kW'
         });
-
-        // Update meter status in database/state to 'Active'
         updateMeter(testingMeter.Meter_id, { status: 'Active' });
-        setTestingMeter(prev => prev ? { ...prev, status: 'Active' } : null);
-        setSuccessMsg(`Communication Verified: Data successfully going from ${testingMeter.Meter_name} (${testingMeter.Meter_id}) to gateway. Marked as ACTIVE.`);
+        setTestingMeter(p => p ? { ...p, status: 'Active' } : null);
+        setSuccessMsg(`Diagnostic Success: Meter ${testingMeter.Meter_name} telemetry verified successfully.`);
       }
-    }, 1700);
+    }, 1500);
   };
 
-  // Quick inline test directly from card row
-  const handleQuickTest = (meter, channel) => {
-    setQuickTestingMeterId(meter.Meter_id);
-    setTimeout(() => {
-      // Toggle or evaluate based on current status
-      const willPass = meter.status !== 'Offline' && meter.status !== 'Inactive';
-      if (!willPass) {
-        // Test fails -> remains/becomes Offline
-        updateMeter(meter.Meter_id, { status: 'Offline' });
-        setSuccessMsg(`[Data Test]: Meter ${meter.Meter_name} (${meter.Meter_id}) data packet failed to reach gateway. Marked OFFLINE.`);
-      } else {
-        // If it was Active, simulate a live packet verify (or if user wants to test pass)
-        updateMeter(meter.Meter_id, { status: 'Active' });
-        setSuccessMsg(`[Data Test]: Meter ${meter.Meter_name} (${meter.Meter_id}) is communicating with Gateway (45ms). Status: ACTIVE.`);
-      }
-      setQuickTestingMeterId(null);
-    }, 1100);
-  };
-
-  // Channel modal & split-screen state
-  const [selectedChannelId, setSelectedChannelId] = useState(null);
-  const [editingChannelId, setEditingChannelId] = useState(null);
-  const [isChannelModalOpen, setIsChannelModalOpen] = useState(false);
-  const [channelModalSlot, setChannelModalSlot] = useState(null);
-  const [channelForm, setChannelForm] = useState({
-    Channel_name: '',
-    protocol: 'Modbus RTU',
-    baud_rate: '9600',
-    port: 'COM1',
-    status: 'Active'
-  });
-
-  // Filtered meter models by selected make in meter modal
-  const availableMeterModels = useMemo(() =>
-    models.filter(m => !meterForm.make_id || m.make_id === meterForm.make_id),
-    [models, meterForm.make_id]
-  );
-
-  // Filtered models by selected make
-  const availableModels = useMemo(() =>
-    gatewayModels.filter(m => !form.gw_make_id || m.gw_make_id === form.gw_make_id),
-    [gatewayModels, form.gw_make_id]
-  );
-
-  // Filtered gateway list
-  const filtered = useMemo(() => {
-    let list = gateways;
-    if (statusFilter === 'ONLINE') {
-      list = list.filter(g => getDeviceStatus(g) === 'Online');
-    } else if (statusFilter === 'OFFLINE') {
-      list = list.filter(g => getDeviceStatus(g) === 'Offline' || getDeviceStatus(g) === 'Intermittent');
-    }
-
-    const q = searchTerm.toLowerCase().trim();
-    if (!q) return list;
-    return list.filter(g =>
-      (g.Gateway_name || '').toLowerCase().includes(q) ||
-      (g.serial_number || '').toLowerCase().includes(q) ||
-      (g.ip_address || '').toLowerCase().includes(q) ||
-      (g.mac_address || '').toLowerCase().includes(q) ||
-      (g.gw_make_name || '').toLowerCase().includes(q) ||
-      (g.gw_model_name || '').toLowerCase().includes(q)
-    );
-  }, [gateways, searchTerm, statusFilter]);
-
-  const selectedGateway = gateways.find(g => g.Gateway_id === selectedGatewayId);
-  const selectedChannels = selectedGateway
-    ? channels.filter(channel => channel.Gateway_id === selectedGateway.Gateway_id)
-    : [];
-  const selectedGatewayModel = selectedGateway
-    ? gatewayModels.find(model => model.gw_model_id === selectedGateway.gw_model_id)
-    : null;
-  const channelCapacity = Number(selectedGateway?.channel_count || selectedGatewayModel?.channel_count) || 2;
-
-  const handleMakeChange = (makeId) => {
-    const mk = gatewayMakes.find(m => m.gw_make_id === makeId);
+  // ── Gateway Form Management ──
+  const handleGatewayMakeChange = (makeId) => {
+    const make = gatewayMakes.find(m => m.gw_make_id === makeId);
     const firstModel = gatewayModels.find(m => m.gw_make_id === makeId);
     const count = Number(firstModel?.channel_count) || 2;
     const names = firstModel?.channel_names?.length
@@ -336,16 +302,16 @@ export const DeviceMasterView = () => {
     setForm(prev => ({
       ...prev,
       gw_make_id: makeId,
-      gw_make_name: mk?.gw_make_name || '',
+      gw_make_name: make?.gw_make_name || '',
       gw_model_id: firstModel?.gw_model_id || '',
       gw_model_name: firstModel?.gw_model_name || '',
-      firmware_version: prev.firmware_version || firstModel?.firmware_version || '',
+      firmware_version: firstModel?.firmware_version || '',
       channel_count: count,
       channel_names: names
     }));
   };
 
-  const handleModelChange = (modelId) => {
+  const handleGatewayModelChange = (modelId) => {
     const mod = gatewayModels.find(m => m.gw_model_id === modelId);
     const count = Number(mod?.channel_count) || 2;
     const names = mod?.channel_names?.length
@@ -388,7 +354,7 @@ export const DeviceMasterView = () => {
 
   const openEdit = (gw) => {
     const gwModel = gatewayModels.find(m => m.gw_model_id === gw.gw_model_id);
-    const count = Number(gw.channel_count || gwModel?.channel_count) || 4;
+    const count = Number(gw.channel_count || gwModel?.channel_count) || 2;
     const existingGwChannels = channels.filter(c => c.Gateway_id === gw.Gateway_id);
     const names = Array.from({ length: count }, (_, i) => {
       return (
@@ -427,16 +393,15 @@ export const DeviceMasterView = () => {
     if (!form.mac_address.trim()) return setErrorMsg('MAC Address is required.');
     if (!form.gw_make_id) return setErrorMsg('Make is required.');
     if (!form.gw_model_id) return setErrorMsg('Model is required.');
-    
+
     const count = Math.max(1, parseInt(form.channel_count, 10) || 1);
     const cleanNames = Array.from({ length: count }, (_, i) => {
       const custom = (form.channel_names?.[i] || '').trim();
-      return custom || `Channel ${i + 1} (${form.Gateway_name.split(' ')[0] || 'GW'})`;
+      return custom || `Channel ${i + 1}`;
     });
 
     if (editingId) {
       updateGateway(editingId, { ...form, channel_count: count, channel_names: cleanNames });
-      // Update existing channel names and create missing channels
       const existing = channels.filter(c => c.Gateway_id === editingId);
       for (let i = 0; i < Math.min(existing.length, count); i++) {
         if (cleanNames[i] && cleanNames[i] !== existing[i].Channel_name) {
@@ -448,102 +413,83 @@ export const DeviceMasterView = () => {
           addChannel({
             Gateway_id: editingId,
             Channel_name: cleanNames[i],
-            protocol: 'Modbus RTU',
-            baud_rate: '9600',
             port: `COM${i + 1}`,
+            baud_rate: '9600',
+            protocol: 'Modbus RTU',
             status: 'Active'
           });
         }
       }
-      setSuccessMsg(`✓ Device "${form.Gateway_name}" updated successfully with ${count} channels.`);
+      setSuccessMsg(`✓ Gateway "${form.Gateway_name}" updated successfully.`);
     } else {
       const generatedGwId = `GW-${Math.floor(100 + Math.random() * 900)}`;
-      addGateway({ ...form, Gateway_id: generatedGwId, channel_count: count, channel_names: cleanNames });
-      
-      // Auto-create exactly the number of channels specified based on channel_count
+      addGateway({
+        ...form,
+        Gateway_id: generatedGwId,
+        channel_count: count,
+        channel_names: cleanNames,
+        last_communicate_time: new Date().toISOString()
+      });
       for (let i = 0; i < count; i++) {
         addChannel({
           Gateway_id: generatedGwId,
           Channel_name: cleanNames[i],
-          protocol: i === 1 ? 'Modbus TCP' : 'Modbus RTU',
-          baud_rate: i === 1 ? '115200' : '9600',
-          port: i === 1 ? '502' : `COM${i + 1}`,
+          port: `COM${i + 1}`,
+          baud_rate: '9600',
+          protocol: 'Modbus RTU',
           status: 'Active'
         });
       }
-      setSuccessMsg(`✓ Device "${form.Gateway_name}" registered with ${count} channel${count === 1 ? '' : 's'}.`);
+      setSuccessMsg(`✓ Registered new gateway "${form.Gateway_name}" with ${count} channels.`);
     }
+
     setViewMode('list');
     setTimeout(() => setSuccessMsg(''), 4000);
   };
 
   const handleDelete = (gw) => {
-    if (window.confirm(`Delete device "${gw.Gateway_name}"? This will also affect linked channels.`)) {
-      deleteGateway(gw.Gateway_id);
-      setSuccessMsg(`✓ Device "${gw.Gateway_name}" deleted.`);
-      setTimeout(() => setSuccessMsg(''), 3500);
-    }
+    if (!window.confirm(`Are you sure you want to delete gateway "${gw.Gateway_name}" (${gw.Gateway_id}) and all of its configured channels and meters?`)) return;
+    deleteGateway(gw.Gateway_id);
+    if (selectedGatewayId === gw.Gateway_id) setSelectedGatewayId(null);
+    setSuccessMsg(`✓ Deleted gateway "${gw.Gateway_name}".`);
+    setTimeout(() => setSuccessMsg(''), 3500);
   };
 
-  // ─── Meter Modal Handlers ──────────────────────────────────────────────────
-  const handleMeterMakeChange = (makeId) => {
-    const selectedMake = makes.find(m => m.make_id === makeId);
-    const firstMatchingModel = models.find(m => m.make_id === makeId);
-    setMeterForm(prev => ({
-      ...prev,
-      make_id: makeId,
-      make_name: selectedMake?.make_name || '',
-      model_id: firstMatchingModel?.model_id || '',
-      meter_model: firstMatchingModel?.model_name || ''
-    }));
-  };
-
-  const handleMeterModelChange = (modelId) => {
-    const selectedModel = models.find(m => m.model_id === modelId);
-    setMeterForm(prev => ({
-      ...prev,
-      model_id: modelId,
-      meter_model: selectedModel?.model_name || ''
-    }));
-  };
-
+  // ── Meter Management ──
   const openAddMeter = (channel) => {
     setTargetChannel(channel);
     setEditingMeter(null);
-    setMeterModalError('');
-    const defaultMake = makes[0];
-    const defaultModel = models.find(m => m.make_id === defaultMake?.make_id) || models[0];
+    const defMake = makes[0];
+    const defModel = models.find(m => m.make_id === defMake?.make_id) || models[0];
     const channelMeters = meters.filter(m => m.Channel_id === channel.Channel_id);
     const nextIndex = channelMeters.length + 1;
-    const defaultProfile = meterProfiles.find(p => p.make_id === defaultMake?.make_id) || meterProfiles[0];
+    const defProfile = meterProfiles.find(p => p.make_id === defMake?.make_id) || meterProfiles[0];
+
     setMeterForm({
       s_no: `${nextIndex}`,
       Meter_name: '',
-      meter_serial_number: `SCH-MTR-${Math.floor(1000 + Math.random() * 9000)}`,
+      meter_serial_number: `MTR-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
       slave_id: `${nextIndex}`,
-      make_id: defaultMake?.make_id || '',
-      make_name: defaultMake?.make_name || '',
-      model_id: defaultModel?.model_id || '',
-      meter_model: defaultModel?.model_name || '',
-      device_profile: defaultProfile?.profile_id || '',
-      baud_rate: channel?.baud_rate || '9600',
-      parity_bit: channel?.parity_bit || 'None',
-      stop_bit: channel?.stop_bit || '1',
-      data_bit: channel?.data_bit || '8',
+      make_id: defMake?.make_id || '',
+      make_name: defMake?.make_name || '',
+      model_id: defModel?.model_id || '',
+      meter_model: defModel?.model_name || '',
+      device_profile: defProfile?.profile_name || '',
+      baud_rate: channel.baud_rate || '9600',
+      parity_bit: channel.parity_bit || 'None',
+      stop_bit: channel.stop_bit || '1',
+      data_bit: channel.data_bit || '8',
       status: 'Active'
     });
+    setMeterModalError('');
     setIsMeterModalOpen(true);
   };
 
   const openEditMeter = (meter, channel) => {
     setTargetChannel(channel);
     setEditingMeter(meter);
-    setMeterModalError('');
-    const channelMeters = meters.filter(m => m.Channel_id === channel.Channel_id);
-    const meterIndex = channelMeters.findIndex(m => m.Meter_id === meter.Meter_id);
-    const matchingProfile = meterProfiles.find(p => p.make_id === meter.make_id && p.model_id === meter.model_id) || meterProfiles[0];
     setMeterForm({
-      s_no: meter.s_no || (meterIndex >= 0 ? `${meterIndex + 1}` : '1'),
+      s_no: meter.s_no || '1',
       Meter_name: meter.Meter_name || '',
       meter_serial_number: meter.meter_serial_number || '',
       slave_id: meter.slave_id || '1',
@@ -551,80 +497,67 @@ export const DeviceMasterView = () => {
       make_name: meter.make_name || '',
       model_id: meter.model_id || '',
       meter_model: meter.meter_model || '',
-      device_profile: meter.device_profile || meter.profile_id || matchingProfile?.profile_id || '',
-      baud_rate: meter.baud_rate || channel?.baud_rate || '9600',
-      parity_bit: meter.parity_bit || channel?.parity_bit || 'None',
-      stop_bit: meter.stop_bit || channel?.stop_bit || '1',
-      data_bit: meter.data_bit || channel?.data_bit || '8',
+      device_profile: meter.device_profile || '',
+      baud_rate: meter.baud_rate || '9600',
+      parity_bit: meter.parity_bit || 'None',
+      stop_bit: meter.stop_bit || '1',
+      data_bit: meter.data_bit || '8',
       status: meter.status || 'Active'
     });
+    setMeterModalError('');
     setIsMeterModalOpen(true);
   };
 
   const handleMeterSubmit = (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
+    setMeterModalError('');
+
     if (!meterForm.meter_serial_number.trim()) {
-      setMeterModalError('Serial Number is required.');
-      return;
+      return setMeterModalError('Serial Number is required.');
     }
     if (!meterForm.slave_id.trim()) {
-      setMeterModalError('Slave ID / Device Address is required.');
-      return;
+      return setMeterModalError('Modbus Slave ID is required.');
     }
 
     const meterName = meterForm.Meter_name.trim() || `${meterForm.meter_model || 'Meter'} (${meterForm.meter_serial_number})`;
 
     if (editingMeter) {
-      updateMeter(editingMeter.Meter_id, { ...meterForm, Meter_name: meterName });
-      setSuccessMsg(`✓ Meter "${meterName}" updated.`);
+      updateMeter(editingMeter.Meter_id, {
+        ...meterForm,
+        Meter_name: meterName
+      });
+      setSuccessMsg(`✓ Updated meter "${meterName}".`);
     } else {
       addMeter({
         ...meterForm,
         Meter_name: meterName,
         Channel_id: targetChannel.Channel_id
       });
-      setSuccessMsg(`✓ Meter "${meterName}" added to ${targetChannel.Channel_name}.`);
+      setSuccessMsg(`✓ Added meter "${meterName}" to ${targetChannel.Channel_name}.`);
     }
 
     setIsMeterModalOpen(false);
-    setTimeout(() => setSuccessMsg(''), 4000);
+    setTimeout(() => setSuccessMsg(''), 3500);
   };
 
   const handleDeleteMeter = (meter) => {
-    if (window.confirm(`Delete meter "${meter.Meter_name}"?`)) {
-      deleteMeter(meter.Meter_id);
-      setSuccessMsg(`✓ Meter "${meter.Meter_name}" deleted.`);
-      setTimeout(() => setSuccessMsg(''), 3500);
-    }
+    if (!window.confirm(`Delete meter "${meter.Meter_name}"?`)) return;
+    deleteMeter(meter.Meter_id);
+    setSuccessMsg(`✓ Deleted meter "${meter.Meter_name}".`);
+    setTimeout(() => setSuccessMsg(''), 3000);
   };
 
-  // ─── Channel Modal Handlers ────────────────────────────────────────────────
+  // ── Channel Management ──
   const openAddChannelSlot = (slotNumber) => {
     setEditingChannelId(null);
-    setChannelModalSlot(slotNumber);
-    const suggestedName =
-      selectedGatewayModel?.channel_names?.[slotNumber - 1] ||
-      selectedGateway?.channel_names?.[slotNumber - 1] ||
-      `Channel ${slotNumber} (${selectedGateway?.Gateway_name?.split(' ')[0] || 'GW'})`;
     setChannelForm({
-      Channel_name: suggestedName,
-      protocol: slotNumber === 1 ? 'Modbus TCP' : 'Modbus RTU',
-      baud_rate: slotNumber === 1 ? '115200' : '9600',
-      port: slotNumber === 1 ? '502' : `COM${slotNumber}`,
-      status: 'Active'
-    });
-    setIsChannelModalOpen(true);
-  };
-
-  const openAddChannelGeneral = () => {
-    setEditingChannelId(null);
-    const nextSlot = (selectedChannels.length || 0) + 1;
-    setChannelModalSlot(nextSlot);
-    setChannelForm({
-      Channel_name: `Channel ${nextSlot} (${selectedGateway?.Gateway_name?.split(' ')[0] || 'GW'})`,
-      protocol: 'Modbus RTU',
+      Channel_name: `Channel ${slotNumber}`,
+      port: `COM${slotNumber}`,
       baud_rate: '9600',
-      port: `COM${nextSlot}`,
+      protocol: 'Modbus RTU',
+      parity_bit: 'None',
+      stop_bit: '1',
+      data_bit: '8',
       status: 'Active'
     });
     setIsChannelModalOpen(true);
@@ -634,425 +567,558 @@ export const DeviceMasterView = () => {
     setEditingChannelId(channel.Channel_id);
     setChannelForm({
       Channel_name: channel.Channel_name || '',
-      protocol: channel.protocol || 'Modbus RTU',
-      baud_rate: channel.baud_rate || '9600',
       port: channel.port || 'COM1',
+      baud_rate: channel.baud_rate || '9600',
+      protocol: channel.protocol || 'Modbus RTU',
+      parity_bit: channel.parity_bit || 'None',
+      stop_bit: channel.stop_bit || '1',
+      data_bit: channel.data_bit || '8',
       status: channel.status || 'Active'
     });
     setIsChannelModalOpen(true);
   };
 
-  const handleDeleteChannel = (channel) => {
-    const channelMeters = meters.filter(m => m.Channel_id === channel.Channel_id);
-    const confirmMsg = channelMeters.length > 0
-      ? `Channel "${channel.Channel_name}" has ${channelMeters.length} meter(s) assigned. Deleting will unassign those meters. Continue?`
-      : `Are you sure you want to delete channel "${channel.Channel_name}"?`;
-    if (window.confirm(confirmMsg)) {
-      deleteChannel(channel.Channel_id);
-      if (selectedChannelId === channel.Channel_id) {
-        setSelectedChannelId(null);
-      }
-      setSuccessMsg(`Channel "${channel.Channel_name}" deleted.`);
-      setTimeout(() => setSuccessMsg(''), 3000);
-    }
-  };
-
   const handleChannelSubmit = (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     if (!channelForm.Channel_name.trim()) return;
 
     if (editingChannelId) {
       updateChannel(editingChannelId, channelForm);
-      setSuccessMsg(`Channel "${channelForm.Channel_name}" updated.`);
-      setIsChannelModalOpen(false);
-      setEditingChannelId(null);
-      setTimeout(() => setSuccessMsg(''), 3000);
-      return;
-    }
-
-    if (selectedGateway) {
+      setSuccessMsg(`✓ Channel "${channelForm.Channel_name}" updated.`);
+    } else {
       addChannel({
         ...channelForm,
         Gateway_id: selectedGateway.Gateway_id
       });
-      if (selectedChannels.length >= channelCapacity) {
-        updateGateway(selectedGateway.Gateway_id, {
-          channel_count: selectedChannels.length + 1
-        });
-      }
-      setSuccessMsg(`Channel "${channelForm.Channel_name}" created.`);
-      setIsChannelModalOpen(false);
-      setTimeout(() => setSuccessMsg(''), 3000);
+      setSuccessMsg(`✓ Channel "${channelForm.Channel_name}" added to gateway.`);
     }
+    setIsChannelModalOpen(false);
+    setTimeout(() => setSuccessMsg(''), 3000);
   };
 
-  // ── Meter Communication Diagnostic Test Modal Component ──
+  const handleDeleteChannel = (channel) => {
+    const channelMeters = meters.filter(m => m.Channel_id === channel.Channel_id);
+    const msg = channelMeters.length > 0
+      ? `Channel "${channel.Channel_name}" contains ${channelMeters.length} meter(s). Deleting this channel will remove those meters. Proceed?`
+      : `Delete channel "${channel.Channel_name}"?`;
+    if (!window.confirm(msg)) return;
+    deleteChannel(channel.Channel_id);
+    setSuccessMsg(`✓ Deleted channel "${channel.Channel_name}".`);
+    setTimeout(() => setSuccessMsg(''), 3000);
+  };
+
+  // ── Dynamic Channel Card Rendering ──
+  const renderChannelCard = (channel, slotNum) => {
+    if (!channel) {
+      return (
+        <div
+          key={`unassigned-slot-${slotNum}`}
+          style={{
+            backgroundColor: 'var(--bg-card-secondary)',
+            border: '2px dashed var(--border-medium)',
+            borderRadius: 'var(--radius-xl)',
+            padding: '36px 24px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            textAlign: 'center',
+            gap: '14px',
+            minHeight: '280px',
+            transition: 'border-color 0.2s ease',
+          }}
+        >
+          <div style={{
+            width: '48px',
+            height: '48px',
+            borderRadius: '12px',
+            backgroundColor: 'var(--bg-card)',
+            border: '1px solid var(--border-subtle)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'var(--text-muted)'
+          }}>
+            <Network size={22} />
+          </div>
+          <div>
+            <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--brand-primary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              Slot #{slotNum}
+            </span>
+            <h4 style={{ margin: '4px 0 6px', fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+              Unassigned Channel
+            </h4>
+            <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-muted)', maxWidth: '280px' }}>
+              This RS-485 / Modbus communication channel slot is unconfigured on {selectedGateway?.Gateway_name}.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => openAddChannelSlot(slotNum)}
+            className="btn btn-primary"
+            style={{ fontSize: '0.8rem', padding: '8px 18px', marginTop: '6px' }}
+          >
+            <Plus size={15} /> Configure Slot #{slotNum}
+          </button>
+        </div>
+      );
+    }
+
+    const channelMeters = meters.filter(m => m.Channel_id === channel.Channel_id);
+    const isOnline = channel.status === 'Active';
+
+    return (
+      <div
+        key={channel.Channel_id}
+        style={{
+          backgroundColor: 'var(--bg-card)',
+          borderRadius: 'var(--radius-xl)',
+          border: '1px solid var(--border-subtle)',
+          boxShadow: 'var(--shadow-card)',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+          transition: 'box-shadow 0.2s ease, border-color 0.2s ease',
+        }}
+      >
+        {/* Channel Card Header */}
+        <div style={{
+          padding: '16px 20px',
+          borderBottom: '1px solid var(--border-subtle)',
+          backgroundColor: 'var(--bg-card-secondary)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          flexWrap: 'wrap',
+          gap: '12px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '10px',
+              backgroundColor: isOnline ? 'var(--status-success-bg)' : 'var(--bg-card)',
+              color: isOnline ? 'var(--status-success-text)' : 'var(--text-muted)',
+              border: `1px solid ${isOnline ? 'var(--status-success-border)' : 'var(--border-subtle)'}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
+            }}>
+              <Network size={20} />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{
+                  fontSize: '0.68rem',
+                  fontWeight: 800,
+                  color: 'var(--brand-primary)',
+                  backgroundColor: 'var(--brand-surface)',
+                  border: '1px solid var(--brand-border)',
+                  padding: '2px 7px',
+                  borderRadius: '4px',
+                  textTransform: 'uppercase'
+                }}>
+                  Slot #{slotNum}
+                </span>
+                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  {channel.Channel_name}
+                </h3>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', fontSize: '0.74rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                <span>{channel.port || 'COM1'}</span>
+                <span>•</span>
+                <span>{channel.baud_rate || '9600'} bps ({channel.data_bit || 8}-{channel.parity_bit?.[0] || 'N'}-{channel.stop_bit || 1})</span>
+                <span>•</span>
+                <span>{channel.protocol || 'Modbus RTU'}</span>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              type="button"
+              onClick={() => openAddMeter(channel)}
+              className="btn btn-primary"
+              style={{ padding: '6px 12px', fontSize: '0.78rem' }}
+              title="Add a Modbus meter to this channel"
+            >
+              <Plus size={14} /> Add Meter
+            </button>
+            <button
+              type="button"
+              onClick={() => openEditChannel(channel)}
+              className="btn-icon"
+              style={{ color: 'var(--text-secondary)' }}
+              title="Edit Channel Settings"
+            >
+              <Edit3 size={15} />
+            </button>
+            <button
+              type="button"
+              onClick={() => handleDeleteChannel(channel)}
+              className="btn-icon"
+              style={{ color: 'var(--accent-rose)' }}
+              title="Delete Channel"
+            >
+              <Trash2 size={15} />
+            </button>
+          </div>
+        </div>
+
+        {/* Meters Container */}
+        <div style={{ padding: '16px 20px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <span style={{ fontSize: '0.76rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>
+              Connected Meters ({channelMeters.length})
+            </span>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+              Max capacity: 32 drop nodes
+            </span>
+          </div>
+
+          {channelMeters.length === 0 ? (
+            <div style={{
+              flex: 1,
+              padding: '32px 16px',
+              textAlign: 'center',
+              backgroundColor: 'var(--bg-card-secondary)',
+              borderRadius: 'var(--radius-lg)',
+              border: '1px dashed var(--border-subtle)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '10px'
+            }}>
+              <Cpu size={24} color="var(--text-dim)" />
+              <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                No meters attached to this channel
+              </div>
+              <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                Add your electrical or energy meters (Modbus Slave devices) to begin polling telemetry.
+              </p>
+              <button
+                type="button"
+                onClick={() => openAddMeter(channel)}
+                className="btn btn-secondary"
+                style={{ fontSize: '0.76rem', padding: '6px 14px', marginTop: '6px' }}
+              >
+                <Plus size={13} /> Add First Meter
+              </button>
+            </div>
+          ) : (
+            <div style={{ overflowX: 'auto', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', textAlign: 'left' }}>
+                <thead>
+                  <tr style={{ backgroundColor: 'var(--bg-table-header)', borderBottom: '1px solid var(--border-table-header, var(--border-subtle))', color: '#FFFFFF', fontSize: '0.70rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    <th style={{ padding: '8px 12px' }}>Slave ID</th>
+                    <th style={{ padding: '8px 12px' }}>Meter Name & Model</th>
+                    <th style={{ padding: '8px 12px' }}>Profile</th>
+                    <th style={{ padding: '8px 12px' }}>Serial Number</th>
+                    <th style={{ padding: '8px 12px', textAlign: 'center' }}>Status</th>
+                    <th style={{ padding: '8px 12px', textAlign: 'center' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {channelMeters.map(meter => {
+                    const isMeterOnline = meter.status === 'Active';
+                    return (
+                      <tr
+                        key={meter.Meter_id}
+                        style={{ borderBottom: '1px solid var(--border-subtle)', transition: 'background-color 0.12s ease' }}
+                        onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-table-row-hover)'}
+                        onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                      >
+                        <td style={{ padding: '10px 12px' }}>
+                          <span style={{
+                            fontFamily: 'var(--font-mono)',
+                            fontWeight: 700,
+                            fontSize: '0.74rem',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            backgroundColor: 'var(--bg-card-secondary)',
+                            border: '1px solid var(--border-subtle)',
+                            color: 'var(--brand-primary)'
+                          }}>
+                            #{meter.slave_id}
+                          </span>
+                        </td>
+                        <td style={{ padding: '10px 12px' }}>
+                          <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                            {meter.Meter_name}
+                          </div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                            {meter.make_name ? `${meter.make_name} • ` : ''}{meter.meter_model || 'Standard Meter'}
+                          </div>
+                        </td>
+                        <td style={{ padding: '10px 12px' }}>
+                          <span style={{
+                            fontSize: '0.72rem',
+                            color: 'var(--text-secondary)',
+                            backgroundColor: 'var(--bg-card-secondary)',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            border: '1px solid var(--border-subtle)'
+                          }}>
+                            {meter.device_profile || 'Default Profile'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '10px 12px', fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                          {meter.meter_serial_number || '—'}
+                        </td>
+                        <td style={{ padding: '10px 12px', textAlign: 'center' }}>
+                          <span style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '2px 8px',
+                            borderRadius: '12px',
+                            fontSize: '0.72rem',
+                            fontWeight: 600,
+                            backgroundColor: isMeterOnline ? 'var(--status-success-bg)' : 'var(--status-danger-bg)',
+                            color: isMeterOnline ? 'var(--status-success-text)' : 'var(--status-danger-text)',
+                            border: `1px solid ${isMeterOnline ? 'var(--status-success-border)' : 'var(--status-danger-border)'}`
+                          }}>
+                            <span style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: 'currentColor' }} />
+                            {isMeterOnline ? 'Active' : 'Offline'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '10px 12px', textAlign: 'center' }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                            <button
+                              type="button"
+                              onClick={() => openTestMeter(meter, channel)}
+                              className="btn btn-secondary"
+                              style={{ padding: '3px 8px', fontSize: '0.72rem', gap: '4px' }}
+                              title="Run live Modbus telemetry test"
+                            >
+                              <Zap size={11} color="var(--brand-primary)" /> Test
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => openEditMeter(meter, channel)}
+                              className="btn-icon"
+                              style={{ color: 'var(--text-secondary)', padding: '4px' }}
+                              title="Edit Meter"
+                            >
+                              <Edit3 size={13} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteMeter(meter)}
+                              className="btn-icon"
+                              style={{ color: 'var(--accent-rose)', padding: '4px' }}
+                              title="Delete Meter"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // ── Communication Test Modal Component ──
   const renderTestModal = () => {
-    const activeGateway = selectedGateway || (testingChannel ? gateways.find(g => g.Gateway_id === testingChannel.Gateway_id) : gateways[0]);
+    if (!testingMeter || !isTestModalOpen) return null;
+    const isTesting = testStatus === 'testing';
+    const isFailure = testStatus === 'failure';
 
     return (
       <Modal
         isOpen={isTestModalOpen}
         onClose={() => setIsTestModalOpen(false)}
-        title={`Meter Communication Diagnostic Test`}
+        title="Hardware Telemetry Diagnostic Terminal"
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {/* Header Context Card: Gateway > Channel > Meter Hierarchy + Image 1 Info */}
+          {/* Target Info Bar */}
           <div style={{
-            padding: '14px 16px',
-            backgroundColor: '#f8fafc',
-            border: '1px solid #e2e8f0',
-            borderRadius: '10px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '12px'
+            padding: '12px 14px',
+            backgroundColor: 'var(--bg-card-secondary)',
+            borderRadius: 'var(--radius-lg)',
+            border: '1px solid var(--border-subtle)',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+            gap: '10px',
+            fontSize: '0.78rem'
           }}>
-            {/* Hierarchy Header: Gateway > Channel > Meter */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', fontSize: '0.82rem' }}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 600, color: '#475569' }}>
-                  <Server size={14} color="#0284c7" />
-                  {activeGateway?.Gateway_name || 'Gateway'}
-                </span>
-                <ChevronRight size={13} color="#94a3b8" />
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 600, color: '#475569' }}>
-                  <Network size={14} color="#0284c7" />
-                  {testingChannel?.Channel_name || 'Channel'}
-                </span>
-                <ChevronRight size={13} color="#94a3b8" />
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 700, color: '#0f172a' }}>
-                  <Cpu size={14} color="#7c3aed" />
-                  {testingMeter?.Meter_name || testingMeter?.meter_model || 'Meter'}
-                </span>
-              </div>
+            <div>
+              <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.68rem', textTransform: 'uppercase' }}>Target Meter</span>
+              <strong style={{ color: 'var(--text-primary)' }}>{testingMeter.Meter_name}</strong>
             </div>
-
-            {/* Image 1 Configuration Parameters Grid */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(115px, 1fr))',
-              gap: '8px',
-              paddingTop: '10px',
-              borderTop: '1px solid #e2e8f0'
-            }}>
-              {/* Serial Number */}
-              <div style={{
-                backgroundColor: '#ffffff',
-                padding: '8px 12px',
-                borderRadius: '8px',
-                border: '1px solid #e2e8f0'
-              }}>
-                <div style={{ fontSize: '0.67rem', color: '#64748b', fontWeight: 600 }}>Serial Number</div>
-                <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0f172a', fontFamily: 'monospace', marginTop: '2px', wordBreak: 'break-all' }}>
-                  {testingMeter?.meter_serial_number || testingMeter?.Meter_id || 'SCH-MTR-4112'}
-                </div>
-              </div>
-
-              {/* Status */}
-              <div style={{
-                backgroundColor: '#ffffff',
-                padding: '8px 12px',
-                borderRadius: '8px',
-                border: '1px solid #e2e8f0'
-              }}>
-                <div style={{ fontSize: '0.67rem', color: '#64748b', fontWeight: 600 }}>Status</div>
-                <div style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  fontSize: '0.8rem',
-                  fontWeight: 700,
-                  color: (testingMeter?.status || 'Active') === 'Active' ? '#059669' : '#dc2626',
-                  marginTop: '2px'
-                }}>
-                  <span style={{
-                    width: '6px',
-                    height: '6px',
-                    borderRadius: '50%',
-                    backgroundColor: (testingMeter?.status || 'Active') === 'Active' ? '#10b981' : '#ef4444'
-                  }} />
-                  {testingMeter?.status || 'Active'}
-                </div>
-              </div>
-
-              {/* Baud Rate */}
-              <div style={{
-                backgroundColor: '#ffffff',
-                padding: '8px 12px',
-                borderRadius: '8px',
-                border: '1px solid #e2e8f0'
-              }}>
-                <div style={{ fontSize: '0.67rem', color: '#64748b', fontWeight: 600 }}>Baud Rate</div>
-                <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0f172a', fontFamily: 'monospace', marginTop: '2px' }}>
-                  {testingMeter?.baud_rate || testingChannel?.baud_rate || '9600'} bps
-                </div>
-              </div>
-
-              {/* Parity Bit */}
-              <div style={{
-                backgroundColor: '#ffffff',
-                padding: '8px 12px',
-                borderRadius: '8px',
-                border: '1px solid #e2e8f0'
-              }}>
-                <div style={{ fontSize: '0.67rem', color: '#64748b', fontWeight: 600 }}>Parity Bit</div>
-                <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0f172a', marginTop: '2px' }}>
-                  {testingMeter?.parity_bit || testingChannel?.parity_bit || 'None'}
-                </div>
-              </div>
-
-              {/* Stop Bit */}
-              <div style={{
-                backgroundColor: '#ffffff',
-                padding: '8px 12px',
-                borderRadius: '8px',
-                border: '1px solid #e2e8f0'
-              }}>
-                <div style={{ fontSize: '0.67rem', color: '#64748b', fontWeight: 600 }}>Stop Bit</div>
-                <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0f172a', fontFamily: 'monospace', marginTop: '2px' }}>
-                  {testingMeter?.stop_bit !== undefined && testingMeter?.stop_bit !== null ? testingMeter.stop_bit : (testingChannel?.stop_bit ?? '1')}
-                </div>
-              </div>
-
-              {/* Data Bit */}
-              <div style={{
-                backgroundColor: '#ffffff',
-                padding: '8px 12px',
-                borderRadius: '8px',
-                border: '1px solid #e2e8f0'
-              }}>
-                <div style={{ fontSize: '0.67rem', color: '#64748b', fontWeight: 600 }}>Data Bit</div>
-                <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0f172a', fontFamily: 'monospace', marginTop: '2px' }}>
-                  {testingMeter?.data_bit !== undefined && testingMeter?.data_bit !== null ? testingMeter.data_bit : (testingChannel?.data_bit ?? '8')}
-                </div>
-              </div>
+            <div>
+              <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.68rem', textTransform: 'uppercase' }}>Slave ID</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--brand-primary)' }}>#{testingMeter.slave_id}</span>
+            </div>
+            <div>
+              <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.68rem', textTransform: 'uppercase' }}>Baud / Parity</span>
+              <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>{testingMeter.baud_rate || '9600'}-8-{testingMeter.parity_bit?.[0] || 'N'}-1</span>
+            </div>
+            <div>
+              <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.68rem', textTransform: 'uppercase' }}>Channel Port</span>
+              <span style={{ color: 'var(--text-secondary)' }}>{testingChannel?.Channel_name || 'RS485 Port'}</span>
             </div>
           </div>
 
-          {/* Visual Data Flow Diagram */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '12px 18px',
-            backgroundColor: '#ffffff',
-            borderRadius: '10px',
-            border: '1px solid #e2e8f0'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#f0f9ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Server size={16} color="#0284c7" />
-              </div>
-              <div>
-                <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#0f172a' }}>{activeGateway?.Gateway_name || 'Gateway'}</div>
-                <div style={{ fontSize: '0.68rem', color: '#64748b', fontFamily: 'monospace' }}>IP: {activeGateway?.ip_address || '192.168.1.100'}</div>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flex: 1, padding: '0 16px' }}>
-              <div style={{ fontSize: '0.68rem', fontWeight: 700, color: testStatus === 'failure' ? '#dc2626' : testStatus === 'success' ? '#16a34a' : testStatus === 'testing' ? '#0284c7' : '#64748b' }}>
-                {testStatus === 'testing' && '⇄ Transmitting Modbus Packets ⇄'}
-                {testStatus === 'failure' && '✕ No Data Returned (Link Break / Timeout) ✕'}
-                {testStatus === 'success' && '✓ Data Packet Received OK (412.8 W) ✓'}
-                {testStatus === 'idle' && 'Ready to verify data communication'}
-              </div>
-              <div style={{ width: '100%', height: '4px', backgroundColor: '#e2e8f0', borderRadius: '2px', position: 'relative', overflow: 'hidden' }}>
-                <div style={{
-                  height: '100%',
-                  width: '100%',
-                  backgroundColor: testStatus === 'failure' ? '#ef4444' : testStatus === 'success' ? '#22c55e' : testStatus === 'testing' ? '#0284c7' : '#94a3b8',
-                  transition: 'background-color 0.3s ease'
-                }} />
-              </div>
-              <div style={{ fontSize: '0.65rem', color: '#94a3b8' }}>Port: {testingChannel?.port || 'COM1'} • Baud: {testingMeter?.baud_rate || '9600'}</div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#0f172a' }}>{testingMeter?.Meter_name || 'Meter'}</div>
-                <div style={{ fontSize: '0.68rem', color: '#64748b', fontFamily: 'monospace' }}>Slave ID #{testingMeter?.slave_id || '1'}</div>
-              </div>
-              <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#f5f3ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Cpu size={16} color="#7c3aed" />
-              </div>
+          {/* Test Mode Switcher */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+              Diagnostic Mode:
+            </span>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              <button
+                type="button"
+                onClick={() => setTestMode('auto')}
+                style={{
+                  padding: '4px 10px',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: '0.74rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  border: testMode === 'auto' ? '1px solid var(--brand-primary)' : '1px solid var(--border-subtle)',
+                  backgroundColor: testMode === 'auto' ? 'var(--brand-surface)' : 'var(--bg-card)',
+                  color: testMode === 'auto' ? 'var(--brand-primary)' : 'var(--text-secondary)'
+                }}
+              >
+                Auto Detect
+              </button>
+              <button
+                type="button"
+                onClick={() => setTestMode('pass')}
+                style={{
+                  padding: '4px 10px',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: '0.74rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  border: testMode === 'pass' ? '1px solid var(--status-success-border)' : '1px solid var(--border-subtle)',
+                  backgroundColor: testMode === 'pass' ? 'var(--status-success-bg)' : 'var(--bg-card)',
+                  color: testMode === 'pass' ? 'var(--status-success-text)' : 'var(--text-secondary)'
+                }}
+              >
+                Simulate Success
+              </button>
+              <button
+                type="button"
+                onClick={() => setTestMode('fail')}
+                style={{
+                  padding: '4px 10px',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: '0.74rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  border: testMode === 'fail' ? '1px solid var(--status-danger-border)' : '1px solid var(--border-subtle)',
+                  backgroundColor: testMode === 'fail' ? 'var(--status-danger-bg)' : 'var(--bg-card)',
+                  color: testMode === 'fail' ? 'var(--status-danger-text)' : 'var(--text-secondary)'
+                }}
+              >
+                Simulate Timeout
+              </button>
             </div>
           </div>
 
-          {/* Progress Bar & Status */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                {testStatus === 'testing' && <RefreshCw size={13} className="spin-animate" color="#0284c7" />}
-                {testStatus === 'success' && <CheckCircle size={14} color="#15803d" />}
-                {testStatus === 'failure' && <AlertCircle size={14} color="#dc2626" />}
-                <span>
-                  {testStatus === 'idle' && 'Click Start Communication Test to send packet'}
-                  {testStatus === 'testing' && `Verifying data packet from Meter to Gateway... ${testProgress}%`}
-                  {testStatus === 'success' && 'Data verified! Successfully received by Gateway'}
-                  {testStatus === 'failure' && 'Data failed to reach Gateway. Meter marked OFFLINE!'}
-                </span>
-              </span>
-              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: testStatus === 'failure' ? '#dc2626' : '#0284c7' }}>
-                {testProgress}%
-              </span>
-            </div>
-
-            <div style={{ width: '100%', height: '8px', backgroundColor: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
+          {/* Progress bar */}
+          {testProgress > 0 && (
+            <div style={{ width: '100%', height: '6px', borderRadius: '3px', backgroundColor: 'var(--border-subtle)', overflow: 'hidden' }}>
               <div style={{
-                height: '100%',
                 width: `${testProgress}%`,
-                backgroundColor: testStatus === 'failure' ? '#ef4444' : testStatus === 'success' ? '#22c55e' : '#0284c7',
-                transition: 'width 0.3s ease, background-color 0.3s ease'
+                height: '100%',
+                backgroundColor: isFailure ? 'var(--accent-rose)' : 'var(--brand-primary)',
+                transition: 'width 0.3s ease'
               }} />
             </div>
-          </div>
+          )}
 
-          {/* Live Diagnostic Logs */}
+          {/* Terminal Console Logs */}
           <div style={{
-            backgroundColor: '#0f172a',
-            color: '#f8fafc',
-            borderRadius: '8px',
-            padding: '12px',
-            fontFamily: 'monospace',
+            backgroundColor: '#090E1A',
+            color: '#E2E8F0',
+            fontFamily: 'var(--font-mono)',
             fontSize: '0.75rem',
-            maxHeight: '160px',
+            padding: '12px 14px',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid #1E293B',
+            minHeight: '130px',
+            maxHeight: '180px',
             overflowY: 'auto',
-            border: '1px solid #1e293b',
             display: 'flex',
             flexDirection: 'column',
-            gap: '5px'
+            gap: '6px'
           }}>
             {testLogs.length === 0 ? (
-              <span style={{ color: '#64748b' }}>Logs will appear here once communication handshake starts...</span>
+              <div style={{ color: '#64748B', fontStyle: 'italic', padding: '10px 0' }}>
+                &gt; Ready. Click "Start Telemetry Test" to send Modbus query frame...
+              </div>
             ) : (
-              testLogs.map((log, index) => {
-                let logColor = '#cbd5e1';
-                if (log.type === 'success') logColor = '#4ade80';
-                if (log.type === 'error') logColor = '#f87171';
-                if (log.type === 'warning') logColor = '#fbbf24';
-                if (log.type === 'info') logColor = '#38bdf8';
-                return (
-                  <div key={index} style={{ color: logColor, display: 'flex', gap: '8px', lineHeight: 1.4 }}>
-                    <span style={{ color: '#64748b', userSelect: 'none' }}>[{log.time}]</span>
-                    <span>{log.text}</span>
-                  </div>
-                );
-              })
+              testLogs.map((log, idx) => (
+                <div key={idx} style={{
+                  display: 'flex',
+                  gap: '8px',
+                  color: log.type === 'error' ? '#F87171' : log.type === 'warning' ? '#FBBF24' : log.type === 'success' ? '#34D399' : '#94A3B8'
+                }}>
+                  <span style={{ color: '#475569' }}>[{log.time}]</span>
+                  <span>{log.text}</span>
+                </div>
+              ))
             )}
           </div>
 
-          {/* Summary results card if finished */}
+          {/* Test Summary Pill */}
           {testSummary && (
             <div style={{
-              padding: '14px 16px',
-              borderRadius: '8px',
-              backgroundColor: testSummary.success ? '#ecfdf5' : '#fff1f2',
-              border: `1.5px solid ${testSummary.success ? '#a7f3d0' : '#fecdd3'}`,
+              padding: '12px',
+              borderRadius: 'var(--radius-md)',
+              backgroundColor: testSummary.success ? 'var(--status-success-bg)' : 'var(--status-danger-bg)',
+              border: `1px solid ${testSummary.success ? 'var(--status-success-border)' : 'var(--status-danger-border)'}`,
               display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: '12px'
+              flexDirection: 'column',
+              gap: '6px',
+              fontSize: '0.8rem'
             }}>
-              <div>
-                <div style={{ fontSize: '0.84rem', fontWeight: 800, color: testSummary.success ? '#065f46' : '#9f1239' }}>
-                  {testSummary.success ? '✓ Diagnostic Passed: Data is successfully reaching Gateway' : '✕ Diagnostic Alert: Data does NOT reach Gateway'}
-                </div>
-                <div style={{ fontSize: '0.75rem', color: testSummary.success ? '#047857' : '#be123c', marginTop: '3px' }}>
-                  {testSummary.success
-                    ? `Latency: ${testSummary.latencyMs}ms | Power Value: ${testSummary.sampleValue} | Status updated to ACTIVE.`
-                    : `${testSummary.errorReason} Status updated to OFFLINE.`
-                  }
-                </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, color: testSummary.success ? 'var(--status-success-text)' : 'var(--status-danger-text)' }}>
+                {testSummary.success ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+                {testSummary.success ? `Modbus Telemetry Verified (${testSummary.latencyMs}ms roundtrip)` : 'Modbus Communication Failed'}
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{
-                  fontSize: '0.72rem',
-                  fontWeight: 800,
-                  padding: '4px 10px',
-                  borderRadius: '6px',
-                  backgroundColor: testSummary.success ? '#10b981' : '#f43f5e',
-                  color: '#fff',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}>
-                  {testSummary.success ? 'COMM ACTIVE / ONLINE' : 'MARKED OFFLINE'}
-                </span>
-                {/* Manual toggle override */}
-                {testSummary.success ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      updateMeter(testingMeter.Meter_id, { status: 'Offline' });
-                      setTestingMeter(prev => prev ? { ...prev, status: 'Offline' } : null);
-                      setSuccessMsg(`Meter ${testingMeter.Meter_name} manually set to OFFLINE.`);
-                    }}
-                    style={{
-                      padding: '4px 8px',
-                      borderRadius: '6px',
-                      fontSize: '0.7rem',
-                      fontWeight: 700,
-                      backgroundColor: '#fff',
-                      border: '1px solid #fecdd3',
-                      color: '#dc2626',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Force Offline
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      updateMeter(testingMeter.Meter_id, { status: 'Active' });
-                      setTestingMeter(prev => prev ? { ...prev, status: 'Active' } : null);
-                      setSuccessMsg(`Meter ${testingMeter.Meter_name} manually set to ACTIVE.`);
-                    }}
-                    style={{
-                      padding: '4px 8px',
-                      borderRadius: '6px',
-                      fontSize: '0.7rem',
-                      fontWeight: 700,
-                      backgroundColor: '#fff',
-                      border: '1px solid #a7f3d0',
-                      color: '#059669',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Force Active
-                  </button>
-                )}
+              <div style={{ display: 'flex', gap: '16px', fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
+                <span>Loss: {testSummary.packetLoss}</span>
+                {testSummary.sampleValue && <span>Sample: {testSummary.sampleValue} ({testSummary.voltage})</span>}
+                {testSummary.errorReason && <span style={{ color: 'var(--accent-rose)' }}>{testSummary.errorReason}</span>}
               </div>
             </div>
           )}
 
-          {/* Modal Actions */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '8px' }}>
+          {/* Modal Footer Actions */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '6px' }}>
             <button
               type="button"
               onClick={() => setIsTestModalOpen(false)}
-              style={cancelBtnStyle}
+              className="btn btn-secondary"
             >
               Close
             </button>
             <button
               type="button"
               onClick={() => runCommunicationTest()}
-              disabled={testStatus === 'testing'}
-              style={{
-                ...saveBtnStyle,
-                backgroundColor: testStatus === 'testing' ? '#94a3b8' : '#0284c7',
-                cursor: testStatus === 'testing' ? 'not-allowed' : 'pointer'
-              }}
+              disabled={isTesting}
+              className="btn btn-primary"
+              style={{ gap: '6px' }}
             >
-              {testStatus === 'testing' ? (
+              {isTesting ? (
                 <>
-                  <RefreshCw size={14} className="spin-animate" /> Verifying Data Flow...
+                  <RefreshCw size={14} className="spin-animate" /> Sending Frame...
                 </>
               ) : (
                 <>
-                  <Zap size={14} /> Start Communication Test
+                  <Zap size={14} /> Start Telemetry Test
                 </>
               )}
             </button>
@@ -1062,771 +1128,490 @@ export const DeviceMasterView = () => {
     );
   };
 
-  // ─── FORM VIEW ──────────────────────────────────────────────────────────────
+  // ─── VIEW 1: GATEWAY FORM (ADD / EDIT) ──────────────────────────────────────
   if (viewMode === 'form') {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '1100px', margin: '0 auto' }}>
-        {/* Header */}
-        <div style={cardStyle}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%' }}>
+        {/* Form Header */}
+        <div style={{
+          backgroundColor: 'var(--bg-card)',
+          borderRadius: 'var(--radius-xl)',
+          border: '1px solid var(--border-subtle)',
+          padding: '20px 24px',
+          boxShadow: 'var(--shadow-card)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '14px',
+          flexWrap: 'wrap'
+        }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            <button onClick={() => setViewMode('list')} style={backBtnStyle}>
+            <button onClick={() => setViewMode('list')} className="btn-icon" title="Back to Devices">
               <ArrowLeft size={18} />
             </button>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Server size={20} color="#fff" />
-              </div>
-              <div>
-                <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
-                  {editingId ? 'Edit Device' : 'Register New Device'}
-                </h2>
-              </div>
+            <div>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                {editingId ? `Edit Gateway — ${form.Gateway_name}` : 'Register New Gateway Device'}
+              </h2>
             </div>
+          </div>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button type="button" onClick={() => setViewMode('list')} className="btn btn-secondary">
+              Cancel
+            </button>
+            <button type="button" onClick={handleSave} className="btn btn-primary" style={{ gap: '6px' }}>
+              <Save size={15} /> Save Gateway
+            </button>
           </div>
         </div>
 
         {errorMsg && (
-          <div style={{ padding: '12px 16px', backgroundColor: '#fff1f2', border: '1px solid #fecdd3', borderRadius: '10px', color: '#9f1239', fontSize: '0.84rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <AlertCircle size={15} /> {errorMsg}
+          <div style={{
+            padding: '12px 16px',
+            backgroundColor: 'var(--status-danger-bg)',
+            border: '1px solid var(--status-danger-border)',
+            borderRadius: 'var(--radius-md)',
+            color: 'var(--status-danger-text)',
+            fontSize: '0.84rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <AlertCircle size={16} /> {errorMsg}
           </div>
         )}
 
-        {/* Identity Section */}
-        <div style={cardStyle}>
-          <SectionTitle icon={<Fingerprint size={16} />} title="Device Identity" />
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '18px', marginTop: '16px' }}>
-            <Field label="Device Name *">
-              <input style={inputStyle} value={form.Gateway_name}
-                onChange={e => setForm(p => ({ ...p, Gateway_name: e.target.value }))}
-                placeholder="e.g. Substation Alpha Gateway" />
-            </Field>
-            <Field label="Serial Number *">
-              <input style={inputStyle} value={form.serial_number}
-                onChange={e => setForm(p => ({ ...p, serial_number: e.target.value }))}
-                placeholder="e.g. SAB-GW-2026-001" />
-            </Field>
-            <Field label="IP Address *">
-              <input style={inputStyle} value={form.ip_address}
-                onChange={e => setForm(p => ({ ...p, ip_address: e.target.value }))}
-                placeholder="e.g. 192.168.1.150" />
-            </Field>
-            <Field label="MAC Address *">
-              <input style={inputStyle} value={form.mac_address}
-                onChange={e => setForm(p => ({ ...p, mac_address: e.target.value }))}
-                placeholder="e.g. 00:1B:44:11:3A:B7" />
-            </Field>
+        {/* Section 1: Network & Hardware Identity */}
+        <div style={{
+          backgroundColor: 'var(--bg-card)',
+          borderRadius: 'var(--radius-xl)',
+          border: '1px solid var(--border-subtle)',
+          padding: '22px 24px',
+          boxShadow: 'var(--shadow-card)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '18px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '12px' }}>
+            <Fingerprint size={18} color="var(--brand-primary)" />
+            <h3 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+              Hardware Identity & Network IP
+            </h3>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '18px' }}>
+            <InputField
+              label="Gateway Name"
+              required
+              value={form.Gateway_name}
+              onChange={e => setForm(p => ({ ...p, Gateway_name: e.target.value }))}
+              placeholder="e.g. Substation Alpha Gateway"
+            />
+            <InputField
+              label="Hardware Serial Number"
+              required
+              value={form.serial_number}
+              onChange={e => setForm(p => ({ ...p, serial_number: e.target.value }))}
+              placeholder="e.g. SAB-GW-2026-001"
+            />
+            <InputField
+              label="IP Address"
+              required
+              value={form.ip_address}
+              onChange={e => setForm(p => ({ ...p, ip_address: e.target.value }))}
+              placeholder="e.g. 192.168.1.150"
+            />
+            <InputField
+              label="MAC Address"
+              required
+              value={form.mac_address}
+              onChange={e => setForm(p => ({ ...p, mac_address: e.target.value }))}
+              placeholder="e.g. 00:1B:44:11:3A:B7"
+            />
           </div>
         </div>
 
-        {/* Make, Model & Channel Capacity Section */}
-        <div style={cardStyle}>
-          <SectionTitle icon={<Cpu size={16} />} title="Make, Model & Channel Configuration" />
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '18px', marginTop: '16px' }}>
-            <Field label="Make (Manufacturer) *">
-              <select style={selectStyle} value={form.gw_make_id} onChange={e => handleMakeChange(e.target.value)}>
-                <option value="">-- Select Make --</option>
-                {gatewayMakes.map(m => (
-                  <option key={m.gw_make_id} value={m.gw_make_id}>{m.gw_make_name}</option>
+        {/* Section 2: Make, Model & Channel Specifications */}
+        <div style={{
+          backgroundColor: 'var(--bg-card)',
+          borderRadius: 'var(--radius-xl)',
+          border: '1px solid var(--border-subtle)',
+          padding: '22px 24px',
+          boxShadow: 'var(--shadow-card)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '18px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '12px' }}>
+            <Cpu size={18} color="var(--brand-primary)" />
+            <h3 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+              Manufacturer & Channel Capacity
+            </h3>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '18px' }}>
+            <SelectField
+              label="Manufacturer Make"
+              required
+              value={form.gw_make_id}
+              onChange={e => handleGatewayMakeChange(e.target.value)}
+            >
+              <option value="">Select Gateway Manufacturer</option>
+              {gatewayMakes.map(m => (
+                <option key={m.gw_make_id} value={m.gw_make_id}>{m.gw_make_name}</option>
+              ))}
+            </SelectField>
+
+            <SelectField
+              label="Gateway Hardware Model"
+              required
+              value={form.gw_model_id}
+              onChange={e => handleGatewayModelChange(e.target.value)}
+            >
+              <option value="">Select Gateway Model</option>
+              {gatewayModels
+                .filter(m => !form.gw_make_id || m.gw_make_id === form.gw_make_id)
+                .map(m => (
+                  <option key={m.gw_model_id} value={m.gw_model_id}>
+                    {m.gw_model_name} ({m.channel_count} channels)
+                  </option>
                 ))}
-              </select>
-            </Field>
-            <Field label="Model *">
-              <select style={selectStyle} value={form.gw_model_id} onChange={e => handleModelChange(e.target.value)}>
-                <option value="">-- Select Model --</option>
-                {availableModels.map(m => (
-                  <option key={m.gw_model_id} value={m.gw_model_id}>{m.gw_model_name}</option>
-                ))}
-                {availableModels.length === 0 && <option value="" disabled>No models for selected make</option>}
-              </select>
-            </Field>
-            <Field label="Channel Count (How many channels to connect) *">
-              <div style={{ position: 'relative' }}>
-                <input
-                  style={inputStyle}
-                  type="number"
-                  min="1"
-                  max="32"
-                  value={form.channel_count}
+            </SelectField>
+
+            <InputField
+              label="Channel Slot Count"
+              type="number"
+              min="1"
+              max="16"
+              value={form.channel_count}
+              onChange={e => {
+                const newCount = Math.max(1, parseInt(e.target.value, 10) || 1);
+                setForm(p => {
+                  const existingNames = p.channel_names || [];
+                  const updatedNames = Array.from({ length: newCount }, (_, i) => existingNames[i] || `Channel ${i + 1}`);
+                  return { ...p, channel_count: newCount, channel_names: updatedNames };
+                });
+              }}
+            />
+
+            <InputField
+              label="Keep Alive Polling (Seconds)"
+              type="number"
+              min="5"
+              max="300"
+              value={form.keep_alive_seconds}
+              onChange={e => setForm(p => ({ ...p, keep_alive_seconds: Number(e.target.value) }))}
+            />
+          </div>
+
+          {/* Channel Name Customization */}
+          <div style={{ marginTop: '10px' }}>
+            <span style={{ fontSize: '0.76rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Channel Port Names
+            </span>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', marginTop: '10px' }}>
+              {Array.from({ length: Math.max(1, parseInt(form.channel_count, 10) || 1) }, (_, idx) => (
+                <InputField
+                  key={idx}
+                  label={`Slot #${idx + 1} Name`}
+                  value={form.channel_names?.[idx] || ''}
+                  placeholder={`Channel ${idx + 1}`}
                   onChange={e => {
-                    const newCount = Math.max(1, parseInt(e.target.value, 10) || 1);
+                    const val = e.target.value;
                     setForm(p => {
-                      const existingNames = p.channel_names || [];
-                      const updatedNames = Array.from({ length: newCount }, (_, i) => existingNames[i] || `Channel ${i + 1}`);
-                      return { ...p, channel_count: newCount, channel_names: updatedNames };
+                      const next = [...(p.channel_names || [])];
+                      next[idx] = val;
+                      return { ...p, channel_names: next };
                     });
                   }}
-                  placeholder="e.g. 4"
                 />
-                <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>
-                  Channels
-                </span>
-              </div>
-              <small style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
-                Defines how many communication channels will be created and displayed under this gateway.
-              </small>
-            </Field>
-            <Field label="Firmware Version">
-              <input style={inputStyle} value={form.firmware_version}
-                onChange={e => setForm(p => ({ ...p, firmware_version: e.target.value }))}
-                placeholder="e.g. v2.4.1 (optional)" />
-            </Field>
-            <Field label="Keep Alive (seconds)">
-              <input style={inputStyle} type="number" value={form.keep_alive_seconds}
-                onChange={e => setForm(p => ({ ...p, keep_alive_seconds: Number(e.target.value) }))}
-                placeholder="30" min="5" />
-            </Field>
+              ))}
+            </div>
           </div>
-        </div>
-
-        {/* Dynamic Channel Slots based on Channel Count */}
-        <div style={cardStyle}>
-          <SectionTitle
-            icon={<Network size={16} />}
-            title={`Channel Configuration (${form.channel_count || 1} Channel${(form.channel_count || 1) === 1 ? '' : 's'} based on Channel Count)`}
-          />
-          <p style={{ fontSize: '0.76rem', color: 'var(--text-muted)', margin: '4px 0 16px' }}>
-            These channel slots will be created under this gateway based on the channel count. Names are pre-filled from the selected model and can be customized.
-          </p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '14px' }}>
-            {Array.from({ length: Math.max(1, parseInt(form.channel_count, 10) || 1) }, (_, idx) => {
-              const chNum = idx + 1;
-              return (
-                <div
-                  key={`channel-slot-${chNum}`}
-                  style={{
-                    padding: '12px 14px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--border-subtle)',
-                    backgroundColor: 'var(--bg-card-secondary)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '6px',
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--brand-primary)' }}>
-                      Channel Slot #{chNum}
-                    </span>
-                    <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                      {chNum === 1 ? 'Modbus RTU/TCP' : `COM${chNum}`}
-                    </span>
-                  </div>
-                  <input
-                    style={inputStyle}
-                    value={form.channel_names?.[idx] || ''}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setForm((prev) => {
-                        const next = [...(prev.channel_names || [])];
-                        next[idx] = val;
-                        return { ...prev, channel_names: next };
-                      });
-                    }}
-                    placeholder={`e.g. Channel ${chNum} Name`}
-                  />
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Actions */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', ...cardStyle }}>
-          <button onClick={() => setViewMode('list')} style={cancelBtnStyle}>
-            <X size={15} /> Cancel
-          </button>
-          <button onClick={handleSave} style={saveBtnStyle}>
-            <Save size={15} /> {editingId ? 'Update Device' : 'Register Device'}
-          </button>
         </div>
       </div>
     );
   }
 
+  // ─── VIEW 2: SELECTED GATEWAY HIERARCHY (CHANNELS & METERS) ────────────────
   if (selectedGateway) {
-    const displayChannels = selectedChannels.slice(0, 2);
-    const totalSlots = 2;
-
-    const renderChannelCard = (channel, slotNum) => {
-      if (!channel) {
-        return (
-          <div
-            key={`unassigned-slot-${slotNum}`}
-            style={{
-              ...cardStyle,
-              padding: '32px 20px',
-              border: '1.5px dashed #cbd5e1',
-              backgroundColor: '#fafbfc',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              textAlign: 'center',
-              gap: '12px',
-              minHeight: '260px',
-              height: '100%'
-            }}
-          >
-            <div style={{ width: '46px', height: '46px', borderRadius: '12px', backgroundColor: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Network size={22} color="#94a3b8" />
-            </div>
-            <div>
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Channel {slotNum}
-              </span>
-              <h4 style={{ margin: '4px 0 6px', color: '#334155', fontSize: '1rem', fontWeight: 700 }}>
-                Unassigned Channel Slot
-              </h4>
-              <p style={{ margin: 0, fontSize: '0.78rem', color: '#94a3b8' }}>
-                Channel {slotNum} is not configured yet for {selectedGateway.Gateway_name}.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => openAddChannelSlot(slotNum)}
-              style={{
-                ...saveBtnStyle,
-                fontSize: '0.78rem',
-                padding: '7px 14px',
-                marginTop: '4px'
-              }}
-            >
-              <Plus size={14} /> Configure Channel {slotNum}
-            </button>
-          </div>
-        );
-      }
-
-      const channelMeters = meters.filter(m => m.Channel_id === channel.Channel_id);
-      const cleanChannelTitle = channel.Channel_name && /^channel\s*\d+/i.test(channel.Channel_name)
-        ? channel.Channel_name.replace(/^channel\s*\d+/i, `Channel ${slotNum}`)
-        : (channel.Channel_name || `Channel ${slotNum}`);
-
-      return (
-        <div
-          key={channel.Channel_id}
-          style={{
-            ...cardStyle,
-            padding: '18px 20px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '14px',
-            border: '1px solid var(--border-subtle)',
-            boxShadow: 'var(--shadow-card)',
-            height: '100%'
-          }}
-        >
-          {/* Channel Header (Name, Slot, Status & Actions) */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{
-                width: '38px',
-                height: '38px',
-                borderRadius: '8px',
-                backgroundColor: channel.status === 'Active' ? '#ecfdf5' : '#f1f5f9',
-                color: channel.status === 'Active' ? '#059669' : '#64748b',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                border: `1px solid ${channel.status === 'Active' ? '#a7f3d0' : '#e2e8f0'}`,
-                flexShrink: 0
-              }}>
-                <Network size={18} />
-              </div>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                  <span style={{
-                    fontSize: '0.68rem',
-                    fontWeight: 800,
-                    color: slotNum === 1 ? '#0284c7' : '#16805D',
-                    backgroundColor: slotNum === 1 ? '#eff6ff' : '#f0fdf4',
-                    border: `1px solid ${slotNum === 1 ? '#bfdbfe' : '#bbf7d0'}`,
-                    padding: '2px 7px',
-                    borderRadius: '4px'
-                  }}>
-                    CHANNEL {slotNum}
-                  </span>
-                  <h3 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                    {cleanChannelTitle}
-                  </h3>
-                  <span style={{
-                    padding: '2px 7px',
-                    borderRadius: '10px',
-                    fontSize: '0.68rem',
-                    fontWeight: 700,
-                    backgroundColor: channel.status === 'Active' ? '#ecfdf5' : '#f1f5f9',
-                    color: channel.status === 'Active' ? '#059669' : '#64748b',
-                    border: `1px solid ${channel.status === 'Active' ? '#a7f3d0' : '#e2e8f0'}`
-                  }}>
-                    {channel.status || 'Active'}
-                  </span>
-                </div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px', fontFamily: 'monospace' }}>
-                  ID: {channel.Channel_id}
-                </div>
-              </div>
-            </div>
-
-            {/* Actions for this Channel */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <button
-                type="button"
-                onClick={() => openAddMeter(channel)}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  padding: '5px 10px',
-                  borderRadius: '6px',
-                  backgroundColor: '#16805D',
-                  color: '#fff',
-                  border: 'none',
-                  fontSize: '0.74rem',
-                  fontWeight: 700,
-                  cursor: 'pointer'
-                }}
-                title={`Add meter to ${cleanChannelTitle}`}
-              >
-                <Plus size={13} /> Add Meter
-              </button>
-              <button
-                type="button"
-                onClick={() => openEditChannel(channel)}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  padding: '5px 8px',
-                  borderRadius: '6px',
-                  backgroundColor: '#f8fafc',
-                  color: '#334155',
-                  border: '1px solid #cbd5e1',
-                  fontSize: '0.74rem',
-                  fontWeight: 600,
-                  cursor: 'pointer'
-                }}
-                title="Edit Channel settings"
-              >
-                <Edit3 size={12} />
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDeleteChannel(channel)}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  padding: '5px 8px',
-                  borderRadius: '6px',
-                  backgroundColor: '#fef2f2',
-                  color: '#dc2626',
-                  border: '1px solid #fecaca',
-                  fontSize: '0.74rem',
-                  fontWeight: 600,
-                  cursor: 'pointer'
-                }}
-                title="Delete this channel"
-              >
-                <Trash2 size={12} />
-              </button>
-            </div>
-          </div>
-
-          {/* Channel Basic Parameters Strip */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            padding: '7px 12px',
-            borderRadius: '6px',
-            backgroundColor: '#f8fafc',
-            border: '1px solid #e2e8f0',
-            fontSize: '0.73rem',
-            color: '#475569'
-          }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-              <span style={{ color: '#64748b' }}>Protocol:</span>
-              <strong style={{ color: '#0f172a' }}>{channel.protocol || 'Modbus RTU'}</strong>
-            </div>
-            <span style={{ color: '#cbd5e1' }}>•</span>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-              <span style={{ color: '#64748b' }}>Port:</span>
-              <strong style={{ color: '#0f172a', fontFamily: 'monospace' }}>{channel.port || `COM${slotNum}`}</strong>
-            </div>
-            <span style={{ color: '#cbd5e1' }}>•</span>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-              <span style={{ color: '#64748b' }}>Baud:</span>
-              <strong style={{ color: '#0f172a', fontFamily: 'monospace' }}>{channel.baud_rate || '9600'} bps</strong>
-            </div>
-          </div>
-
-          {/* Channel Meters Section */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Cpu size={15} color="#7c3aed" />
-                <h4 style={{ margin: 0, fontSize: '0.84rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                  Assigned Meters ({channelMeters.length})
-                </h4>
-              </div>
-            </div>
-
-            {channelMeters.length === 0 ? (
-              <div style={{
-                padding: '28px 16px',
-                textAlign: 'center',
-                backgroundColor: '#fafbfc',
-                borderRadius: '8px',
-                border: '1px dashed #cbd5e1',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                flex: 1,
-                minHeight: '120px'
-              }}>
-                <Cpu size={22} color="#94a3b8" />
-                <div style={{ color: '#64748b', fontSize: '0.78rem' }}>
-                  No meters connected to Channel {slotNum} yet.
-                </div>
-                <button
-                  type="button"
-                  onClick={() => openAddMeter(channel)}
-                  style={{
-                    padding: '5px 12px',
-                    borderRadius: '6px',
-                    backgroundColor: '#16805D',
-                    color: '#ffffff',
-                    border: 'none',
-                    fontSize: '0.72rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}
-                >
-                  <Plus size={12} /> Add Meter
-                </button>
-              </div>
-            ) : (
-              <div style={{ overflowX: 'auto', border: '1px solid var(--border-subtle)', borderRadius: '8px' }}>
-                <table className="enterprise-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
-                  <thead>
-                    <tr style={{ backgroundColor: 'var(--bg-card-secondary, #f8fafc)', borderBottom: '1px solid var(--border-subtle)', textAlign: 'left' }}>
-                      <th style={{ padding: '8px 10px', width: '28px' }}>#</th>
-                      <th style={{ padding: '8px 10px' }}>Meter</th>
-                      <th style={{ padding: '8px 10px' }}>Slave ID</th>
-                      <th style={{ padding: '8px 10px' }}>Status</th>
-                      <th style={{ padding: '8px 10px', textAlign: 'right' }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {channelMeters.map((meter, mIdx) => {
-                      const displayName = meter.meter_model || (meter.Meter_name?.includes('(') ? meter.Meter_name.split('(')[0].trim() : meter.Meter_name) || 'Meter';
-                      const displaySerial = meter.meter_serial_number || (meter.Meter_name?.match(/\(([^)]+)\)/)?.[1]) || meter.Meter_id;
-
-                      return (
-                        <tr key={meter.Meter_id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                          <td style={{ padding: '8px 10px', color: 'var(--text-muted)', fontWeight: 600 }}>{mIdx + 1}</td>
-                          <td style={{ padding: '8px 10px' }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <Cpu size={13} color="#7c3aed" style={{ flexShrink: 0 }} />
-                                <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{displayName}</span>
-                              </div>
-                              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', paddingLeft: '19px', fontFamily: 'monospace' }}>
-                                S/N: {displaySerial}
-                              </span>
-                            </div>
-                          </td>
-                          <td style={{ padding: '8px 10px' }}>
-                            <span style={{
-                              fontSize: '0.72rem',
-                              backgroundColor: '#eff6ff',
-                              color: '#1d4ed8',
-                              border: '1px solid #bfdbfe',
-                              padding: '2px 7px',
-                              borderRadius: '4px',
-                              fontWeight: 700
-                            }}>
-                              #{meter.slave_id || '1'}
-                            </span>
-                          </td>
-                          <td style={{ padding: '8px 10px' }}>
-                            {meter.status === 'Active' ? (
-                              <span style={{
-                                padding: '2px 7px',
-                                borderRadius: '10px',
-                                backgroundColor: '#ecfdf5',
-                                color: '#059669',
-                                border: '1px solid #a7f3d0',
-                                fontSize: '0.68rem',
-                                fontWeight: 700,
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '4px'
-                              }}>
-                                <span style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#10b981' }} />
-                                Active
-                              </span>
-                            ) : meter.status === 'Offline' ? (
-                              <span style={{
-                                padding: '2px 7px',
-                                borderRadius: '10px',
-                                backgroundColor: '#fff1f2',
-                                color: '#dc2626',
-                                border: '1px solid #fca5a5',
-                                fontSize: '0.68rem',
-                                fontWeight: 700,
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '4px'
-                              }}>
-                                <WifiOff size={10} color="#dc2626" />
-                                Offline
-                              </span>
-                            ) : (
-                              <span style={{
-                                padding: '2px 7px',
-                                borderRadius: '10px',
-                                backgroundColor: '#f8fafc',
-                                color: '#64748b',
-                                border: '1px solid #e2e8f0',
-                                fontSize: '0.68rem',
-                                fontWeight: 700
-                              }}>
-                                {meter.status || 'Inactive'}
-                              </span>
-                            )}
-                          </td>
-                          <td style={{ padding: '8px 10px', textAlign: 'right' }}>
-                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                              {quickTestingMeterId === meter.Meter_id && (
-                                <span style={{
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '3px',
-                                  padding: '1px 5px',
-                                  borderRadius: '4px',
-                                  backgroundColor: '#eff6ff',
-                                  color: '#0284c7',
-                                  fontSize: '0.66rem',
-                                  fontWeight: 700
-                                }}>
-                                  <RefreshCw size={9} className="spin-animate" /> Pinging...
-                                </span>
-                              )}
-                              <button
-                                type="button"
-                                onClick={() => openTestMeter(meter, channel)}
-                                disabled={quickTestingMeterId === meter.Meter_id}
-                                style={{
-                                  border: meter.status === 'Offline' ? '1px solid #fca5a5' : '1px solid #bfdbfe',
-                                  background: meter.status === 'Offline' ? '#fff1f2' : '#eff6ff',
-                                  color: meter.status === 'Offline' ? '#dc2626' : '#1d4ed8',
-                                  padding: '3px 7px',
-                                  borderRadius: '5px',
-                                  cursor: 'pointer',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '3px',
-                                  fontSize: '0.7rem',
-                                  fontWeight: 700
-                                }}
-                                title="Test communication"
-                              >
-                                {meter.status === 'Offline' ? <WifiOff size={10} color="#dc2626" /> : <Zap size={10} color="#2563eb" />}
-                                Test
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => openEditMeter(meter, channel)}
-                                style={editBtnStyle}
-                                title="Edit Meter"
-                              >
-                                <Edit3 size={12} />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteMeter(meter)}
-                                style={deleteBtnStyle}
-                                title="Delete Meter"
-                              >
-                                <Trash2 size={12} />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </div>
-      );
-    };
+    const totalSlots = Math.max(1, Number(selectedGateway.channel_count) || 2);
+    const displayChannels = Array.from({ length: totalSlots }, (_, idx) => selectedChannels[idx] || null);
+    const status = getDeviceStatus(selectedGateway);
 
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', maxWidth: '1440px', margin: '0 auto' }}>
-        {/* Top Header Card */}
-        <div style={{ ...cardStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            <button
-              onClick={() => {
-                setSelectedGatewayId(null);
-                setSelectedChannelId(null);
-              }}
-              style={backBtnStyle}
-              aria-label="Back to devices"
-            >
-              <ArrowLeft size={18} />
-            </button>
-            <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Server size={22} color="#fff" />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%' }}>
+        {/* Navigation & Gateway Executive Banner */}
+        <div style={{
+          backgroundColor: 'var(--bg-card)',
+          borderRadius: 'var(--radius-xl)',
+          border: '1px solid var(--border-subtle)',
+          boxShadow: 'var(--shadow-card)',
+          padding: '20px 24px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '16px'
+        }}>
+          {/* Top Row: Back button, Gateway Selector, and Action Buttons */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <button
+                onClick={() => setSelectedGatewayId(null)}
+                className="btn btn-secondary"
+                style={{ padding: '6px 12px', fontSize: '0.78rem', gap: '6px' }}
+                title="Return to Device Fleet Table"
+              >
+                <ArrowLeft size={14} /> Back to Fleet
+              </button>
+              <span style={{ color: 'var(--text-dim)' }}>/</span>
+              {/* Quick Gateway Switcher Dropdown */}
+              <select
+                className="select"
+                style={{ padding: '5px 12px', fontSize: '0.82rem', fontWeight: 600, width: 'auto' }}
+                value={selectedGateway.Gateway_id}
+                onChange={e => setSelectedGatewayId(e.target.value)}
+              >
+                {gateways.map(g => (
+                  <option key={g.Gateway_id} value={g.Gateway_id}>
+                    {g.Gateway_name} ({g.Gateway_id})
+                  </option>
+                ))}
+              </select>
             </div>
-            <div>
-              <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.02em' }}>{selectedGateway.Gateway_name}</h2>
-              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '3px 0 0' }}>
-                {selectedGateway.Gateway_id} · {selectedGateway.gw_model_name || 'Gateway'} · {displayChannels.length} of 2 supported channels
-              </p>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={() => openEdit(selectedGateway)}
+                className="btn btn-secondary"
+                style={{ fontSize: '0.78rem', gap: '6px' }}
+              >
+                <Edit3 size={14} /> Edit Gateway
+              </button>
+              <button
+                type="button"
+                onClick={() => openAddChannelSlot(selectedChannels.length + 1)}
+                className="btn btn-primary"
+                style={{ fontSize: '0.78rem', gap: '6px' }}
+              >
+                <Plus size={14} /> Add Channel Slot
+              </button>
             </div>
           </div>
-          {displayChannels.length < 2 && (
-            <button
-              type="button"
-              onClick={openAddChannelGeneral}
-              style={saveBtnStyle}
-              title="Add Channel 2 to this gateway"
-            >
-              <Plus size={15} /> Add Channel 2
-            </button>
-          )}
+
+          {/* Gateway Summary Card Details */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '16px',
+            backgroundColor: 'var(--bg-card-secondary)',
+            borderRadius: 'var(--radius-lg)',
+            border: '1px solid var(--border-subtle)',
+            padding: '16px 20px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div style={{
+                width: '46px',
+                height: '46px',
+                borderRadius: '12px',
+                backgroundColor: 'var(--brand-surface)',
+                color: 'var(--brand-primary)',
+                border: '1px solid var(--brand-border)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}>
+                <Server size={24} />
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                    {selectedGateway.Gateway_name}
+                  </h2>
+                  <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    padding: '2px 8px',
+                    borderRadius: '12px',
+                    fontSize: '0.72rem',
+                    fontWeight: 600,
+                    backgroundColor: status === 'Online' ? 'var(--status-success-bg)' : status === 'Intermittent' ? 'var(--status-warning-bg)' : 'var(--status-danger-bg)',
+                    color: status === 'Online' ? 'var(--status-success-text)' : status === 'Intermittent' ? 'var(--status-warning-text)' : 'var(--status-danger-text)',
+                    border: `1px solid ${status === 'Online' ? 'var(--status-success-border)' : status === 'Intermittent' ? 'var(--status-warning-border)' : 'var(--status-danger-border)'}`
+                  }}>
+                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'currentColor' }} />
+                    {status}
+                  </span>
+                </div>
+                <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                  ID: <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>{selectedGateway.Gateway_id}</span> •
+                  Make: <strong style={{ color: 'var(--text-secondary)' }}>{selectedGateway.gw_make_name || 'SaB Systems'}</strong> •
+                  Model: <strong style={{ color: 'var(--text-secondary)' }}>{selectedGateway.gw_model_name || 'Gateway'}</strong> •
+                  Firmware: <span style={{ fontFamily: 'var(--font-mono)' }}>{selectedGateway.firmware_version || 'v1.0.0'}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Specs & Network Copy Pills */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>IP Address</span>
+                <button
+                  type="button"
+                  onClick={() => handleCopy(selectedGateway.ip_address, 'ip')}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '0.78rem',
+                    padding: '4px 8px',
+                    borderRadius: 'var(--radius-sm)',
+                    backgroundColor: 'var(--bg-card)',
+                    border: '1px solid var(--border-subtle)',
+                    cursor: 'pointer',
+                    color: 'var(--text-primary)'
+                  }}
+                  title="Click to copy IP Address"
+                >
+                  {selectedGateway.ip_address || '—'}
+                  {copiedKey === 'ip' ? <Check size={12} color="var(--brand-primary)" /> : <Copy size={12} color="var(--text-muted)" />}
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>MAC Address</span>
+                <button
+                  type="button"
+                  onClick={() => handleCopy(selectedGateway.mac_address, 'mac')}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '0.78rem',
+                    padding: '4px 8px',
+                    borderRadius: 'var(--radius-sm)',
+                    backgroundColor: 'var(--bg-card)',
+                    border: '1px solid var(--border-subtle)',
+                    cursor: 'pointer',
+                    color: 'var(--text-primary)'
+                  }}
+                  title="Click to copy MAC Address"
+                >
+                  {selectedGateway.mac_address || '—'}
+                  {copiedKey === 'mac' ? <Check size={12} color="var(--brand-primary)" /> : <Copy size={12} color="var(--text-muted)" />}
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Channels / Meters</span>
+                <span style={{
+                  padding: '4px 10px',
+                  borderRadius: 'var(--radius-sm)',
+                  backgroundColor: 'var(--brand-surface)',
+                  color: 'var(--brand-primary)',
+                  fontWeight: 700,
+                  fontSize: '0.78rem',
+                  border: '1px solid var(--brand-border)'
+                }}>
+                  {selectedChannels.length} of {totalSlots} Channels ({meters.filter(m => selectedChannels.some(c => c.Channel_id === m.Channel_id)).length} Meters)
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Parallel Side-by-Side 2-Split Channel Layout (Strictly Channel 1 & Channel 2) */}
+        {/* Dynamic Channel Grid Layout */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+          gridTemplateColumns: totalSlots <= 2 ? 'repeat(auto-fit, minmax(460px, 1fr))' : 'repeat(auto-fill, minmax(420px, 1fr))',
           gap: '20px',
           alignItems: 'stretch'
         }}>
-          {[0, 1].map((slotIndex) => {
-            const channel = displayChannels[slotIndex];
-            return renderChannelCard(channel, slotIndex + 1);
-          })}
+          {displayChannels.map((channel, slotIndex) => renderChannelCard(channel, slotIndex + 1))}
         </div>
 
-        {/* Channel Add/Configure Modal */}
+        {/* Channel Add/Edit Modal */}
         <Modal
           isOpen={isChannelModalOpen}
           onClose={() => setIsChannelModalOpen(false)}
-          title={editingChannelId ? 'Edit Channel' : `Configure Channel for ${selectedGateway?.Gateway_name || 'Gateway'}`}
+          title={editingChannelId ? 'Edit Channel Configuration' : `Configure Communication Channel for ${selectedGateway.Gateway_name}`}
         >
           <form onSubmit={handleChannelSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{ padding: '10px 14px', backgroundColor: '#f0f9ff', borderRadius: '8px', border: '1px solid #bae6fd', fontSize: '0.8rem', color: '#0369a1', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Network size={16} color="#0284c7" />
-              <span>
-                {editingChannelId ? (
-                  <>Editing channel: <strong>{channelForm.Channel_name || editingChannelId}</strong></>
-                ) : (
-                  <>Configuring for slot: <strong>Channel {channelModalSlot || 'New'}</strong> under <strong>{selectedGateway?.Gateway_name}</strong></>
-                )}
-              </span>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', color: '#475569', fontWeight: 600, marginBottom: '6px' }}>
-                Channel Name *
-              </label>
-              <input
-                type="text"
-                required
-                placeholder="e.g. Main Feeder RS485 Loop, Solar Line"
-                value={channelForm.Channel_name}
-                onChange={e => setChannelForm({ ...channelForm, Channel_name: e.target.value })}
-                style={inputStyle}
+            <InputField
+              label="Channel Display Name"
+              required
+              value={channelForm.Channel_name}
+              onChange={e => setChannelForm(p => ({ ...p, Channel_name: e.target.value }))}
+              placeholder="e.g. RS-485 Main Feeder Bus"
+            />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+              <InputField
+                label="Hardware Port"
+                value={channelForm.port}
+                onChange={e => setChannelForm(p => ({ ...p, port: e.target.value }))}
+                placeholder="e.g. COM1 or /dev/ttyS0"
               />
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', color: '#475569', fontWeight: 600, marginBottom: '6px' }}>
-                  Protocol *
-                </label>
-                <select
-                  value={channelForm.protocol}
-                  onChange={e => setChannelForm({ ...channelForm, protocol: e.target.value })}
-                  style={selectStyle}
-                >
-                  <option value="Modbus RTU">Modbus RTU</option>
-                  <option value="Modbus TCP">Modbus TCP</option>
-                  <option value="MQTT">MQTT</option>
-                  <option value="BACnet">BACnet</option>
-                </select>
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', color: '#475569', fontWeight: 600, marginBottom: '6px' }}>
-                  Port / Interface *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. COM1, COM2, 502, 1883"
-                  value={channelForm.port}
-                  onChange={e => setChannelForm({ ...channelForm, port: e.target.value })}
-                  style={inputStyle}
-                />
-              </div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', color: '#475569', fontWeight: 600, marginBottom: '6px' }}>
-                  Baud Rate
-                </label>
-                <select
-                  value={channelForm.baud_rate}
-                  onChange={e => setChannelForm({ ...channelForm, baud_rate: e.target.value })}
-                  style={selectStyle}
-                >
-                  <option value="9600">9600 bps</option>
-                  <option value="19200">19200 bps</option>
-                  <option value="38400">38400 bps</option>
-                  <option value="115200">115200 bps</option>
-                </select>
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', color: '#475569', fontWeight: 600, marginBottom: '6px' }}>
-                  Status
-                </label>
-                <select
-                  value={channelForm.status}
-                  onChange={e => setChannelForm({ ...channelForm, status: e.target.value })}
-                  style={selectStyle}
-                >
-                  <option value="Active">Active</option>
-                  <option value="Inactive">Inactive</option>
-                </select>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '12px' }}>
-              <button
-                type="button"
-                onClick={() => setIsChannelModalOpen(false)}
-                style={cancelBtnStyle}
+              <SelectField
+                label="Protocol"
+                value={channelForm.protocol}
+                onChange={e => setChannelForm(p => ({ ...p, protocol: e.target.value }))}
               >
+                <option value="Modbus RTU">Modbus RTU (Serial RS-485)</option>
+                <option value="Modbus TCP">Modbus TCP (Ethernet / IP)</option>
+                <option value="MQTT">MQTT Industrial Edge</option>
+              </SelectField>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
+              <SelectField
+                label="Baud Rate"
+                value={channelForm.baud_rate}
+                onChange={e => setChannelForm(p => ({ ...p, baud_rate: e.target.value }))}
+              >
+                <option value="2400">2400</option>
+                <option value="4800">4800</option>
+                <option value="9600">9600</option>
+                <option value="19200">19200</option>
+                <option value="38400">38400</option>
+                <option value="115200">115200</option>
+              </SelectField>
+              <SelectField
+                label="Parity"
+                value={channelForm.parity_bit}
+                onChange={e => setChannelForm(p => ({ ...p, parity_bit: e.target.value }))}
+              >
+                <option value="None">None</option>
+                <option value="Even">Even</option>
+                <option value="Odd">Odd</option>
+              </SelectField>
+              <SelectField
+                label="Stop Bits"
+                value={channelForm.stop_bit}
+                onChange={e => setChannelForm(p => ({ ...p, stop_bit: e.target.value }))}
+              >
+                <option value="1">1</option>
+                <option value="2">2</option>
+              </SelectField>
+              <SelectField
+                label="Data Bits"
+                value={channelForm.data_bit}
+                onChange={e => setChannelForm(p => ({ ...p, data_bit: e.target.value }))}
+              >
+                <option value="8">8</option>
+                <option value="7">7</option>
+              </SelectField>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '12px' }}>
+              <button type="button" onClick={() => setIsChannelModalOpen(false)} className="btn btn-secondary">
                 Cancel
               </button>
-              <button
-                type="submit"
-                style={saveBtnStyle}
-              >
-                <Save size={14} /> {editingChannelId ? 'Update Channel' : 'Save Channel'}
+              <button type="submit" className="btn btn-primary">
+                {editingChannelId ? 'Save Channel Changes' : 'Confirm Channel'}
               </button>
             </div>
           </form>
@@ -1836,676 +1621,588 @@ export const DeviceMasterView = () => {
         <Modal
           isOpen={isMeterModalOpen}
           onClose={() => setIsMeterModalOpen(false)}
-          title={editingMeter ? `Edit Meter: ${editingMeter.Meter_name}` : `Add Meter to ${targetChannel?.Channel_name || 'Channel'}`}
+          title={editingMeter ? `Edit Meter (${editingMeter.Meter_name})` : `Add Modbus Meter to ${targetChannel?.Channel_name}`}
         >
           <form onSubmit={handleMeterSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {meterModalError && (
-              <div style={{ padding: '10px 14px', backgroundColor: '#fff1f2', border: '1px solid #fecdd3', borderRadius: '8px', color: '#9f1239', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <AlertCircle size={14} /> {meterModalError}
+              <div style={{ padding: '8px 12px', backgroundColor: 'var(--status-danger-bg)', color: 'var(--status-danger-text)', borderRadius: 'var(--radius-sm)', fontSize: '0.78rem' }}>
+                {meterModalError}
               </div>
             )}
-
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', color: '#475569', fontWeight: 600, marginBottom: '6px' }}>
-                Channel Link
-              </label>
-              <div style={{ padding: '8px 12px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.82rem', color: '#334155', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Network size={15} color="#0284c7" />
-                <strong>{targetChannel?.Channel_name}</strong> ({targetChannel?.Channel_id} · {targetChannel?.protocol || 'Modbus'})
-              </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px' }}>
+              <InputField
+                label="Meter Display Name"
+                value={meterForm.Meter_name}
+                onChange={e => setMeterForm(p => ({ ...p, Meter_name: e.target.value }))}
+                placeholder="e.g. Incomer Feeder EM6400"
+              />
+              <InputField
+                label="Modbus Slave ID"
+                required
+                type="number"
+                min="1"
+                max="247"
+                value={meterForm.slave_id}
+                onChange={e => setMeterForm(p => ({ ...p, slave_id: e.target.value }))}
+              />
             </div>
 
-            {/* Row 1: S.No & Slave ID */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', color: '#475569', fontWeight: 600, marginBottom: '6px' }}>
-                  S.No *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. 1"
-                  value={meterForm.s_no}
-                  onChange={e => setMeterForm({ ...meterForm, s_no: e.target.value })}
-                  style={inputStyle}
-                />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', color: '#475569', fontWeight: 600, marginBottom: '6px' }}>
-                  Slave ID / Modbus Address *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. 1 to 247"
-                  value={meterForm.slave_id}
-                  onChange={e => setMeterForm({ ...meterForm, slave_id: e.target.value })}
-                  style={inputStyle}
-                />
-              </div>
-            </div>
+              <SelectField
+                label="Meter Manufacturer"
+                value={meterForm.make_id}
+                onChange={e => {
+                  const makeId = e.target.value;
+                  const mk = makes.find(m => m.make_id === makeId);
+                  const firstMod = models.find(m => m.make_id === makeId);
+                  setMeterForm(p => ({
+                    ...p,
+                    make_id: makeId,
+                    make_name: mk?.make_name || '',
+                    model_id: firstMod?.model_id || '',
+                    meter_model: firstMod?.model_name || ''
+                  }));
+                }}
+              >
+                <option value="">Select Make</option>
+                {makes.map(m => (
+                  <option key={m.make_id} value={m.make_id}>{m.make_name}</option>
+                ))}
+              </SelectField>
 
-            {/* Row 2: Make & Model Dropdowns */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', color: '#475569', fontWeight: 600, marginBottom: '6px' }}>
-                  Make (Manufacturer) *
-                </label>
-                <select
-                  required
-                  value={meterForm.make_id}
-                  onChange={e => handleMeterMakeChange(e.target.value)}
-                  style={selectStyle}
-                >
-                  <option value="">-- Select Make --</option>
-                  {makes.map(m => (
-                    <option key={m.make_id} value={m.make_id}>{m.make_name}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', color: '#475569', fontWeight: 600, marginBottom: '6px' }}>
-                  Model *
-                </label>
-                <select
-                  required
-                  value={meterForm.model_id}
-                  onChange={e => handleMeterModelChange(e.target.value)}
-                  style={selectStyle}
-                >
-                  <option value="">-- Select Model --</option>
-                  {availableMeterModels.map(m => (
+              <SelectField
+                label="Meter Hardware Model"
+                value={meterForm.model_id}
+                onChange={e => {
+                  const modId = e.target.value;
+                  const mod = models.find(m => m.model_id === modId);
+                  setMeterForm(p => ({
+                    ...p,
+                    model_id: modId,
+                    meter_model: mod?.model_name || ''
+                  }));
+                }}
+              >
+                <option value="">Select Model</option>
+                {models
+                  .filter(m => !meterForm.make_id || m.make_id === meterForm.make_id)
+                  .map(m => (
                     <option key={m.model_id} value={m.model_id}>{m.model_name}</option>
                   ))}
-                  {availableMeterModels.length === 0 && (
-                    <option value="" disabled>No models available for selected make</option>
-                  )}
-                </select>
-              </div>
+              </SelectField>
             </div>
 
-            {/* Row 2B: Device Profile Dropdown (from Parameter Master & Meter Profiles) */}
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', color: '#475569', fontWeight: 600, marginBottom: '6px' }}>
-                Device Profile (Register & Telemetry Mapping)
-              </label>
-              <select
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <SelectField
+                label="Modbus Register Profile"
                 value={meterForm.device_profile}
-                onChange={e => setMeterForm({ ...meterForm, device_profile: e.target.value })}
-                style={selectStyle}
+                onChange={e => setMeterForm(p => ({ ...p, device_profile: e.target.value }))}
               >
-                <option value="">-- Default Auto Profile --</option>
+                <option value="">Select Register Profile</option>
                 {meterProfiles.map(p => (
-                  <option key={p.profile_id} value={p.profile_id}>
-                    {p.make} {p.model} · v{p.profile_version || '1.0.0'} ({(p.parameters || []).length} Registers mapped)
-                  </option>
+                  <option key={p.profile_id} value={p.profile_name}>{p.profile_name}</option>
                 ))}
-              </select>
-              <span style={{ fontSize: '0.71rem', color: '#64748b', marginTop: '3px', display: 'block' }}>
-                Connects meter telemetry registers and units configured in Parameter Master & Meter Profiles
-              </span>
-            </div>
+              </SelectField>
 
-            {/* Row 3: Serial Number & Status */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', color: '#475569', fontWeight: 600, marginBottom: '6px' }}>
-                  Serial Number *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. SCH-EM-9921"
-                  value={meterForm.meter_serial_number}
-                  onChange={e => setMeterForm({ ...meterForm, meter_serial_number: e.target.value })}
-                  style={inputStyle}
-                />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', color: '#475569', fontWeight: 600, marginBottom: '6px' }}>
-                  Status *
-                </label>
-                <select
-                  value={meterForm.status}
-                  onChange={e => setMeterForm({ ...meterForm, status: e.target.value })}
-                  style={selectStyle}
-                >
-                  <option value="Active">Active</option>
-                  <option value="Inactive">Inactive</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Row 4: Baud Rate & Parity Bit */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', color: '#475569', fontWeight: 600, marginBottom: '6px' }}>
-                  Baud Rate *
-                </label>
-                <select
-                  value={meterForm.baud_rate}
-                  onChange={e => setMeterForm({ ...meterForm, baud_rate: e.target.value })}
-                  style={selectStyle}
-                >
-                  <option value="2400">2400 bps</option>
-                  <option value="4800">4800 bps</option>
-                  <option value="9600">9600 bps</option>
-                  <option value="19200">19200 bps</option>
-                  <option value="38400">38400 bps</option>
-                  <option value="57600">57600 bps</option>
-                  <option value="115200">115200 bps</option>
-                </select>
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', color: '#475569', fontWeight: 600, marginBottom: '6px' }}>
-                  Parity Bit *
-                </label>
-                <select
-                  value={meterForm.parity_bit}
-                  onChange={e => setMeterForm({ ...meterForm, parity_bit: e.target.value })}
-                  style={selectStyle}
-                >
-                  <option value="None">None</option>
-                  <option value="Even">Even</option>
-                  <option value="Odd">Odd</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Row 5: Stop Bit & Data Bit */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', color: '#475569', fontWeight: 600, marginBottom: '6px' }}>
-                  Stop Bit *
-                </label>
-                <select
-                  value={meterForm.stop_bit}
-                  onChange={e => setMeterForm({ ...meterForm, stop_bit: e.target.value })}
-                  style={selectStyle}
-                >
-                  <option value="0">0</option>
-                  <option value="1">1</option>
-                </select>
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', color: '#475569', fontWeight: 600, marginBottom: '6px' }}>
-                  Data Bit *
-                </label>
-                <select
-                  value={meterForm.data_bit}
-                  onChange={e => setMeterForm({ ...meterForm, data_bit: e.target.value })}
-                  style={selectStyle}
-                >
-                  <option value="8">8</option>
-                  <option value="7">7</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Optional Meter Name */}
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', color: '#475569', fontWeight: 600, marginBottom: '6px' }}>
-                Meter Custom Alias / Name (optional)
-              </label>
-              <input
-                type="text"
-                placeholder="e.g. Incomer Multi-Function Meter, Solar Bay Meter"
-                value={meterForm.Meter_name}
-                onChange={e => setMeterForm({ ...meterForm, Meter_name: e.target.value })}
-                style={inputStyle}
+              <InputField
+                label="Serial Number"
+                required
+                value={meterForm.meter_serial_number}
+                onChange={e => setMeterForm(p => ({ ...p, meter_serial_number: e.target.value }))}
+                placeholder="e.g. SCH-EM-2026-001"
               />
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '12px' }}>
-              <button
-                type="button"
-                onClick={() => setIsMeterModalOpen(false)}
-                style={cancelBtnStyle}
-              >
+              <button type="button" onClick={() => setIsMeterModalOpen(false)} className="btn btn-secondary">
                 Cancel
               </button>
-              <button
-                type="submit"
-                style={saveBtnStyle}
-              >
-                <Save size={14} /> {editingMeter ? 'Save Changes' : 'Connect Meter'}
+              <button type="submit" className="btn btn-primary">
+                {editingMeter ? 'Save Meter' : 'Register Meter'}
               </button>
             </div>
           </form>
         </Modal>
 
-        {/* Meter Communication Diagnostic Test Modal */}
+        {/* Diagnostic Modal */}
         {renderTestModal()}
       </div>
     );
   }
 
-  // ─── LIST VIEW ──────────────────────────────────────────────────────────────
+  // ─── VIEW 3: MAIN FLEET TABLE (DEFAULT OVERVIEW) ───────────────────────────
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '1300px', margin: '0 auto' }}>
-      {/* Header */}
-      <div style={{ ...cardStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{
-            width: '44px',
-            height: '44px',
-            borderRadius: '10px',
-            background: 'linear-gradient(135deg, #16805D 0%, #0D5D45 100%)',
-            backgroundColor: '#16805D',
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
+      {/* ── KPI Quick Strip (Fleet Overview) ── */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+        gap: '14px'
+      }}>
+        {/* KPI 1: Total Gateways */}
+        <div
+          onClick={() => setStatusFilter('ALL')}
+          style={{
+            backgroundColor: 'var(--bg-card)',
+            borderRadius: 'var(--radius-xl)',
+            border: `1px solid ${statusFilter === 'ALL' ? 'var(--status-info-border)' : 'var(--border-subtle)'}`,
+            padding: '16px 18px',
+            boxShadow: 'var(--shadow-card)',
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 4px 14px rgba(22, 128, 93, 0.35)',
-            flexShrink: 0
-          }}>
-            <Server size={22} color="#FFFFFF" />
-          </div>
-          <div>
-            <h2 style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.02em' }}>Device Master</h2>
-          </div>
-        </div>
-        <button
-          onClick={openAdd}
-          style={{
-            ...saveBtnStyle,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            backgroundColor: 'var(--brand-primary, #16805D)',
-            background: 'linear-gradient(135deg, #16805D 0%, #0D5D45 100%)',
-            color: '#FFFFFF',
-            border: 'none',
-            padding: '9px 18px',
-            borderRadius: '8px',
-            fontWeight: 650,
-            fontSize: '0.84rem',
-            cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(22, 128, 93, 0.3)',
+            justifyContent: 'space-between'
           }}
         >
-          <Plus size={16} color="#FFFFFF" />
-          <span style={{ color: '#FFFFFF', fontWeight: 650 }}>Register Device</span>
-        </button>
+          <div>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Total Gateways
+            </span>
+            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '4px' }}>
+              {stats.totalGw}
+            </div>
+          </div>
+          <div style={{ width: '40px', height: '40px', borderRadius: '10px', backgroundColor: 'var(--status-info-bg)', border: '1px solid var(--status-info-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--status-info-text)' }}>
+            <TotalGatewaysIcon size={20} />
+          </div>
+        </div>
+
+        {/* KPI 2: Online Gateways */}
+        <div
+          onClick={() => setStatusFilter('ONLINE')}
+          style={{
+            backgroundColor: 'var(--bg-card)',
+            borderRadius: 'var(--radius-xl)',
+            border: `1px solid ${statusFilter === 'ONLINE' ? 'var(--status-success-border)' : 'var(--border-subtle)'}`,
+            padding: '16px 18px',
+            boxShadow: 'var(--shadow-card)',
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}
+        >
+          <div>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Online / Active
+            </span>
+            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '4px' }}>
+              {stats.online}
+            </div>
+          </div>
+          <div style={{ width: '40px', height: '40px', borderRadius: '10px', backgroundColor: 'var(--status-success-bg)', border: '1px solid var(--status-success-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--status-success-text)' }}>
+            <OnlineActiveIcon size={20} />
+          </div>
+        </div>
+
+        {/* KPI 3: Offline / Intermittent */}
+        <div
+          onClick={() => setStatusFilter(statusFilter === 'OFFLINE' ? 'ALL' : 'OFFLINE')}
+          style={{
+            backgroundColor: 'var(--bg-card)',
+            borderRadius: 'var(--radius-xl)',
+            border: `1px solid ${statusFilter === 'OFFLINE' ? 'var(--status-danger-border)' : 'var(--border-subtle)'}`,
+            padding: '16px 18px',
+            boxShadow: 'var(--shadow-card)',
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}
+        >
+          <div>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Offline / Alert
+            </span>
+            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '4px' }}>
+              {stats.offline + stats.intermittent}
+            </div>
+          </div>
+          <div style={{ width: '40px', height: '40px', borderRadius: '10px', backgroundColor: 'var(--status-danger-bg)', border: '1px solid var(--status-danger-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--status-danger-text)' }}>
+            <OfflineAlertIcon size={20} />
+          </div>
+        </div>
+
+        {/* KPI 4: Connected Modbus Meters */}
+        <div style={{
+          backgroundColor: 'var(--bg-card)',
+          borderRadius: 'var(--radius-xl)',
+          border: '1px solid var(--border-subtle)',
+          padding: '16px 18px',
+          boxShadow: 'var(--shadow-card)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between'
+        }}>
+          <div>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Connected Meters
+            </span>
+            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '4px' }}>
+              {stats.totalMeters}
+            </div>
+          </div>
+          <div style={{ width: '40px', height: '40px', borderRadius: '10px', backgroundColor: 'var(--status-warning-bg)', border: '1px solid var(--status-warning-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--status-warning-text)' }}>
+            <ConnectedMetersIcon size={20} />
+          </div>
+        </div>
       </div>
 
-      {/* Success */}
+      {/* Notifications */}
       {successMsg && (
-        <div style={{ padding: '12px 16px', backgroundColor: 'var(--accent-emerald-glow)', border: '1px solid var(--accent-emerald-border)', borderRadius: '10px', color: 'var(--accent-emerald)', fontSize: '0.84rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <CheckCircle2 size={15} color="var(--accent-emerald)" /> {successMsg}
+        <div style={{
+          padding: '12px 18px',
+          backgroundColor: 'var(--status-success-bg)',
+          border: '1px solid var(--status-success-border)',
+          borderRadius: 'var(--radius-lg)',
+          color: 'var(--status-success-text)',
+          fontSize: '0.84rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          boxShadow: 'var(--shadow-sm)'
+        }}>
+          <CheckCircle2 size={16} /> {successMsg}
         </div>
       )}
 
-      {/* Stats + Professional Filter Tabs + Search */}
-      <div style={{ ...cardStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', gap: '18px', paddingRight: '16px', borderRight: '1px solid var(--border-subtle)' }}>
-            <Stat label="Total Gateways" value={gateways.length} color="var(--primary-cyan)" />
-            <Stat label="Online" value={gateways.filter(g => getDeviceStatus(g) === 'Online').length} color="var(--accent-emerald)" />
-            <Stat label="Offline" value={gateways.filter(g => getDeviceStatus(g) === 'Offline' || getDeviceStatus(g) === 'Intermittent').length} color="var(--accent-rose)" />
-            {meters.some(m => m.status === 'Inactive') && (
-              <Stat label="Inactive Meters" value={meters.filter(m => m.status === 'Inactive').length} color="var(--accent-amber)" />
-            )}
+      {/* ── Toolbar: Search, Filters, and New Gateway Button ── */}
+      <div style={{
+        backgroundColor: 'var(--bg-card)',
+        borderRadius: 'var(--radius-xl)',
+        border: '1px solid var(--border-subtle)',
+        padding: '16px 20px',
+        boxShadow: 'var(--shadow-card)',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '14px'
+      }}>
+        {/* Search Input Component */}
+        <SearchInput
+          value={searchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
+          placeholder="Search by name, serial, IP, MAC, model…"
+          width="320px"
+        />
+
+        {/* Filter Pills and CTA */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          <div style={{
+            display: 'inline-flex',
+            backgroundColor: 'var(--bg-card-secondary)',
+            padding: '3px',
+            borderRadius: 'var(--radius-lg)',
+            border: '1px solid var(--border-subtle)',
+            gap: '3px'
+          }}>
+            {[
+              { id: 'ALL', label: `All (${gateways.length})` },
+              { id: 'ONLINE', label: `Online (${stats.online})` },
+              { id: 'OFFLINE', label: `Offline (${stats.offline + stats.intermittent})` }
+            ].map(pill => (
+              <button
+                key={pill.id}
+                type="button"
+                onClick={() => setStatusFilter(pill.id)}
+                style={{
+                  padding: '5px 12px',
+                  borderRadius: 'var(--radius-md)',
+                  fontSize: '0.76rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  border: 'none',
+                  backgroundColor: statusFilter === pill.id ? 'var(--bg-card)' : 'transparent',
+                  color: statusFilter === pill.id ? 'var(--text-primary)' : 'var(--text-muted)',
+                  boxShadow: statusFilter === pill.id ? 'var(--shadow-sm)' : 'none',
+                  transition: 'all 0.12s ease'
+                }}
+              >
+                {pill.label}
+              </button>
+            ))}
           </div>
 
-          {/* Clean Segmented Filter Controls */}
-          <div style={{ display: 'inline-flex', padding: '3px', backgroundColor: 'var(--bg-input)', borderRadius: '8px', border: '1px solid var(--border-subtle)', gap: '3px' }}>
-            <button
-              type="button"
-              onClick={() => setStatusFilter('ALL')}
-              style={{
-                border: statusFilter === 'ALL' ? '1px solid var(--border-subtle)' : '1px solid transparent',
-                padding: '6px 12px',
-                borderRadius: '6px',
-                fontSize: '0.76rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                backgroundColor: statusFilter === 'ALL' ? 'var(--bg-card)' : 'transparent',
-                color: statusFilter === 'ALL' ? 'var(--text-primary)' : 'var(--text-muted)',
-                boxShadow: statusFilter === 'ALL' ? 'var(--shadow-card)' : 'none'
-              }}
-            >
-              All ({gateways.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setStatusFilter('ONLINE')}
-              style={{
-                border: statusFilter === 'ONLINE' ? '1px solid var(--border-subtle)' : '1px solid transparent',
-                padding: '6px 12px',
-                borderRadius: '6px',
-                fontSize: '0.76rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                backgroundColor: statusFilter === 'ONLINE' ? 'var(--bg-card)' : 'transparent',
-                color: statusFilter === 'ONLINE' ? 'var(--accent-emerald)' : 'var(--text-muted)',
-                boxShadow: statusFilter === 'ONLINE' ? 'var(--shadow-card)' : 'none'
-              }}
-            >
-              Online ({gateways.filter(g => getDeviceStatus(g) === 'Online').length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setStatusFilter('OFFLINE')}
-              style={{
-                border: statusFilter === 'OFFLINE' ? '1px solid var(--border-subtle)' : '1px solid transparent',
-                padding: '6px 12px',
-                borderRadius: '6px',
-                fontSize: '0.76rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                backgroundColor: statusFilter === 'OFFLINE' ? 'var(--bg-card)' : 'transparent',
-                color: statusFilter === 'OFFLINE' ? 'var(--accent-rose)' : 'var(--text-muted)',
-                boxShadow: statusFilter === 'OFFLINE' ? 'var(--shadow-card)' : 'none',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px'
-              }}
-            >
-              {gateways.filter(g => getDeviceStatus(g) === 'Offline' || getDeviceStatus(g) === 'Intermittent').length > 0 && (
-                <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'var(--accent-rose)' }} />
-              )}
-              Offline ({gateways.filter(g => getDeviceStatus(g) === 'Offline' || getDeviceStatus(g) === 'Intermittent').length})
-            </button>
-          </div>
-        </div>
-
-        <div style={{ position: 'relative' }}>
-          <Search size={14} color="var(--text-muted)" style={{ position: 'absolute', left: '11px', top: '50%', transform: 'translateY(-50%)' }} />
-          <input
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            placeholder="Search by name, serial, IP, MAC…"
-            style={{ ...inputStyle, paddingLeft: '34px', width: '280px' }}
-          />
+          <button
+            type="button"
+            onClick={openAdd}
+            className="btn btn-primary"
+            style={{ padding: '8px 16px', fontSize: '0.82rem', gap: '6px' }}
+          >
+            <Plus size={15} /> Register Gateway
+          </button>
         </div>
       </div>
 
-      {/* Table */}
-      <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '14px', border: '1px solid var(--border-subtle)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', textAlign: 'left' }}>
-          <thead>
-            <tr style={{ backgroundColor: 'var(--bg-table-header)', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              <th style={th}>S.No</th>
-              <th style={th}>Device Name</th>
-              <th style={th}>Serial No.</th>
-              <th style={th}>IP Address</th>
-              <th style={th}>MAC Address</th>
-              <th style={th}>Make / Model</th>
-              <th style={{ ...th, textAlign: 'center' }}>Channels</th>
-              <th style={th}>Firmware</th>
-              <th style={{ ...th, textAlign: 'center' }}>Status</th>
-              <th style={{ ...th, textAlign: 'center' }}>Last Communicate</th>
-              <th style={{ ...th, textAlign: 'center' }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.length === 0 ? (
-              <tr>
-                <td colSpan={11} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                  No devices found. Click <strong style={{ color: 'var(--primary-cyan)' }}>"Register Device"</strong> to add one.
-                </td>
-              </tr>
-            ) : filtered.map((gw, idx) => {
-              const status = getDeviceStatus(gw);
-              const ss = statusStyle(status);
-              return (
-                <tr key={gw.Gateway_id}
-                  style={{ borderBottom: '1px solid var(--border-subtle)', transition: 'background-color 0.15s ease', cursor: 'pointer' }}
-                  onClick={() => setSelectedGatewayId(gw.Gateway_id)}
-                  onKeyDown={e => {
-                    if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
-                      e.preventDefault();
-                      setSelectedGatewayId(gw.Gateway_id);
-                    }
+      {/* ── Main Fleet Table ── */}
+      <DataTable
+        columns={[
+          {
+            header: 'S.No',
+            width: '48px',
+            render: (_, idx) => (
+              <span style={{ color: 'var(--text-muted)', fontSize: '0.76rem' }}>{idx + 1}</span>
+            ),
+          },
+          {
+            header: 'Gateway Name & ID',
+            render: (gw) => (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div
+                  style={{
+                    width: '34px',
+                    height: '34px',
+                    borderRadius: '8px',
+                    backgroundColor: 'var(--status-info-bg)',
+                    border: '1px solid var(--status-info-border)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'var(--status-info-text)',
+                    flexShrink: 0,
                   }}
-                  tabIndex={0}
-                  role="button"
-                  aria-label={`View channels and meters for ${gw.Gateway_name}`}
-                  title="Click to view this gateway's channels and meters"
-                  onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-table-row-hover)'}
-                  onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
                 >
-                  <td style={td}><span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{idx + 1}</span></td>
-                  <td style={td}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <div style={{ width: '30px', height: '30px', borderRadius: '6px', background: 'var(--bg-card-secondary)', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Server size={15} color="var(--text-muted)" />
-                      </div>
-                      <div>
-                        <div style={{ color: 'var(--text-primary)' }}>{gw.Gateway_name}</div>
-                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{gw.Gateway_id}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td style={{ ...td, fontFamily: 'var(--font-mono)', color: 'var(--text-primary)' }}>{gw.serial_number || '—'}</td>
-                  <td style={{ ...td, fontFamily: 'var(--font-mono)' }}>
-                    {gw.ip_address ? (
-                      <span style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-card-secondary)', border: '1px solid var(--border-subtle)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.78rem' }}>
-                        {gw.ip_address}
-                      </span>
-                    ) : '—'}
-                  </td>
-                  <td style={{ ...td, fontFamily: 'var(--font-mono)', fontSize: '0.78rem', color: 'var(--text-muted)' }}>{gw.mac_address || '—'}</td>
-                  <td style={td}>
-                    {(() => {
-                      const gwMake = gatewayMakes.find(m => m.gw_make_id === gw.gw_make_id);
-                      const gwModel = gatewayModels.find(m => m.gw_model_id === gw.gw_model_id || m.gw_model_name === gw.gw_model_name);
-                      const displayMake = gw.gw_make_name || gwMake?.gw_make_name || (gw.Gateway_id === 'GW-103' ? 'Advantech' : 'SaB Systems');
-                      const displayModel = gw.gw_model_name || gwModel?.gw_model_name || (gw.Gateway_id === 'GW-102' ? 'SAB-GW-G2' : gw.Gateway_id === 'GW-103' ? 'EKI-1521' : 'SAB-GW-G1');
-                      return (
-                        <div>
-                          <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)' }}>{displayMake}</div>
-                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{displayModel}</div>
-                        </div>
-                      );
-                    })()}
-                  </td>
-                  <td style={{ ...td, textAlign: 'center' }}>
-                    {(() => {
-                      const gwModel = gatewayModels.find(m => m.gw_model_id === gw.gw_model_id || m.gw_model_name === gw.gw_model_name);
-                      const cap = Number(gw.channel_count || gwModel?.channel_count) || (gw.Gateway_id === 'GW-102' ? 8 : gw.Gateway_id === 'GW-103' ? 2 : 4);
-                      const gwChs = channels.filter(c => c.Gateway_id === gw.Gateway_id);
-                      return (
-                        <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-                          <span
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              padding: '2px 8px',
-                              borderRadius: '6px',
-                              backgroundColor: 'var(--bg-card-secondary)',
-                              border: '1px solid var(--border-subtle)',
-                              fontSize: '0.74rem',
-                              fontWeight: 700,
-                              color: 'var(--brand-primary)',
-                            }}
-                          >
-                            <Network size={11} />
-                            {cap} Slots
-                          </span>
-                          <span style={{ fontSize: '0.67rem', color: 'var(--text-muted)' }}>
-                            {gwChs.length} configured
-                          </span>
-                        </div>
-                      );
-                    })()}
-                  </td>
-                  <td style={td}>
-                    {gw.firmware_version
-                      ? <span style={{ fontSize: '0.72rem', backgroundColor: 'var(--bg-card-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border-subtle)', padding: '2px 7px', borderRadius: '4px', fontFamily: 'var(--font-mono)', fontWeight: 500 }}>{gw.firmware_version}</span>
-                      : <span style={{ color: 'var(--text-dim)', fontSize: '0.75rem' }}>—</span>}
-                  </td>
-                  <td style={{ ...td, textAlign: 'center' }}>
-                    <span style={{
+                  <TotalGatewaysIcon size={17} />
+                </div>
+                <div>
+                  <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.86rem' }}>
+                    {gw.Gateway_name}
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                    {gw.Gateway_id}
+                  </div>
+                </div>
+              </div>
+            ),
+          },
+          {
+            header: 'Serial Number',
+            render: (gw) => (
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                {gw.serial_number || '—'}
+              </span>
+            ),
+          },
+          {
+            header: 'Network IP / MAC',
+            render: (gw) => (
+              <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span
+                    style={{
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      color: 'var(--text-primary)',
+                      backgroundColor: 'var(--bg-card-secondary)',
+                      padding: '2px 6px',
+                      borderRadius: '4px',
+                      border: '1px solid var(--border-subtle)',
+                    }}
+                  >
+                    {gw.ip_address || '—'}
+                  </span>
+                  {gw.ip_address && (
+                    <button
+                      type="button"
+                      onClick={() => handleCopy(gw.ip_address, `ip-${gw.Gateway_id}`)}
+                      className="btn-icon"
+                      style={{ padding: '2px', color: 'var(--text-muted)' }}
+                      title="Copy IP address"
+                    >
+                      {copiedKey === `ip-${gw.Gateway_id}` ? (
+                        <Check size={11} color="var(--brand-primary)" />
+                      ) : (
+                        <Copy size={11} />
+                      )}
+                    </button>
+                  )}
+                </div>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                  {gw.mac_address || '—'}
+                </span>
+              </div>
+            ),
+          },
+          {
+            header: 'Manufacturer / Model',
+            render: (gw) => (
+              <div>
+                <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.82rem' }}>
+                  {gw.gw_make_name || 'SaB Systems'}
+                </div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                  {gw.gw_model_name || 'Gateway'} • {gw.firmware_version || 'v1.0.0'}
+                </div>
+              </div>
+            ),
+          },
+          {
+            header: 'Channel Slots',
+            align: 'center',
+            render: (gw) => {
+              const gwChannels = channels.filter((c) => c.Gateway_id === gw.Gateway_id);
+              const gwMeters = meters.filter((m) => gwChannels.some((c) => c.Channel_id === m.Channel_id));
+              const cap = Number(gw.channel_count) || 2;
+              return (
+                <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                  <span
+                    style={{
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: '5px',
-                      backgroundColor: ss.bg,
-                      color: ss.color,
-                      border: `1px solid ${ss.border}`,
-                      padding: '3px 10px',
-                      borderRadius: '20px',
-                      fontSize: '0.72rem',
-                      fontWeight: 500
-                    }}>
-                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: ss.dot, boxShadow: status === 'Online' ? `0 0 6px ${ss.dot}` : 'none' }} />
-                      {status}
-                    </span>
-                  </td>
-                  <td style={{ ...td, textAlign: 'center' }}>
-                    {(() => {
-                      const timeObj = formatTime(gw.last_communicate_time);
-                      if (typeof timeObj === 'object' && timeObj !== null) {
-                        return (
-                          <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                              <Clock size={11} color="var(--text-dim)" />
-                              {timeObj.elapsed}
-                            </span>
-                            <span style={{ fontSize: '0.66rem', fontFamily: 'var(--font-mono)', color: 'var(--text-dim)' }}>
-                              {timeObj.exact}
-                            </span>
-                          </div>
-                        );
-                      }
-                      return <span style={{ color: 'var(--text-dim)', fontSize: '0.76rem' }}>—</span>;
-                    })()}
-                  </td>
-                  <td style={{ ...td, textAlign: 'center' }}>
-                    <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
-                      <button onClick={e => { e.stopPropagation(); openEdit(gw); }} style={editBtnStyle} title="Edit">
-                        <Edit3 size={13} /> Edit
-                      </button>
-                      <button onClick={e => { e.stopPropagation(); handleDelete(gw); }} style={deleteBtnStyle} title="Delete">
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+                      gap: '4px',
+                      padding: '3px 8px',
+                      borderRadius: '6px',
+                      backgroundColor: 'var(--brand-surface)',
+                      border: '1px solid var(--brand-border)',
+                      fontSize: '0.74rem',
+                      fontWeight: 700,
+                      color: 'var(--brand-primary)',
+                    }}
+                  >
+                    <Network size={12} />
+                    {cap} Slots ({gwChannels.length} configured)
+                  </span>
+                  <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                    {gwMeters.length} meter{gwMeters.length === 1 ? '' : 's'} linked
+                  </span>
+                </div>
               );
-            })}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Meter Communication Diagnostic Test Modal */}
-      {renderTestModal()}
+            },
+          },
+          {
+            header: 'Live Status',
+            align: 'center',
+            render: (gw) => {
+              const status = getDeviceStatus(gw);
+              const isOnline = status === 'Online';
+              const isIntermittent = status === 'Intermittent';
+              return (
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    padding: '3px 10px',
+                    borderRadius: '20px',
+                    fontSize: '0.72rem',
+                    fontWeight: 600,
+                    backgroundColor: isOnline
+                      ? 'var(--status-success-bg)'
+                      : isIntermittent
+                      ? 'var(--status-warning-bg)'
+                      : 'var(--status-danger-bg)',
+                    color: isOnline
+                      ? 'var(--status-success-text)'
+                      : isIntermittent
+                      ? 'var(--status-warning-text)'
+                      : 'var(--status-danger-text)',
+                    border: `1px solid ${
+                      isOnline
+                        ? 'var(--status-success-border)'
+                        : isIntermittent
+                        ? 'var(--status-warning-border)'
+                        : 'var(--status-danger-border)'
+                    }`,
+                  }}
+                >
+                  <span
+                    style={{
+                      width: '6px',
+                      height: '6px',
+                      borderRadius: '50%',
+                      backgroundColor: 'currentColor',
+                      boxShadow: isOnline ? '0 0 6px var(--status-success-text)' : 'none',
+                    }}
+                  />
+                  {status}
+                </span>
+              );
+            },
+          },
+          {
+            header: 'Last Poll',
+            align: 'center',
+            render: (gw) => {
+              const timeObj = formatTime(gw.last_communicate_time);
+              return (
+                <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontSize: '0.74rem',
+                      fontWeight: 600,
+                      color: 'var(--text-secondary)',
+                    }}
+                  >
+                    <Clock size={11} color="var(--text-dim)" />
+                    {timeObj.elapsed}
+                  </span>
+                  <span style={{ fontSize: '0.66rem', fontFamily: 'var(--font-mono)', color: 'var(--text-dim)' }}>
+                    {timeObj.exact}
+                  </span>
+                </div>
+              );
+            },
+          },
+          {
+            header: 'Actions',
+            align: 'center',
+            render: (gw) => (
+              <div onClick={(e) => e.stopPropagation()} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <button
+                  type="button"
+                  onClick={() => setSelectedGatewayId(gw.Gateway_id)}
+                  className="btn btn-secondary"
+                  style={{ padding: '4px 10px', fontSize: '0.74rem', gap: '4px' }}
+                  title="Explore Channels & Meters"
+                >
+                  Explore <ArrowUpRight size={12} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openEdit(gw)}
+                  className="btn-icon"
+                  style={{ color: 'var(--text-secondary)' }}
+                  title="Edit Gateway Configuration"
+                >
+                  <Edit3 size={14} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDelete(gw)}
+                  className="btn-icon"
+                  style={{ color: 'var(--accent-rose)' }}
+                  title="Delete Gateway"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            ),
+          },
+        ]}
+        data={filteredGateways}
+        rowKey="Gateway_id"
+        onRowClick={(gw) => setSelectedGatewayId(gw.Gateway_id)}
+        emptyIcon={Server}
+        emptyMessage="No matching gateways found. Try adjusting your search criteria or register a new edge device."
+        emptyAction={
+          <button
+            type="button"
+            onClick={openAdd}
+            className="btn btn-primary"
+            style={{ fontSize: '0.8rem', padding: '6px 14px', marginTop: '6px' }}
+          >
+            <Plus size={14} /> Register Gateway
+          </button>
+        }
+      />
     </div>
   );
-};
-
-// ── Sub-components ────────────────────────────────────────────────────────────
-const SectionTitle = ({ icon, title }) => (
-  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-    <span style={{ color: 'var(--primary-cyan)' }}>{icon}</span>
-    <h3 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{title}</h3>
-  </div>
-);
-
-const Field = ({ label, children }) => (
-  <div>
-    <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 700, marginBottom: '6px' }}>{label}</label>
-    {children}
-  </div>
-);
-
-const Stat = ({ label, value, color }) => (
-  <div style={{ textAlign: 'center' }}>
-    <div style={{ fontSize: '1.35rem', fontWeight: 800, color, fontFamily: 'var(--font-heading)' }}>{value}</div>
-    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>{label}</div>
-  </div>
-);
-
-// ── Styles ────────────────────────────────────────────────────────────────────
-const cardStyle = {
-  backgroundColor: 'var(--bg-card)',
-  borderRadius: '14px',
-  border: '1px solid var(--border-subtle)',
-  padding: '20px 24px',
-  boxShadow: 'var(--shadow-card)',
-  transition: 'all 0.2s ease',
-};
-const inputStyle = {
-  width: '100%',
-  padding: '9px 13px',
-  border: '1px solid var(--border-subtle)',
-  borderRadius: '8px',
-  fontSize: '0.85rem',
-  color: 'var(--text-primary)',
-  outline: 'none',
-  boxSizing: 'border-box',
-  backgroundColor: 'var(--bg-input)',
-  transition: 'border-color 0.18s, box-shadow 0.18s',
-};
-const selectStyle = { ...inputStyle, cursor: 'pointer' };
-const th = { padding: '12px 14px', whiteSpace: 'nowrap', fontWeight: 700 };
-const td = { padding: '12px 14px' };
-const saveBtnStyle = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  gap: '7px',
-  background: 'linear-gradient(135deg, #16805D 0%, #0D5D45 100%)',
-  backgroundColor: '#16805D',
-  color: '#FFFFFF',
-  border: '1px solid #16805D',
-  borderRadius: '8px',
-  padding: '9px 18px',
-  fontSize: '0.84rem',
-  fontWeight: 650,
-  cursor: 'pointer',
-  boxShadow: '0 2px 8px rgba(22, 128, 93, 0.28)',
-  transition: 'all 0.18s ease',
-};
-const cancelBtnStyle = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  gap: '6px',
-  backgroundColor: 'var(--bg-card-secondary)',
-  border: '1px solid var(--border-default)',
-  color: 'var(--text-primary)',
-  borderRadius: '8px',
-  padding: '8px 16px',
-  fontSize: '0.82rem',
-  fontWeight: 600,
-  cursor: 'pointer',
-};
-const backBtnStyle = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  width: '36px',
-  height: '36px',
-  borderRadius: '8px',
-  border: '1px solid var(--border-default)',
-  backgroundColor: 'var(--bg-card-secondary)',
-  color: 'var(--text-primary)',
-  cursor: 'pointer',
-};
-const editBtnStyle = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '5px',
-  padding: '6px 11px',
-  borderRadius: '6px',
-  border: '1px solid var(--border-default)',
-  backgroundColor: 'var(--bg-card-secondary)',
-  color: 'var(--brand-primary)',
-  cursor: 'pointer',
-  fontSize: '0.76rem',
-  fontWeight: 650,
-  transition: 'all 0.15s ease',
-};
-const deleteBtnStyle = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  padding: '6px 9px',
-  borderRadius: '6px',
-  border: '1px solid var(--status-danger-border)',
-  backgroundColor: 'var(--status-danger-bg)',
-  color: 'var(--status-danger-text)',
-  cursor: 'pointer',
-  transition: 'all 0.15s ease',
 };

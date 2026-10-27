@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
-import { Plus, Edit3, Trash2, Search, Building2, Save, X, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Plus, Edit3, Trash2, Building2, Save, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useEnergyData } from '../../context/EnergyDataContext';
 import { PageHeader } from '../../components/common/PageHeader';
 import { Modal } from '../../components/common/Modal';
+import { SearchInput } from '../../components/common/SearchInput';
+import { DataTable } from '../../components/common/DataTable';
+import { InputField } from '../../components/common/FormField';
 
 export const GatewayMakeMasterView = () => {
   const { gatewayMakes, addGatewayMake, updateGatewayMake, deleteGatewayMake, gatewayModels } = useEnergyData();
@@ -112,83 +115,72 @@ export const GatewayMakeMasterView = () => {
       )}
 
       {/* Table Container with Integrated Toolbar */}
-      <div className="table-container">
-        <div className="table-toolbar">
-          <div className="search-input-wrapper">
-            <Search size={14} />
-            <input
+      <DataTable
+        columns={[
+          {
+            header: '#',
+            width: '60px',
+            render: (_, index) => <span style={{ color: 'var(--text-muted)' }}>{index + 1}</span>,
+          },
+          {
+            header: 'Manufacturer Name',
+            render: (m) => (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}>
+                <Building2 size={14} color="var(--brand-primary)" />
+                <span>{m.gw_make_name}</span>
+              </div>
+            ),
+          },
+          {
+            header: 'Actions',
+            width: '130px',
+            align: 'center',
+            render: (m) => (
+              <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+                <button
+                  onClick={() => openEdit(m)}
+                  className="btn-icon"
+                  title="Edit Make"
+                  aria-label="Edit Make"
+                >
+                  <Edit3 size={14} />
+                </button>
+                <button
+                  onClick={() => handleDelete(m)}
+                  className="btn-icon"
+                  style={{ color: 'var(--status-danger-text)' }}
+                  title="Delete Make"
+                  aria-label="Delete Make"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            ),
+          },
+        ]}
+        data={filtered}
+        rowKey="gw_make_id"
+        toolbar={
+          <>
+            <SearchInput
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search manufacturers by name..."
             />
-          </div>
 
-          <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 550 }}>
-            Total Makes: <strong style={{ color: 'var(--brand-primary)' }}>{gatewayMakes.length}</strong>
-          </div>
-        </div>
-
-        <table className="enterprise-table">
-          <thead>
-            <tr>
-              <th style={{ width: '60px' }}>#</th>
-              <th>Manufacturer Name</th>
-              <th style={{ textAlign: 'center', width: '130px' }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.length === 0 ? (
-              <tr>
-                <td colSpan={3} style={{ padding: '36px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                  No gateway manufacturers found matching your query.
-                </td>
-              </tr>
-            ) : (
-              filtered.map((m, index) => {
-                return (
-                  <tr key={m.gw_make_id}>
-                    <td style={{ color: 'var(--text-muted)' }}>{index + 1}</td>
-                    <td style={{ fontWeight: 600 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Building2 size={14} color="var(--brand-primary)" />
-                        <span>{m.gw_make_name}</span>
-                      </div>
-                    </td>
-                    <td style={{ textAlign: 'center' }}>
-                      <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
-                        <button
-                          onClick={() => openEdit(m)}
-                          className="btn-icon"
-                          title="Edit Make"
-                          aria-label="Edit Make"
-                        >
-                          <Edit3 size={14} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(m)}
-                          className="btn-icon"
-                          style={{ color: 'var(--status-danger-text)' }}
-                          title="Delete Make"
-                          aria-label="Delete Make"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+            <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 550 }}>
+              Total Makes: <strong style={{ color: 'var(--brand-primary)' }}>{gatewayMakes.length}</strong>
+            </div>
+          </>
+        }
+        emptyMessage="No gateway manufacturers found matching your query."
+      />
 
       {/* Add / Edit Modal */}
       <Modal
         isOpen={isModalOpen}
         onClose={handleClose}
-        title={editingId ? 'Edit Gateway Make' : 'Add Gateway Make'}
-        subtitle="Specify the industrial gateway equipment manufacturer name."
+        title={editingId ? 'Edit Make' : 'Add Make'}
         maxWidth="500px"
         footer={
           <>
@@ -222,19 +214,15 @@ export const GatewayMakeMasterView = () => {
             </div>
           )}
 
-          <div className="form-group">
-            <label className="form-label">Make / Manufacturer Name *</label>
-            <input
-              className="form-input"
-              value={makeName}
-              onChange={(e) => setMakeName(e.target.value)}
-              placeholder="e.g. Advantech, SaB Systems, Siemens"
-              autoFocus
-            />
-            <span className="form-helper">
-              Enter the official brand or vendor name for edge hardware models.
-            </span>
-          </div>
+          <InputField
+            label="Make / Manufacturer Name"
+            required
+            value={makeName}
+            onChange={(e) => setMakeName(e.target.value)}
+            placeholder="e.g. Advantech, SaB Systems, Siemens"
+            hint="Enter the official brand or vendor name for edge hardware models."
+            autoFocus
+          />
         </form>
       </Modal>
     </div>

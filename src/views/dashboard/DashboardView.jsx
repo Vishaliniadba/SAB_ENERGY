@@ -16,6 +16,7 @@ import {
 import { useEnergyData } from '../../context/EnergyDataContext';
 import { StatCard } from '../../components/common/StatCard';
 import { Badge } from '../../components/common/Badge';
+import { DataTable } from '../../components/common/DataTable';
 
 export const DashboardView = () => {
   const { gateways, channels, meters, assets, mappings } = useEnergyData();
@@ -273,61 +274,79 @@ export const DashboardView = () => {
             </span>
           </div>
 
-          <div style={{ overflowX: 'auto', flex: 1 }}>
-            <table className="enterprise-table">
-              <thead>
-                <tr>
-                  <th>Asset Name</th>
-                  <th>Category</th>
-                  <th>Assigned Meter</th>
-                  <th style={{ textAlign: 'right' }}>CT/PT Multiplier</th>
-                  <th style={{ textAlign: 'right' }}>Calculated Power</th>
-                  <th style={{ textAlign: 'center' }}>Operational Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {assets.map((asset, index) => {
+          <DataTable
+            columns={[
+              {
+                header: 'Asset Name',
+                render: (asset) => (
+                  <div>
+                    <div style={{ fontWeight: 600 }}>{asset.Asset_name}</div>
+                    <div className="mono-num" style={{ fontSize: '0.70rem', color: 'var(--text-muted)', fontWeight: 400 }}>
+                      {asset.Asset_id}
+                    </div>
+                  </div>
+                ),
+              },
+              {
+                header: 'Category',
+                render: (asset) => <span style={{ color: 'var(--text-secondary)' }}>{asset.asset_type}</span>,
+              },
+              {
+                header: 'Assigned Meter',
+                render: (asset) => {
                   const mapping = mappings.find((m) => m.Asset_id === asset.Asset_id && m.is_active);
                   const meter = mapping ? meters.find((m) => m.Meter_id === mapping.Meter_id) : null;
+                  return meter ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Cpu size={13} color="var(--brand-primary)" />
+                      <span style={{ fontWeight: 550 }}>{meter.Meter_name}</span>
+                    </div>
+                  ) : (
+                    <span style={{ color: 'var(--text-dim)', fontSize: '0.75rem', fontStyle: 'italic' }}>
+                      Unassigned
+                    </span>
+                  );
+                },
+              },
+              {
+                header: 'CT/PT Multiplier',
+                align: 'right',
+                render: (asset) => {
+                  const mapping = mappings.find((m) => m.Asset_id === asset.Asset_id && m.is_active);
+                  const factor = mapping ? parseFloat(mapping.multiplication_factor) || 1 : 1;
+                  return <span className="mono-num" style={{ fontWeight: 600 }}>{mapping ? `${factor}x` : '—'}</span>;
+                },
+              },
+              {
+                header: 'Calculated Power',
+                align: 'right',
+                render: (asset, index) => {
+                  const mapping = mappings.find((m) => m.Asset_id === asset.Asset_id && m.is_active);
                   const factor = mapping ? parseFloat(mapping.multiplication_factor) || 1 : 1;
                   const estimatedKw = mapping ? (15.5 * factor + index * 4.2).toFixed(1) : '0.0';
-
                   return (
-                    <tr key={asset.Asset_id}>
-                      <td style={{ fontWeight: 600 }}>
-                        {asset.Asset_name}
-                        <div className="mono-num" style={{ fontSize: '0.70rem', color: 'var(--text-muted)', fontWeight: 400 }}>
-                          {asset.Asset_id}
-                        </div>
-                      </td>
-                      <td style={{ color: 'var(--text-secondary)' }}>{asset.asset_type}</td>
-                      <td>
-                        {meter ? (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <Cpu size={13} color="var(--brand-primary)" />
-                            <span style={{ fontWeight: 550 }}>{meter.Meter_name}</span>
-                          </div>
-                        ) : (
-                          <span style={{ color: 'var(--text-dim)', fontSize: '0.75rem', fontStyle: 'italic' }}>
-                            Unassigned
-                          </span>
-                        )}
-                      </td>
-                      <td className="mono-num" style={{ textAlign: 'right', fontWeight: 600 }}>
-                        {mapping ? `${factor}x` : '—'}
-                      </td>
-                      <td className="mono-num" style={{ textAlign: 'right', fontWeight: 700, color: mapping ? 'var(--brand-primary)' : 'var(--text-muted)' }}>
-                        {mapping ? `${estimatedKw} kW` : '0.0 kW'}
-                      </td>
-                      <td style={{ textAlign: 'center' }}>
-                        <Badge status={asset.status} />
-                      </td>
-                    </tr>
+                    <span
+                      className="mono-num"
+                      style={{
+                        fontWeight: 700,
+                        color: mapping ? 'var(--brand-primary)' : 'var(--text-muted)',
+                      }}
+                    >
+                      {mapping ? `${estimatedKw} kW` : '0.0 kW'}
+                    </span>
                   );
-                })}
-              </tbody>
-            </table>
-          </div>
+                },
+              },
+              {
+                header: 'Operational Status',
+                align: 'center',
+                render: (asset) => <Badge status={asset.status} />,
+              },
+            ]}
+            data={assets}
+            rowKey="Asset_id"
+            containerStyle={{ border: 'none', borderRadius: 0 }}
+          />
         </div>
 
         {/* Real-Time Grid / SCADA Metrics Panel */}

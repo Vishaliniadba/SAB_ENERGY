@@ -18,6 +18,9 @@ import {
 import { useEnergyData } from '../../context/EnergyDataContext';
 import { PageHeader } from '../../components/common/PageHeader';
 import { Modal } from '../../components/common/Modal';
+import { SearchInput } from '../../components/common/SearchInput';
+import { DataTable } from '../../components/common/DataTable';
+import { InputField, SelectField } from '../../components/common/FormField';
 
 const EMPTY = {
   gw_make_id: '',
@@ -284,135 +287,135 @@ export const GatewayModelMasterView = () => {
       )}
 
       {/* Table Container with Integrated Toolbar */}
-      <div className="table-container">
-        <div className="table-toolbar">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-            <div className="search-input-wrapper">
-              <Search size={14} />
-              <input
+      <DataTable
+        columns={[
+          {
+            header: '#',
+            width: '60px',
+            render: (_, index) => <span style={{ color: 'var(--text-muted)' }}>{index + 1}</span>,
+          },
+          {
+            header: 'Model Name',
+            render: (m) => (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}>
+                <Cpu size={14} color="var(--brand-primary)" />
+                <span>{m.gw_model_name}</span>
+              </div>
+            ),
+          },
+          {
+            header: 'Manufacturer',
+            render: (m) => {
+              const mk = gatewayMakes.find((make) => make.gw_make_id === m.gw_make_id);
+              return (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Building2 size={13} color="var(--text-muted)" />
+                  <span>{mk?.gw_make_name || m.gw_make_id}</span>
+                </div>
+              );
+            },
+          },
+          {
+            header: 'Channel Capacity',
+            align: 'center',
+            render: (m) => (
+              <span
+                className="mono-num"
+                style={{
+                  fontSize: '0.75rem',
+                  padding: '2px 8px',
+                  borderRadius: 'var(--radius-xs)',
+                  backgroundColor: 'var(--bg-surface-secondary)',
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--border-default)',
+                  fontWeight: 600,
+                }}
+              >
+                {m.channel_count || 4} Channels
+              </span>
+            ),
+          },
+          {
+            header: 'Firmware',
+            align: 'center',
+            render: (m) => (
+              <span className="mono-num" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                {m.firmware_version || 'v1.0.0'}
+              </span>
+            ),
+          },
+          {
+            header: 'Actions',
+            width: '120px',
+            align: 'center',
+            render: (m) => (
+              <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+                <button
+                  onClick={() => openEdit(m)}
+                  className="btn-icon"
+                  title="Edit Model"
+                  aria-label="Edit Model"
+                >
+                  <Edit3 size={14} />
+                </button>
+                <button
+                  onClick={() => handleDelete(m)}
+                  className="btn-icon"
+                  style={{ color: 'var(--status-danger-text)' }}
+                  title="Delete Model"
+                  aria-label="Delete Model"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            ),
+          },
+        ]}
+        data={filtered}
+        rowKey="gw_model_id"
+        toolbar={
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              <SearchInput
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search models by name or ID..."
               />
+
+              {/* Filter by Make */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                  Manufacturer:
+                </span>
+                <select
+                  className="form-select"
+                  style={{ width: '180px', height: '34px' }}
+                  value={filterMakeId}
+                  onChange={(e) => setFilterMakeId(e.target.value)}
+                >
+                  <option value="all">All Manufacturers ({gatewayMakes.length})</option>
+                  {gatewayMakes.map((mk) => (
+                    <option key={mk.gw_make_id} value={mk.gw_make_id}>
+                      {mk.gw_make_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
-            {/* Filter by Make */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                Manufacturer:
-              </span>
-              <select
-                className="form-select"
-                style={{ width: '180px', height: '34px' }}
-                value={filterMakeId}
-                onChange={(e) => setFilterMakeId(e.target.value)}
-              >
-                <option value="all">All Manufacturers ({gatewayMakes.length})</option>
-                {gatewayMakes.map((mk) => (
-                  <option key={mk.gw_make_id} value={mk.gw_make_id}>
-                    {mk.gw_make_name}
-                  </option>
-                ))}
-              </select>
+            <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 550 }}>
+              Showing: <strong style={{ color: 'var(--brand-primary)' }}>{filtered.length}</strong> of {gatewayModels.length} Models
             </div>
-          </div>
-
-          <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 550 }}>
-            Showing: <strong style={{ color: 'var(--brand-primary)' }}>{filtered.length}</strong> of {gatewayModels.length} Models
-          </div>
-        </div>
-
-        <table className="enterprise-table">
-          <thead>
-            <tr>
-              <th style={{ width: '60px' }}>#</th>
-              <th>Model Name</th>
-              <th>Manufacturer</th>
-              <th style={{ textAlign: 'center' }}>Channel Capacity</th>
-              <th style={{ textAlign: 'center' }}>Firmware</th>
-              <th style={{ textAlign: 'center', width: '120px' }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.length === 0 ? (
-              <tr>
-                <td colSpan={6} style={{ padding: '36px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                  No gateway models found matching the search criteria.
-                </td>
-              </tr>
-            ) : (
-              filtered.map((m, index) => {
-                const mk = gatewayMakes.find((make) => make.gw_make_id === m.gw_make_id);
-                return (
-                  <tr key={m.gw_model_id}>
-                    <td style={{ color: 'var(--text-muted)' }}>{index + 1}</td>
-                    <td style={{ fontWeight: 600 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Cpu size={14} color="var(--brand-primary)" />
-                        <span>{m.gw_model_name}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <Building2 size={13} color="var(--text-muted)" />
-                        <span>{mk?.gw_make_name || m.gw_make_id}</span>
-                      </div>
-                    </td>
-                    <td style={{ textAlign: 'center' }}>
-                      <span
-                        className="mono-num"
-                        style={{
-                          fontSize: '0.75rem',
-                          padding: '2px 8px',
-                          borderRadius: 'var(--radius-xs)',
-                          backgroundColor: 'var(--bg-surface-secondary)',
-                          color: 'var(--text-primary)',
-                          border: '1px solid var(--border-default)',
-                          fontWeight: 600,
-                        }}
-                      >
-                        {m.channel_count || 4} Channels
-                      </span>
-                    </td>
-                    <td style={{ textAlign: 'center' }}>
-                      <span className="mono-num" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                        {m.firmware_version || 'v1.0.0'}
-                      </span>
-                    </td>
-                    <td style={{ textAlign: 'center' }}>
-                      <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
-                        <button
-                          onClick={() => openEdit(m)}
-                          className="btn-icon"
-                          title="Edit Model"
-                          aria-label="Edit Model"
-                        >
-                          <Edit3 size={14} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(m)}
-                          className="btn-icon"
-                          style={{ color: 'var(--status-danger-text)' }}
-                          title="Delete Model"
-                          aria-label="Delete Model"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+          </>
+        }
+        emptyMessage="No gateway models found matching the search criteria."
+      />
 
       {/* Two-Stage Add / Edit Gateway Model Modal */}
       <Modal
         isOpen={isModalOpen}
         onClose={handleClose}
-        title={editingId ? 'Edit Gateway Model' : 'Add Gateway Model'}
+        title={editingId ? 'Edit Model' : 'Add Model'}
         maxWidth="680px"
         footer={
           currentStage === 1 ? (
@@ -656,31 +659,25 @@ export const GatewayModelMasterView = () => {
           {/* ── STAGE 1: GATEWAY MODEL CONFIGURATION ── */}
           {currentStage === 1 && (
             <form onSubmit={handleNextStage} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div className="form-group">
-                <label className="form-label">Manufacturer (Make) *</label>
-                <select
-                  className="form-select"
-                  value={form.gw_make_id}
-                  onChange={(e) => setForm({ ...form, gw_make_id: e.target.value })}
-                >
-                  {gatewayMakes.map((mk) => (
-                    <option key={mk.gw_make_id} value={mk.gw_make_id}>
-                      {mk.gw_make_name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <SelectField
+                label="Manufacturer (Make)"
+                required
+                value={form.gw_make_id}
+                onChange={(e) => setForm({ ...form, gw_make_id: e.target.value })}
+                options={gatewayMakes.map((mk) => ({
+                  value: mk.gw_make_id,
+                  label: mk.gw_make_name,
+                }))}
+              />
 
-              <div className="form-group">
-                <label className="form-label">Gateway Model Name *</label>
-                <input
-                  className="form-input"
-                  value={form.gw_model_name}
-                  onChange={(e) => setForm({ ...form, gw_model_name: e.target.value })}
-                  placeholder="e.g. SAB-GW-G1, EKI-1521"
-                  autoFocus
-                />
-              </div>
+              <InputField
+                label="Gateway Model Name"
+                required
+                value={form.gw_model_name}
+                onChange={(e) => setForm({ ...form, gw_model_name: e.target.value })}
+                placeholder="e.g. SAB-GW-G1, EKI-1521"
+                autoFocus
+              />
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
                 <div className="form-group">
@@ -728,15 +725,13 @@ export const GatewayModelMasterView = () => {
                   </span>
                 </div>
 
-                <div className="form-group">
-                  <label className="form-label">Default Firmware Version</label>
-                  <input
-                    className="form-input mono-num"
-                    value={form.firmware_version}
-                    onChange={(e) => setForm({ ...form, firmware_version: e.target.value })}
-                    placeholder="v1.0.0"
-                  />
-                </div>
+                <InputField
+                  label="Default Firmware Version"
+                  className="mono-num"
+                  value={form.firmware_version}
+                  onChange={(e) => setForm({ ...form, firmware_version: e.target.value })}
+                  placeholder="v1.0.0"
+                />
               </div>
             </form>
           )}
@@ -871,19 +866,14 @@ export const GatewayModelMasterView = () => {
                   }}
                 >
                   {(form.channel_names || []).map((name, idx) => (
-                    <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                        Channel {idx + 1} *
-                      </span>
-                      <input
-                        className="form-input"
-                        style={{ height: '36px', fontSize: '0.82rem' }}
-                        value={name || ''}
-                        onChange={(e) => handleChannelNameChange(idx, e.target.value)}
-                        placeholder={`e.g. Channel ${idx + 1}`}
-                        required
-                      />
-                    </div>
+                    <InputField
+                      key={idx}
+                      label={`Channel ${idx + 1}`}
+                      required
+                      value={name || ''}
+                      onChange={(e) => handleChannelNameChange(idx, e.target.value)}
+                      placeholder={`e.g. Channel ${idx + 1}`}
+                    />
                   ))}
                 </div>
               </div>

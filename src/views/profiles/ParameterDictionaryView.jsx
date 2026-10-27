@@ -17,6 +17,8 @@ import {
 import { useEnergyData } from '../../context/EnergyDataContext';
 import { PageHeader } from '../../components/common/PageHeader';
 import { Modal } from '../../components/common/Modal';
+import { SearchInput } from '../../components/common/SearchInput';
+import { DataTable } from '../../components/common/DataTable';
 
 // Helper to determine parameter category
 export const getParamCategory = (p) => {
@@ -318,12 +320,12 @@ export const ParameterDictionaryView = () => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%' }}>
       <PageHeader
-        title="Parameter Dictionary"
+        title="Parameters"
         icon={Sliders}
         actions={
           <button onClick={handleOpenAdd} className="btn btn-primary">
             <Plus size={15} />
-            <span>Add Standard Parameter</span>
+            <span>Add Parameter</span>
           </button>
         }
       />
@@ -348,327 +350,304 @@ export const ParameterDictionaryView = () => {
       )}
 
       {/* Table Container with Search Selectors Toolbar */}
-      <div className="table-container">
-        <div className="table-toolbar" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {/* Row 1: Search and Selectors */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px', width: '100%' }}>
-            {/* Search Input with quick clear */}
-            <div className="search-input-wrapper" style={{ flex: '1 1 220px', minWidth: '200px', position: 'relative' }}>
-              <Search size={14} />
-              <input
+      <DataTable
+        columns={[
+          {
+            header: '#',
+            width: '50px',
+            render: (_, index) => <span style={{ color: 'var(--text-muted)' }}>{index + 1}</span>,
+          },
+          {
+            header: 'System Key',
+            render: (param) => {
+              const isDuplicateInCatalog = (keyOccurrences[param.key.toLowerCase()] || 0) > 1;
+              return (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <code
+                    className="mono-num"
+                    style={{
+                      backgroundColor: isDuplicateInCatalog ? 'var(--status-danger-bg)' : 'var(--bg-surface-secondary)',
+                      border: isDuplicateInCatalog ? '1px solid var(--status-danger-border)' : '1px solid var(--border-subtle)',
+                      padding: '2px 7px',
+                      borderRadius: 'var(--radius-xs)',
+                      fontSize: '0.76rem',
+                      color: isDuplicateInCatalog ? 'var(--status-danger-text)' : 'var(--brand-primary)',
+                      fontWeight: 600,
+                    }}
+                  >
+                    {param.key}
+                  </code>
+                  {isDuplicateInCatalog && (
+                    <span
+                      className="badge badge-danger"
+                      title="This parameter key appears multiple times in the catalog"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '3px',
+                        padding: '1px 6px',
+                        fontSize: '0.68rem',
+                        fontWeight: 700,
+                      }}
+                    >
+                      <AlertTriangle size={10} /> Duplicate
+                    </span>
+                  )}
+                </div>
+              );
+            },
+          },
+          {
+            header: 'Display Label',
+            render: (param) => (
+              <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{param.display_name}</span>
+            ),
+          },
+          {
+            header: 'Category',
+            width: '150px',
+            render: (param) => {
+              const category = getParamCategory(param);
+              const badgeStyle = getCategoryBadgeStyle(category);
+              return (
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    padding: '2px 8px',
+                    borderRadius: 'var(--radius-xs)',
+                    fontSize: '0.73rem',
+                    fontWeight: 600,
+                    ...badgeStyle,
+                  }}
+                >
+                  {category}
+                </span>
+              );
+            },
+          },
+          {
+            header: 'Engineering Unit',
+            align: 'center',
+            width: '130px',
+            render: (param) =>
+              param.unit ? (
+                <span
+                  className="mono-num"
+                  style={{
+                    fontWeight: 650,
+                    padding: '2px 8px',
+                    borderRadius: 'var(--radius-xs)',
+                    backgroundColor: 'var(--bg-surface-secondary)',
+                    border: '1px solid var(--border-default)',
+                    color: 'var(--text-secondary)',
+                    fontSize: '0.75rem',
+                  }}
+                >
+                  {param.unit}
+                </span>
+              ) : (
+                <span style={{ color: 'var(--text-dim)', fontSize: '0.75rem' }}>—</span>
+              ),
+          },
+          {
+            header: 'Actions',
+            align: 'center',
+            width: '110px',
+            render: (param) => (
+              <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+                <button
+                  onClick={() => handleOpenEdit(param)}
+                  className="btn-icon"
+                  title="Edit Parameter"
+                  aria-label="Edit Parameter"
+                >
+                  <Edit3 size={14} />
+                </button>
+                <button
+                  onClick={() => handleDelete(param.key, param.display_name)}
+                  className="btn-icon"
+                  style={{ color: 'var(--status-danger-text)' }}
+                  title="Delete Parameter"
+                  aria-label="Delete Parameter"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            ),
+          },
+        ]}
+        data={filteredParams}
+        rowKey="key"
+        toolbar={
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%' }}>
+            {/* Row 1: Search and Selectors */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px', width: '100%' }}>
+              <SearchInput
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search key, name, unit, category..."
-                style={{ paddingRight: searchTerm ? '28px' : '12px' }}
+                style={{ flex: '1 1 220px', minWidth: '200px' }}
               />
-              {searchTerm && (
+
+              {/* Search Selector: Jump / Select Parameter */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: '200px', flex: '1 1 200px' }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                  Parameter:
+                </label>
+                <select
+                  className="form-select"
+                  value={filterParamKey}
+                  onChange={(e) => setFilterParamKey(e.target.value)}
+                  style={{ height: '34px', fontSize: '0.78rem' }}
+                >
+                  <option value="all">All Parameters ({standardParameters.length})</option>
+                  {standardParameters.map((p) => (
+                    <option key={p.key} value={p.key}>
+                      {p.display_name} ({p.key}){p.unit ? ` [${p.unit}]` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Category Selector */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: '160px', flex: '1 1 160px' }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                  Category:
+                </label>
+                <select
+                  className="form-select"
+                  value={filterCategory}
+                  onChange={(e) => setFilterCategory(e.target.value)}
+                  style={{ height: '34px', fontSize: '0.78rem' }}
+                >
+                  <option value="all">All Categories ({standardParameters.length})</option>
+                  {categoriesWithCounts.map(([cat, count]) => (
+                    <option key={cat} value={cat}>
+                      {cat} ({count})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Engineering Unit Selector */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: '130px', flex: '0 1 140px' }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                  Unit:
+                </label>
+                <select
+                  className="form-select mono-num"
+                  value={filterUnit}
+                  onChange={(e) => setFilterUnit(e.target.value)}
+                  style={{ height: '34px', fontSize: '0.78rem' }}
+                >
+                  <option value="all">All Units ({standardParameters.length})</option>
+                  {unitsWithCounts.map(([unit, count]) => (
+                    <option key={unit} value={unit}>
+                      {unit === '__none__' ? 'No Unit' : unit} ({count})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Reset Filters button */}
+              {hasActiveFilters && (
                 <button
                   type="button"
-                  onClick={() => setSearchTerm('')}
-                  style={{
-                    position: 'absolute',
-                    right: '8px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--text-muted)',
-                    cursor: 'pointer',
-                    padding: '2px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                  title="Clear search"
+                  onClick={handleResetFilters}
+                  className="btn btn-secondary"
+                  style={{ height: '34px', fontSize: '0.75rem', padding: '0 10px', gap: '5px' }}
+                  title="Reset all search filters"
                 >
-                  <X size={13} />
+                  <RotateCcw size={13} />
+                  <span>Reset</span>
                 </button>
               )}
             </div>
 
-            {/* Search Selector: Jump / Select Parameter */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: '200px', flex: '1 1 200px' }}>
-              <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                Parameter:
-              </label>
-              <select
-                className="form-select"
-                value={filterParamKey}
-                onChange={(e) => setFilterParamKey(e.target.value)}
-                style={{ height: '34px', fontSize: '0.78rem' }}
-              >
-                <option value="all">All Parameters ({standardParameters.length})</option>
-                {standardParameters.map((p) => (
-                  <option key={p.key} value={p.key}>
-                    {p.display_name} ({p.key}){p.unit ? ` [${p.unit}]` : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Category Selector */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: '160px', flex: '1 1 160px' }}>
-              <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                Category:
-              </label>
-              <select
-                className="form-select"
-                value={filterCategory}
-                onChange={(e) => setFilterCategory(e.target.value)}
-                style={{ height: '34px', fontSize: '0.78rem' }}
-              >
-                <option value="all">All Categories ({standardParameters.length})</option>
-                {categoriesWithCounts.map(([cat, count]) => (
-                  <option key={cat} value={cat}>
-                    {cat} ({count})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Engineering Unit Selector */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: '130px', flex: '0 1 140px' }}>
-              <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                Unit:
-              </label>
-              <select
-                className="form-select mono-num"
-                value={filterUnit}
-                onChange={(e) => setFilterUnit(e.target.value)}
-                style={{ height: '34px', fontSize: '0.78rem' }}
-              >
-                <option value="all">All Units ({standardParameters.length})</option>
-                {unitsWithCounts.map(([unit, count]) => (
-                  <option key={unit} value={unit}>
-                    {unit === '__none__' ? 'No Unit' : unit} ({count})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Reset Filters button */}
-            {hasActiveFilters && (
-              <button
-                type="button"
-                onClick={handleResetFilters}
-                className="btn btn-secondary"
-                style={{ height: '34px', fontSize: '0.75rem', padding: '0 10px', gap: '5px' }}
-                title="Reset all search filters"
-              >
-                <RotateCcw size={13} />
-                <span>Reset</span>
-              </button>
-            )}
-          </div>
-
-          {/* Row 2: Status / Counts bar */}
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              width: '100%',
-              fontSize: '0.76rem',
-              color: 'var(--text-secondary)',
-              flexWrap: 'wrap',
-              gap: '8px',
-              paddingTop: '4px',
-              borderTop: '1px dashed var(--border-subtle)',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <span>
-                Showing: <strong style={{ color: 'var(--brand-primary)', fontWeight: 650 }}>{filteredParams.length}</strong> of{' '}
-                <strong>{standardParameters.length}</strong> Parameters
-              </span>
-              {hasActiveFilters && (
-                <span
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    padding: '2px 7px',
-                    borderRadius: 'var(--radius-xs)',
-                    backgroundColor: 'var(--bg-surface-secondary)',
-                    border: '1px solid var(--border-subtle)',
-                    fontSize: '0.72rem',
-                    color: 'var(--text-muted)',
-                  }}
-                >
-                  <Filter size={11} /> Filters Active
+            {/* Row 2: Status / Counts bar */}
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                width: '100%',
+                fontSize: '0.76rem',
+                color: 'var(--text-secondary)',
+                flexWrap: 'wrap',
+                gap: '8px',
+                paddingTop: '4px',
+                borderTop: '1px dashed var(--border-subtle)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <span>
+                  Showing: <strong style={{ color: 'var(--brand-primary)', fontWeight: 650 }}>{filteredParams.length}</strong> of{' '}
+                  <strong>{standardParameters.length}</strong> Parameters
                 </span>
-              )}
-            </div>
+                {hasActiveFilters && (
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '2px 7px',
+                      borderRadius: 'var(--radius-xs)',
+                      backgroundColor: 'var(--bg-surface-secondary)',
+                      border: '1px solid var(--border-subtle)',
+                      fontSize: '0.72rem',
+                      color: 'var(--text-muted)',
+                    }}
+                  >
+                    <Filter size={11} /> Filters Active
+                  </span>
+                )}
+              </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              {totalDuplicatesInCatalog > 0 && (
-                <span
-                  className="badge badge-danger"
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '5px',
-                    padding: '2px 8px',
-                    fontSize: '0.72rem',
-                    fontWeight: 650,
-                  }}
-                >
-                  <AlertTriangle size={12} /> {totalDuplicatesInCatalog} Duplicate Key{totalDuplicatesInCatalog > 1 ? 's' : ''} in Catalog
-                </span>
-              )}
-              <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', fontWeight: 550 }}>
-                Catalog Total: <strong style={{ color: 'var(--brand-primary)' }}>{standardParameters.length}</strong>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                {totalDuplicatesInCatalog > 0 && (
+                  <span
+                    className="badge badge-danger"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      padding: '2px 8px',
+                      fontSize: '0.72rem',
+                      fontWeight: 650,
+                    }}
+                  >
+                    <AlertTriangle size={12} /> {totalDuplicatesInCatalog} Duplicate Key{totalDuplicatesInCatalog > 1 ? 's' : ''} in Catalog
+                  </span>
+                )}
+                <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', fontWeight: 550 }}>
+                  Catalog Total: <strong style={{ color: 'var(--brand-primary)' }}>{standardParameters.length}</strong>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-
-        <table className="enterprise-table">
-          <thead>
-            <tr>
-              <th style={{ width: '50px' }}>#</th>
-              <th>System Key</th>
-              <th>Display Label</th>
-              <th style={{ width: '150px' }}>Category</th>
-              <th style={{ textAlign: 'center', width: '130px' }}>Engineering Unit</th>
-              <th style={{ textAlign: 'center', width: '110px' }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredParams.length === 0 ? (
-              <tr>
-                <td colSpan={6} style={{ padding: '36px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                    <Sliders size={28} style={{ opacity: 0.4 }} />
-                    <p style={{ margin: 0, fontWeight: 500 }}>No parameters match the selected criteria.</p>
-                    {hasActiveFilters && (
-                      <button
-                        type="button"
-                        onClick={handleResetFilters}
-                        className="btn btn-secondary"
-                        style={{ marginTop: '6px', fontSize: '0.75rem', height: '30px' }}
-                      >
-                        <RotateCcw size={12} /> Clear Filters
-                      </button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ) : (
-              filteredParams.map((param, index) => {
-                const isDuplicateInCatalog = (keyOccurrences[param.key.toLowerCase()] || 0) > 1;
-                const category = getParamCategory(param);
-                const badgeStyle = getCategoryBadgeStyle(category);
-
-                return (
-                  <tr key={param.key}>
-                    <td style={{ color: 'var(--text-muted)' }}>{index + 1}</td>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <code
-                          className="mono-num"
-                          style={{
-                            backgroundColor: isDuplicateInCatalog ? 'var(--status-danger-bg)' : 'var(--bg-surface-secondary)',
-                            border: isDuplicateInCatalog ? '1px solid var(--status-danger-border)' : '1px solid var(--border-subtle)',
-                            padding: '2px 7px',
-                            borderRadius: 'var(--radius-xs)',
-                            fontSize: '0.76rem',
-                            color: isDuplicateInCatalog ? 'var(--status-danger-text)' : 'var(--brand-primary)',
-                            fontWeight: 600,
-                          }}
-                        >
-                          {param.key}
-                        </code>
-                        {isDuplicateInCatalog && (
-                          <span
-                            className="badge badge-danger"
-                            title="This parameter key appears multiple times in the catalog"
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '3px',
-                              padding: '1px 6px',
-                              fontSize: '0.68rem',
-                              fontWeight: 700,
-                            }}
-                          >
-                            <AlertTriangle size={10} /> Duplicate
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-                      {param.display_name}
-                    </td>
-                    <td>
-                      <span
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          padding: '2px 8px',
-                          borderRadius: 'var(--radius-xs)',
-                          fontSize: '0.73rem',
-                          fontWeight: 600,
-                          ...badgeStyle,
-                        }}
-                      >
-                        {category}
-                      </span>
-                    </td>
-                    <td style={{ textAlign: 'center' }}>
-                      {param.unit ? (
-                        <span
-                          className="mono-num"
-                          style={{
-                            fontWeight: 650,
-                            padding: '2px 8px',
-                            borderRadius: 'var(--radius-xs)',
-                            backgroundColor: 'var(--bg-surface-secondary)',
-                            border: '1px solid var(--border-default)',
-                            color: 'var(--text-secondary)',
-                            fontSize: '0.75rem',
-                          }}
-                        >
-                          {param.unit}
-                        </span>
-                      ) : (
-                        <span style={{ color: 'var(--text-dim)', fontSize: '0.75rem' }}>—</span>
-                      )}
-                    </td>
-                    <td style={{ textAlign: 'center' }}>
-                      <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
-                        <button
-                          onClick={() => handleOpenEdit(param)}
-                          className="btn-icon"
-                          title="Edit Parameter"
-                          aria-label="Edit Parameter"
-                        >
-                          <Edit3 size={14} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(param.key, param.display_name)}
-                          className="btn-icon"
-                          style={{ color: 'var(--status-danger-text)' }}
-                          title="Delete Parameter"
-                          aria-label="Delete Parameter"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+        }
+        emptyIcon={Sliders}
+        emptyMessage="No parameters match the selected criteria."
+        emptyAction={
+          hasActiveFilters ? (
+            <button
+              type="button"
+              onClick={handleResetFilters}
+              className="btn btn-secondary"
+              style={{ marginTop: '6px', fontSize: '0.75rem', height: '30px' }}
+            >
+              <RotateCcw size={12} /> Clear Filters
+            </button>
+          ) : null
+        }
+      />
 
       {/* Add / Edit Modal */}
       <Modal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
-        title={editingKey ? 'Edit Standard Parameter' : 'Add Standard Parameter'}
+        title={editingKey ? 'Edit Parameter' : 'Add Parameter'}
         subtitle="Define global telemetry parameter key, category, and engineering display unit."
         maxWidth="520px"
         footer={

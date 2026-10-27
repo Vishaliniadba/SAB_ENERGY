@@ -25,17 +25,14 @@ export const EnergyDataProvider = ({ children }) => {
   const [gateways, setGateways] = useState(() => {
     const raw = load('sab_gateways', initialGateways);
     return raw.map(gw => {
-      const initMatch = initialGateways.find(ig => ig.Gateway_id === gw.Gateway_id);
-      const rawCount = Number(gw.channel_count || initMatch?.channel_count || 2);
-      const count = rawCount === 1 ? 1 : 2;
+      const rawCount = Number(gw.channel_count || 2);
       return {
-        ...initMatch,
         ...gw,
-        gw_make_name: gw.gw_make_name || initMatch?.gw_make_name || '',
-        gw_model_name: gw.gw_model_name || initMatch?.gw_model_name || '',
-        channel_count: count,
-        status: gw.status || initMatch?.status || 'Active',
-        last_communicate_time: gw.last_communicate_time || initMatch?.last_communicate_time || new Date().toISOString()
+        gw_make_name: gw.gw_make_name || '',
+        gw_model_name: gw.gw_model_name || '',
+        channel_count: rawCount,
+        status: gw.status || 'Active',
+        last_communicate_time: gw.last_communicate_time || new Date().toISOString()
       };
     });
   });
@@ -43,16 +40,12 @@ export const EnergyDataProvider = ({ children }) => {
   const [gatewayModels, setGatewayModels] = useState(() => {
     const raw = load('sab_gw_models', initialGatewayModels);
     return raw.map(mod => {
-      const initMatch = initialGatewayModels.find(im => im.gw_model_id === mod.gw_model_id);
-      const rawCount = Number(mod.channel_count || initMatch?.channel_count || 2);
-      const count = rawCount === 1 ? 1 : 2;
-      const initNames = initMatch?.channel_names || ['Channel 1', 'Channel 2'];
+      const count = Number(mod.channel_count || 2);
       const names = (mod.channel_names && mod.channel_names.length)
         ? mod.channel_names.slice(0, count)
-        : initNames.slice(0, count);
+        : Array.from({ length: count }, (_, i) => `Channel ${i + 1}`);
 
       return {
-        ...initMatch,
         ...mod,
         channel_count: count,
         channel_names: names
@@ -71,22 +64,13 @@ export const EnergyDataProvider = ({ children }) => {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        return parsed.map(p => {
-          let params = p.parameters || [];
-          if (p.profile_id === 'PROF-ELM-01' && params.length < 30) {
-            const elmDefault = initialMeterProfiles.find(ip => ip.profile_id === 'PROF-ELM-01');
-            if (elmDefault && elmDefault.parameters) {
-              params = elmDefault.parameters;
-            }
-          }
-          return {
-            ...p,
-            parameters: params.map(param => ({
-              ...param,
-              multiplier: param.multiplier !== undefined ? param.multiplier : (param.scale !== undefined ? param.scale : 1.0)
-            }))
-          };
-        });
+        return parsed.map(p => ({
+          ...p,
+          parameters: (p.parameters || []).map(param => ({
+            ...param,
+            multiplier: param.multiplier !== undefined ? param.multiplier : (param.scale !== undefined ? param.scale : 1.0)
+          }))
+        }));
       } catch (e) {
         return initialMeterProfiles;
       }

@@ -5,7 +5,7 @@ import { Header } from './components/layout/Header';
 import { DashboardView } from './views/dashboard/DashboardView';
 import { DeviceMasterView } from './views/masters/DeviceMasterView';
 import { AssetMappingView } from './views/mapping/AssetMappingView';
-import { MeterProfilesView } from './views/profiles/MeterProfilesView';
+import { MeterProfileView } from './views/profiles/MeterProfileView';
 import { MakeMasterView } from './views/profiles/MakeMasterView';
 import { ModelMasterView } from './views/profiles/ModelMasterView';
 import { GatewayMakeMasterView } from './views/masters/GatewayMakeMasterView';
@@ -27,7 +27,7 @@ function AppContent() {
         return <AssetMappingView />;
       case 'meter-profiles':
       case 'meter-profile':
-        return <MeterProfilesView />;
+        return <MeterProfileView />;
       case 'meter-make':
       case 'make-master':
         return <MakeMasterView />;
@@ -61,7 +61,7 @@ function AppContent() {
         <Header activeTab={activeTab} />
         <main
           style={{
-            padding: '24px 28px',
+            padding: '20px 24px',
             flex: 1,
             overflowY: 'auto',
             minHeight: 0,

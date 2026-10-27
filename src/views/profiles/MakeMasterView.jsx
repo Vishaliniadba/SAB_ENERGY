@@ -1,8 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Edit3, Trash2, Building2, Search, Save, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Plus, Edit3, Trash2, Building2, Save, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useEnergyData } from '../../context/EnergyDataContext';
 import { PageHeader } from '../../components/common/PageHeader';
 import { Modal } from '../../components/common/Modal';
+import { SearchInput } from '../../components/common/SearchInput';
+import { DataTable } from '../../components/common/DataTable';
+import { InputField } from '../../components/common/FormField';
 
 export const MakeMasterView = () => {
   const { makes, addMake, updateMake, deleteMake, models } = useEnergyData();
@@ -91,7 +94,7 @@ export const MakeMasterView = () => {
         actions={
           <button onClick={handleOpenAdd} className="btn btn-primary">
             <Plus size={15} />
-            <span>Add Meter Make</span>
+            <span>Add Make</span>
           </button>
         }
       />
@@ -116,82 +119,76 @@ export const MakeMasterView = () => {
       )}
 
       {/* Table Container with Integrated Toolbar */}
-      <div className="table-container">
-        <div className="table-toolbar">
-          <div className="search-input-wrapper">
-            <Search size={14} />
-            <input
+      <DataTable
+        columns={[
+          {
+            header: '#',
+            width: '60px',
+            render: (_, index) => <span style={{ color: 'var(--text-muted)' }}>{index + 1}</span>,
+          },
+          {
+            header: 'Manufacturer Name',
+            render: (make) => (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}>
+                <Building2 size={14} color="var(--brand-primary)" />
+                <span>{make.make_name}</span>
+              </div>
+            ),
+          },
+          {
+            header: 'Actions',
+            width: '130px',
+            align: 'center',
+            render: (make) => (
+              <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+                <button
+                  onClick={() => handleOpenEdit(make)}
+                  className="btn-icon"
+                  title="Edit Make"
+                  aria-label="Edit Make"
+                >
+                  <Edit3 size={14} />
+                </button>
+                <button
+                  onClick={() => handleDelete(make.make_id, make.make_name)}
+                  className="btn-icon"
+                  style={{ color: 'var(--status-danger-text)' }}
+                  title="Delete Make"
+                  aria-label="Delete Make"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            ),
+          },
+        ]}
+        data={filteredMakes}
+        rowKey="make_id"
+        toolbar={
+          <>
+            <SearchInput
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search meter makes by name or ID..."
             />
-          </div>
 
-          <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 550 }}>
-            Total Makes: <strong style={{ color: 'var(--brand-primary)' }}>{makes.length}</strong>
-          </div>
-        </div>
-
-        <table className="enterprise-table">
-          <thead>
-            <tr>
-              <th style={{ width: '60px' }}>#</th>
-              <th>Manufacturer Name</th>
-              <th style={{ textAlign: 'center', width: '130px' }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredMakes.length === 0 ? (
-              <tr>
-                <td colSpan={3} style={{ padding: '36px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                  No meter makes found. Click <strong>"Add Meter Make"</strong> to register a new vendor.
-                </td>
-              </tr>
-            ) : (
-              filteredMakes.map((make, index) => {
-                return (
-                  <tr key={make.make_id}>
-                    <td style={{ color: 'var(--text-muted)' }}>{index + 1}</td>
-                    <td style={{ fontWeight: 600 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Building2 size={14} color="var(--brand-primary)" />
-                        <span>{make.make_name}</span>
-                      </div>
-                    </td>
-                    <td style={{ textAlign: 'center' }}>
-                      <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
-                        <button
-                          onClick={() => handleOpenEdit(make)}
-                          className="btn-icon"
-                          title="Edit Make"
-                          aria-label="Edit Make"
-                        >
-                          <Edit3 size={14} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(make.make_id, make.make_name)}
-                          className="btn-icon"
-                          style={{ color: 'var(--status-danger-text)' }}
-                          title="Delete Make"
-                          aria-label="Delete Make"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+            <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 550 }}>
+              Total Makes: <strong style={{ color: 'var(--brand-primary)' }}>{makes.length}</strong>
+            </div>
+          </>
+        }
+        emptyMessage={
+          <span>
+            No meter makes found. Click <strong>"Add Make"</strong> to register a new vendor.
+          </span>
+        }
+      />
 
       {/* Add / Edit Modal */}
       <Modal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
-        title={editingMakeId ? 'Edit Meter Make' : 'Add Meter Make'}
+        title={editingMakeId ? 'Edit Make' : 'Add Make'}
         subtitle="Enter the official meter manufacturer brand or vendor name."
         maxWidth="500px"
         footer={
@@ -226,19 +223,15 @@ export const MakeMasterView = () => {
             </div>
           )}
 
-          <div className="form-group">
-            <label className="form-label">Make Name *</label>
-            <input
-              className="form-input"
-              value={makeName}
-              onChange={(e) => setMakeName(e.target.value)}
-              placeholder="e.g. Schneider Electric, Secure Meters, Selec"
-              autoFocus
-            />
-            <span className="form-helper">
-              Unique vendor name used across meter profiles and asset mapping.
-            </span>
-          </div>
+          <InputField
+            label="Make Name"
+            required
+            value={makeName}
+            onChange={(e) => setMakeName(e.target.value)}
+            placeholder="e.g. Schneider Electric, Secure Meters, Selec"
+            hint="Unique vendor name used across meter profiles and asset mapping."
+            autoFocus
+          />
         </form>
       </Modal>
     </div>
