@@ -80,11 +80,15 @@ export const EnergyDataProvider = ({ children }) => {
     (m.name && m.name.toUpperCase().includes('DUMMY'));
 
   const isDummyAsset = (a: any) =>
-    a.Asset_id === 'AST-501' || a.Asset_id === 'AST-502' || a.Asset_id === 'AST-503' || a.Asset_id === 'AST-504';
+    !a.concern_name && !a.category_name && (
+      a.Asset_id === 'AST-501' || a.Asset_id === 'AST-502' || a.Asset_id === 'AST-503' || a.Asset_id === 'AST-504'
+    );
 
   const isDummyMapping = (m: any) =>
-    m.Mapping_id === 'MAP-001' || m.Mapping_id === 'MAP-002' || m.Mapping_id === 'MAP-003' ||
-    m.Meter_id === 'MTR-001' || m.Meter_id === 'MTR-002' || m.Meter_id === 'MTR-003' || m.Meter_id === 'MTR-004';
+    !m.concern_name && !m.category_name && (
+      m.Mapping_id === 'MAP-001' || m.Mapping_id === 'MAP-002' || m.Mapping_id === 'MAP-003' ||
+      m.Meter_id === 'MTR-001' || m.Meter_id === 'MTR-002' || m.Meter_id === 'MTR-003' || m.Meter_id === 'MTR-004'
+    );
 
   const isDummyGwMake = (m: any) =>
     m.gw_make_id === 'GWMAKE-ADV' || m.gw_make_id === 'GWMAKE-SEI' || m.gw_make_id === 'GWMAKE-WEG';
@@ -166,11 +170,13 @@ export const EnergyDataProvider = ({ children }) => {
   });
   const [assets, setAssets] = useState(() => {
     const raw = load('sab_assets', initialAssets);
-    return (Array.isArray(raw) ? raw : []).filter(a => !isDummyAsset(a));
+    const cleaned = (Array.isArray(raw) ? raw : []).filter(a => !isDummyAsset(a));
+    return cleaned.length > 0 ? cleaned : initialAssets;
   });
   const [mappings, setMappings] = useState(() => {
     const raw = load('sab_mappings', initialAssetMeterMappings);
-    return (Array.isArray(raw) ? raw : []).filter(m => !isDummyMapping(m));
+    const cleaned = (Array.isArray(raw) ? raw : []).filter(m => !isDummyMapping(m));
+    return cleaned.length > 0 ? cleaned : initialAssetMeterMappings;
   });
   const [makes, setMakes] = useState(() => {
     const raw = load('sab_makes', initialMakes);
