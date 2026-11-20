@@ -5,27 +5,20 @@ import {
   Trash2,
   Search,
   CheckCircle2,
-  AlertCircle,
   Building2,
   MapPin,
-  Layers,
-  SlidersHorizontal,
   Eye,
   ChevronDown,
-  Check,
   X,
-  Filter,
-  RefreshCw,
   Cpu,
   Columns,
-  Sparkles,
+  RefreshCw,
 } from 'lucide-react';
 import { useEnergyData } from '../../../context/EnergyDataContext';
 import { Badge } from '../../../components/common/Badge';
 import { Modal } from '../../../components/common/Modal';
 import { DataTable, ColumnDef } from '../../../components/common/DataTable';
 import { InputField, SelectField } from '../../../components/common/FormField';
-import { Select2 } from '../../../components/common/Select2';
 import type { AssetMappingRecord } from '../api/assetMappingApi';
 import '../styles/assetMapping.css';
 
@@ -56,136 +49,6 @@ const getCategoryStyle = (category: string) => {
 };
 
 /* ═════════════════════════════════════════════════════════════════════
-   Reusable Multi-Select Filter Dropdown
-   Supports multiple selections with search, Select All, and Clear
-   ═════════════════════════════════════════════════════════════════════ */
-interface MultiSelectFilterProps {
-  label: string;
-  icon?: React.ReactNode;
-  options: { value: string; label: string; count?: number }[];
-  selected: string[];
-  onChange: (selected: string[]) => void;
-  placeholder?: string;
-}
-
-const MultiSelectFilter: React.FC<MultiSelectFilterProps> = ({
-  label,
-  icon,
-  options,
-  selected,
-  onChange,
-  placeholder = 'Search...',
-}) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [search, setSearch] = useState('');
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleOutsideClick = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    if (isOpen) {
-      document.addEventListener('mousedown', handleOutsideClick);
-    }
-    return () => document.removeEventListener('mousedown', handleOutsideClick);
-  }, [isOpen]);
-
-  const filteredOptions = useMemo(() => {
-    if (!search.trim()) return options;
-    const q = search.toLowerCase();
-    return options.filter((o) => o.label.toLowerCase().includes(q) || o.value.toLowerCase().includes(q));
-  }, [options, search]);
-
-  const toggleOption = (val: string) => {
-    if (selected.includes(val)) {
-      onChange(selected.filter((item) => item !== val));
-    } else {
-      onChange([...selected, val]);
-    }
-  };
-
-  const selectAll = () => {
-    onChange(options.map((o) => o.value));
-  };
-
-  const clearAll = () => {
-    onChange([]);
-  };
-
-  const isActive = selected.length > 0;
-
-  return (
-    <div className="multi-filter-wrapper" ref={menuRef}>
-      <button
-        type="button"
-        className={`multi-filter-btn ${isActive ? 'active' : ''}`}
-        onClick={() => setIsOpen((prev) => !prev)}
-        title={`Filter by ${label} (Multiple selection)`}
-      >
-        {icon}
-        <span>{label}</span>
-        {isActive && <span className="multi-filter-count-badge">{selected.length}</span>}
-        <ChevronDown size={13} style={{ opacity: 0.7, transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
-      </button>
-
-      {isOpen && (
-        <div className="multi-filter-dropdown">
-          {options.length >= 4 && (
-            <div className="multi-filter-search">
-              <input
-                type="text"
-                placeholder={placeholder}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                autoFocus
-              />
-            </div>
-          )}
-
-          <div className="multi-filter-actions">
-            <button type="button" className="multi-filter-action-link" onClick={selectAll}>
-              Select All ({options.length})
-            </button>
-            <button type="button" className="multi-filter-action-link clear" onClick={clearAll}>
-              Clear
-            </button>
-          </div>
-
-          <div className="multi-filter-list">
-            {filteredOptions.length === 0 ? (
-              <div style={{ padding: '12px', textAlign: 'center', color: '#94A3B8', fontSize: '0.74rem' }}>
-                No options found
-              </div>
-            ) : (
-              filteredOptions.map((opt) => {
-                const checked = selected.includes(opt.value);
-                return (
-                  <label key={opt.value} className="multi-filter-item">
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => toggleOption(opt.value)}
-                    />
-                    <span className="multi-filter-item-label" title={opt.label}>
-                      {opt.label}
-                    </span>
-                    {opt.count !== undefined && (
-                      <span className="multi-filter-item-count">({opt.count})</span>
-                    )}
-                  </label>
-                );
-              })
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-/* ═════════════════════════════════════════════════════════════════════
    Asset Mapping Page Component
    ═════════════════════════════════════════════════════════════════════ */
 export const AssetMappingPage: React.FC = () => {
@@ -199,7 +62,6 @@ export const AssetMappingPage: React.FC = () => {
     addMapping,
     updateMapping,
     deleteMapping,
-    toggleMappingActive,
   } = useEnergyData();
 
   // ── Normalize Mappings with Safe Fallbacks ──
@@ -231,15 +93,8 @@ export const AssetMappingPage: React.FC = () => {
     });
   }, [mappings, assets, meters]);
 
-  // ── Filter States (Multi-Select Supported) ──
+  // ── Search State ──
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedConcerns, setSelectedConcerns] = useState<string[]>([]);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
-  const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
-  const [selectedFloors, setSelectedFloors] = useState<string[]>([]);
-  const [selectedZones, setSelectedZones] = useState<string[]>([]);
-  const [selectedBuildings, setSelectedBuildings] = useState<string[]>([]);
 
   // ── Column Visibility Multi-Select Filter ──
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({
@@ -296,28 +151,6 @@ export const AssetMappingPage: React.FC = () => {
     effective_to: '2027-12-31',
     is_active: true,
   });
-
-  // ── Distinct Filter Options with Item Counts ──
-  const filterOptions = useMemo(() => {
-    const countBy = (key: keyof AssetMappingRecord) => {
-      const map: Record<string, number> = {};
-      normalizedRecords.forEach((r) => {
-        const val = String(r[key] || '');
-        if (val) map[val] = (map[val] || 0) + 1;
-      });
-      return Object.entries(map).map(([value, count]) => ({ value, label: value, count }));
-    };
-
-    return {
-      concerns: countBy('concern_name'),
-      categories: countBy('category_name'),
-      locations: countBy('location'),
-      departments: countBy('department'),
-      floors: countBy('floor'),
-      zones: countBy('zone'),
-      buildings: countBy('building'),
-    };
-  }, [normalizedRecords]);
 
   // ── Open Modal for CREATE ──
   const handleOpenAdd = () => {
@@ -400,60 +233,9 @@ export const AssetMappingPage: React.FC = () => {
     setTimeout(() => setSuccessMsg(''), 4000);
   };
 
-  // ── Clear All Active Filters ──
-  const clearAllFilters = () => {
-    setSelectedConcerns([]);
-    setSelectedCategories([]);
-    setSelectedLocations([]);
-    setSelectedDepartments([]);
-    setSelectedFloors([]);
-    setSelectedZones([]);
-    setSelectedBuildings([]);
-    setSearchTerm('');
-  };
-
-  const totalActiveFilterCount =
-    selectedConcerns.length +
-    selectedCategories.length +
-    selectedLocations.length +
-    selectedDepartments.length +
-    selectedFloors.length +
-    selectedZones.length +
-    selectedBuildings.length;
-
-  // ── Filtered Records Based on Multiple Selections & Search ──
+  // ── Filtered Records Based on Search ──
   const filteredRecords = useMemo(() => {
     return normalizedRecords.filter((rec) => {
-      // 1. Multi-Select Concern Filter
-      if (selectedConcerns.length > 0 && !selectedConcerns.includes(rec.concern_name)) {
-        return false;
-      }
-      // 2. Multi-Select Category Filter
-      if (selectedCategories.length > 0 && !selectedCategories.includes(rec.category_name)) {
-        return false;
-      }
-      // 3. Multi-Select Location Filter
-      if (selectedLocations.length > 0 && !selectedLocations.includes(rec.location)) {
-        return false;
-      }
-      // 4. Multi-Select Department Filter
-      if (selectedDepartments.length > 0 && !selectedDepartments.includes(rec.department)) {
-        return false;
-      }
-      // 5. Multi-Select Floor Filter
-      if (selectedFloors.length > 0 && !selectedFloors.includes(rec.floor)) {
-        return false;
-      }
-      // 6. Multi-Select Zone Filter
-      if (selectedZones.length > 0 && !selectedZones.includes(rec.zone)) {
-        return false;
-      }
-      // 7. Multi-Select Building Filter
-      if (selectedBuildings.length > 0 && !selectedBuildings.includes(rec.building)) {
-        return false;
-      }
-
-      // 8. Global Search Query Filter
       if (searchTerm.trim()) {
         const q = searchTerm.toLowerCase();
         const matches =
@@ -474,17 +256,7 @@ export const AssetMappingPage: React.FC = () => {
 
       return true;
     });
-  }, [
-    normalizedRecords,
-    selectedConcerns,
-    selectedCategories,
-    selectedLocations,
-    selectedDepartments,
-    selectedFloors,
-    selectedZones,
-    selectedBuildings,
-    searchTerm,
-  ]);
+  }, [normalizedRecords, searchTerm]);
 
   // ── Construct Dynamic Table Columns Based on User Specification ──
   const tableColumns: ColumnDef<AssetMappingRecord>[] = useMemo(() => {
@@ -757,23 +529,17 @@ export const AssetMappingPage: React.FC = () => {
               Asset Telemetry & CT/PT Multiplier Mapping
             </div>
             <div style={{ fontSize: '0.76rem', color: '#64748B' }}>
-              Maps physical facility assets to edge energy meters. Calculated Power (kW) = Modbus Telemetry Reading × CT/PT Ratio.
+              Maps physical facility assets to edge energy meters. Active Telemetry Power (kW) = Modbus Register Reading × CT/PT Ratio.
             </div>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ fontSize: '0.78rem', color: '#475569', fontWeight: 550 }}>
-            Total Assets: <strong style={{ color: '#008FFB' }}>{normalizedRecords.length}</strong>
-          </div>
-          <button onClick={handleOpenAdd} className="btn btn-primary" style={{ padding: '6px 14px' }}>
-            <Plus size={15} />
-            <span>New Mapping</span>
-          </button>
+        <div style={{ fontSize: '0.78rem', color: '#475569', fontWeight: 550 }}>
+          Active Mappings: <strong style={{ color: '#008FFB' }}>{normalizedRecords.filter((m) => m.is_active).length}</strong> of {normalizedRecords.length}
         </div>
       </div>
 
-      {/* ── Multi-Select Filter Toolbar ── */}
+      {/* ── Integrated Toolbar with Search, Column Filter & New Mapping ── */}
       <div
         style={{
           backgroundColor: '#FFFFFF',
@@ -781,255 +547,158 @@ export const AssetMappingPage: React.FC = () => {
           borderRadius: '10px',
           padding: '12px 16px',
           display: 'flex',
-          flexDirection: 'column',
-          gap: '10px',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '12px',
         }}
       >
-        <div className="asset-toolbar-row">
-          {/* Left: Quick Search */}
-          <div style={{ position: 'relative', width: 280, minWidth: 220 }}>
-            <Search
-              size={14}
-              color="#94A3B8"
-              style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }}
-            />
-            <input
-              type="text"
-              placeholder="Search by Asset ID, Room, Concern, Category..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+        {/* Left: Quick Search */}
+        <div style={{ position: 'relative', width: 320, minWidth: 240 }}>
+          <Search
+            size={14}
+            color="#94A3B8"
+            style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }}
+          />
+          <input
+            type="text"
+            placeholder="Search by Asset ID, Room, Concern, Category..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{
+              width: '100%',
+              height: 36,
+              paddingLeft: 32,
+              paddingRight: 30,
+              fontSize: '0.80rem',
+              borderRadius: 7,
+              border: '1px solid #CBD5E1',
+              backgroundColor: '#F8FAFC',
+              color: '#0F172A',
+              outline: 'none',
+              boxSizing: 'border-box',
+            }}
+          />
+          {searchTerm && (
+            <button
+              type="button"
+              onClick={() => setSearchTerm('')}
               style={{
-                width: '100%',
-                height: 34,
-                paddingLeft: 32,
-                paddingRight: 10,
-                fontSize: '0.78rem',
-                borderRadius: 7,
-                border: '1px solid #CBD5E1',
-                backgroundColor: '#F8FAFC',
-                color: '#0F172A',
-                outline: 'none',
-                boxSizing: 'border-box',
+                position: 'absolute',
+                right: 8,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#94A3B8',
+                padding: 2,
               }}
-            />
-            {searchTerm && (
-              <button
-                type="button"
-                onClick={() => setSearchTerm('')}
-                style={{
-                  position: 'absolute',
-                  right: 8,
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: '#94A3B8',
-                  padding: 2,
-                }}
-              >
-                <X size={13} />
-              </button>
-            )}
-          </div>
-
-          {/* Right: Specialized Multi-Select Filter Triggers & Column Selector */}
-          <div className="asset-filter-group">
-            {/* 1. Multi-Select: Concern Name */}
-            <MultiSelectFilter
-              label="Concern"
-              icon={<Building2 size={13} />}
-              options={filterOptions.concerns}
-              selected={selectedConcerns}
-              onChange={setSelectedConcerns}
-              placeholder="Search concerns..."
-            />
-
-            {/* 2. Multi-Select: Category Name */}
-            <MultiSelectFilter
-              label="Category"
-              icon={<Layers size={13} />}
-              options={filterOptions.categories}
-              selected={selectedCategories}
-              onChange={setSelectedCategories}
-              placeholder="Search categories..."
-            />
-
-            {/* 3. Multi-Select: Location */}
-            <MultiSelectFilter
-              label="Location"
-              icon={<MapPin size={13} />}
-              options={filterOptions.locations}
-              selected={selectedLocations}
-              onChange={setSelectedLocations}
-              placeholder="Search locations..."
-            />
-
-            {/* 4. Multi-Select: Department */}
-            <MultiSelectFilter
-              label="Department"
-              options={filterOptions.departments}
-              selected={selectedDepartments}
-              onChange={setSelectedDepartments}
-              placeholder="Search departments..."
-            />
-
-            {/* 5. Multi-Select: Floor */}
-            <MultiSelectFilter
-              label="Floor"
-              options={filterOptions.floors}
-              selected={selectedFloors}
-              onChange={setSelectedFloors}
-              placeholder="Search floors..."
-            />
-
-            {/* 6. Multi-Select: Column Visibility */}
-            <div className="multi-filter-wrapper" ref={columnMenuRef}>
-              <button
-                type="button"
-                className="multi-filter-btn"
-                onClick={() => setIsColumnMenuOpen((prev) => !prev)}
-                title="Choose which columns to show or hide"
-                style={{ backgroundColor: '#F8FAFC' }}
-              >
-                <Columns size={13} color="#64748B" />
-                <span>Columns</span>
-                <span className="multi-filter-count-badge" style={{ backgroundColor: '#475569' }}>
-                  {Object.values(visibleColumns).filter(Boolean).length}/10
-                </span>
-                <ChevronDown size={13} style={{ opacity: 0.7 }} />
-              </button>
-
-              {isColumnMenuOpen && (
-                <div className="multi-filter-dropdown" style={{ right: 0, left: 'auto', minWidth: 200 }}>
-                  <div style={{ padding: '6px 12px', borderBottom: '1px solid #F1F5F9', fontWeight: 650, fontSize: '0.74rem', color: '#475569' }}>
-                    Show / Hide Columns
-                  </div>
-                  <div className="multi-filter-list">
-                    {[
-                      { key: 'asset_id', label: 'Asset ID' },
-                      { key: 'concern_name', label: 'Concern Name' },
-                      { key: 'category_name', label: 'Category Name' },
-                      { key: 'location', label: 'Location' },
-                      { key: 'zone', label: 'Zone' },
-                      { key: 'building', label: 'Building' },
-                      { key: 'department', label: 'Department' },
-                      { key: 'floor', label: 'Floor' },
-                      { key: 'room_name', label: 'Room Name' },
-                      { key: 'details', label: 'Details' },
-                    ].map((col) => (
-                      <label key={col.key} className="multi-filter-item">
-                        <input
-                          type="checkbox"
-                          checked={visibleColumns[col.key]}
-                          onChange={(e) =>
-                            setVisibleColumns((prev) => ({
-                              ...prev,
-                              [col.key]: e.target.checked,
-                            }))
-                          }
-                        />
-                        <span className="multi-filter-item-label">{col.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Clear All Filters Button (if active) */}
-            {totalActiveFilterCount > 0 && (
-              <button
-                type="button"
-                onClick={clearAllFilters}
-                className="asset-clear-all-btn"
-                title="Clear all active multi-select filters"
-              >
-                Reset All ({totalActiveFilterCount})
-              </button>
-            )}
-          </div>
+            >
+              <X size={14} />
+            </button>
+          )}
         </div>
 
-        {/* ── Active Filters Chips Bar ── */}
-        {(totalActiveFilterCount > 0 || searchTerm) && (
-          <div className="asset-active-chips-bar">
-            <span style={{ color: '#64748B', fontWeight: 600 }}>Active Filters:</span>
-
-            {searchTerm && (
-              <span className="asset-filter-chip">
-                Search: "{searchTerm}"
-                <button type="button" onClick={() => setSearchTerm('')} title="Remove search filter">
-                  <X size={12} />
-                </button>
+        {/* Right: Columns Visibility Multi-Select Filter & New Mapping Button */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          {/* Columns Visibility Multi-Select Filter */}
+          <div className="multi-filter-wrapper" ref={columnMenuRef}>
+            <button
+              type="button"
+              className="multi-filter-btn"
+              onClick={() => setIsColumnMenuOpen((prev) => !prev)}
+              title="Filter columns to show or hide in UI screen"
+              style={{
+                height: 36,
+                padding: '0 14px',
+                fontSize: '0.80rem',
+                backgroundColor: '#FFFFFF',
+                borderColor: isColumnMenuOpen ? '#3B82F6' : '#CBD5E1',
+              }}
+            >
+              <Columns size={14} color="#64748B" />
+              <span>Columns</span>
+              <span className="multi-filter-count-badge" style={{ backgroundColor: '#475569' }}>
+                {Object.values(visibleColumns).filter(Boolean).length}/10
               </span>
-            )}
-
-            {selectedConcerns.map((val) => (
-              <span key={`con-${val}`} className="asset-filter-chip">
-                Concern: {val}
-                <button
-                  type="button"
-                  onClick={() => setSelectedConcerns((prev) => prev.filter((i) => i !== val))}
-                >
-                  <X size={12} />
-                </button>
-              </span>
-            ))}
-
-            {selectedCategories.map((val) => (
-              <span key={`cat-${val}`} className="asset-filter-chip">
-                Category: {val}
-                <button
-                  type="button"
-                  onClick={() => setSelectedCategories((prev) => prev.filter((i) => i !== val))}
-                >
-                  <X size={12} />
-                </button>
-              </span>
-            ))}
-
-            {selectedLocations.map((val) => (
-              <span key={`loc-${val}`} className="asset-filter-chip">
-                Location: {val}
-                <button
-                  type="button"
-                  onClick={() => setSelectedLocations((prev) => prev.filter((i) => i !== val))}
-                >
-                  <X size={12} />
-                </button>
-              </span>
-            ))}
-
-            {selectedDepartments.map((val) => (
-              <span key={`dept-${val}`} className="asset-filter-chip">
-                Dept: {val}
-                <button
-                  type="button"
-                  onClick={() => setSelectedDepartments((prev) => prev.filter((i) => i !== val))}
-                >
-                  <X size={12} />
-                </button>
-              </span>
-            ))}
-
-            {selectedFloors.map((val) => (
-              <span key={`flr-${val}`} className="asset-filter-chip">
-                Floor: {val}
-                <button
-                  type="button"
-                  onClick={() => setSelectedFloors((prev) => prev.filter((i) => i !== val))}
-                >
-                  <X size={12} />
-                </button>
-              </span>
-            ))}
-
-            <button type="button" onClick={clearAllFilters} className="asset-clear-all-btn" style={{ marginLeft: 'auto' }}>
-              Clear All Filters
+              <ChevronDown size={13} style={{ opacity: 0.7 }} />
             </button>
+
+            {isColumnMenuOpen && (
+              <div className="multi-filter-dropdown" style={{ right: 0, left: 'auto', minWidth: 210 }}>
+                <div
+                  style={{
+                    padding: '8px 12px',
+                    borderBottom: '1px solid #F1F5F9',
+                    fontWeight: 700,
+                    fontSize: '0.76rem',
+                    color: '#334155',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                >
+                  <span>Select Columns to Show</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const allTrue = Object.fromEntries(
+                        Object.keys(visibleColumns).map((k) => [k, true])
+                      );
+                      setVisibleColumns(allTrue);
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#2563EB',
+                      fontSize: '0.72rem',
+                      cursor: 'pointer',
+                      fontWeight: 600,
+                      padding: 0,
+                    }}
+                  >
+                    Select All
+                  </button>
+                </div>
+                <div className="multi-filter-list">
+                  {[
+                    { key: 'asset_id', label: 'Asset ID' },
+                    { key: 'concern_name', label: 'Concern Name' },
+                    { key: 'category_name', label: 'Category Name' },
+                    { key: 'location', label: 'Location' },
+                    { key: 'zone', label: 'Zone' },
+                    { key: 'building', label: 'Building' },
+                    { key: 'department', label: 'Department' },
+                    { key: 'floor', label: 'Floor' },
+                    { key: 'room_name', label: 'Room Name' },
+                    { key: 'details', label: 'Details' },
+                  ].map((col) => (
+                    <label key={col.key} className="multi-filter-item">
+                      <input
+                        type="checkbox"
+                        checked={visibleColumns[col.key]}
+                        onChange={(e) =>
+                          setVisibleColumns((prev) => ({
+                            ...prev,
+                            [col.key]: e.target.checked,
+                          }))
+                        }
+                      />
+                      <span className="multi-filter-item-label">{col.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
-        )}
+
+          {/* New Mapping Button */}
+          <button onClick={handleOpenAdd} className="btn btn-primary" style={{ height: 36, padding: '0 16px' }}>
+            <Plus size={15} />
+            <span>New Mapping</span>
+          </button>
+        </div>
       </div>
 
       {/* ── Enterprise DataTable with Requested Columns ── */}
@@ -1042,13 +711,13 @@ export const AssetMappingPage: React.FC = () => {
         indexColumnHeader="#"
         emptyMessage={
           <span>
-            No asset mappings match the current multi-select filter criteria. Click <strong>"Clear All Filters"</strong> or <strong>"New Mapping"</strong>.
+            No asset mappings found matching your search. Click <strong>"New Mapping"</strong> to create one.
           </span>
         }
         emptyAction={
-          <button onClick={clearAllFilters} className="btn btn-secondary" style={{ marginTop: '6px' }}>
-            <RefreshCw size={14} />
-            <span>Reset Filters</span>
+          <button onClick={handleOpenAdd} className="btn btn-primary" style={{ marginTop: '6px' }}>
+            <Plus size={14} />
+            <span>New Mapping</span>
           </button>
         }
       />
