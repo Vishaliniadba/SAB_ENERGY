@@ -1,0 +1,2092 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "SabEnergy.API",
+    "version": "1.0"
+  },
+  "paths": {
+    "/api/Channel/GetAll": {
+      "get": {
+        "tags": [
+          "Channel"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Channel/GetById": {
+      "get": {
+        "tags": [
+          "Channel"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Channel/GetByGatewayId": {
+      "get": {
+        "tags": [
+          "Channel"
+        ],
+        "parameters": [
+          {
+            "name": "gatewayId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Channel/Create": {
+      "post": {
+        "tags": [
+          "Channel"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateChannelDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateChannelDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateChannelDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Channel/Update": {
+      "put": {
+        "tags": [
+          "Channel"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateChannelDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateChannelDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateChannelDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Channel/Delete": {
+      "delete": {
+        "tags": [
+          "Channel"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Enerlink/devices/{deviceId}/cmd": {
+      "post": {
+        "tags": [
+          "Enerlink"
+        ],
+        "parameters": [
+          {
+            "name": "deviceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnerlinkCommandDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnerlinkCommandDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnerlinkCommandDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Enerlink/test-connection": {
+      "post": {
+        "tags": [
+          "Enerlink"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnerlinkCommandDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnerlinkCommandDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnerlinkCommandDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Enerlink/devices/{deviceId}/telemetry/latest": {
+      "get": {
+        "tags": [
+          "Enerlink"
+        ],
+        "parameters": [
+          {
+            "name": "deviceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "default": "441BF6D37C80"
+            }
+          },
+          {
+            "name": "slaveId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Enerlink/broker/status": {
+      "get": {
+        "tags": [
+          "Enerlink"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Gateway/gateways/GetAll": {
+      "get": {
+        "tags": [
+          "Gateway"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Gateway/gateways/GetById": {
+      "get": {
+        "tags": [
+          "Gateway"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Gateway/gateways/Create": {
+      "post": {
+        "tags": [
+          "Gateway"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateGatewayDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateGatewayDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateGatewayDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Gateway/gateways/Update": {
+      "put": {
+        "tags": [
+          "Gateway"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateGatewayDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateGatewayDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateGatewayDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Gateway/gateways/Delete": {
+      "delete": {
+        "tags": [
+          "Gateway"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Make/gateway-makes/GetAll": {
+      "get": {
+        "tags": [
+          "Make"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Make/gateway-makes/GetById": {
+      "get": {
+        "tags": [
+          "Make"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Make/gateway-makes/Create": {
+      "post": {
+        "tags": [
+          "Make"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateGatewayMakeDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateGatewayMakeDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateGatewayMakeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Make/gateway-makes/Update": {
+      "put": {
+        "tags": [
+          "Make"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateGatewayMakeDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateGatewayMakeDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateGatewayMakeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Make/gateway-makes/Delete": {
+      "delete": {
+        "tags": [
+          "Make"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Make/meter-makes/GetAll": {
+      "get": {
+        "tags": [
+          "Make"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Make/meter-makes/GetById": {
+      "get": {
+        "tags": [
+          "Make"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Make/meter-makes/Create": {
+      "post": {
+        "tags": [
+          "Make"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMeterMakeDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMeterMakeDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMeterMakeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Make/meter-makes/Update": {
+      "put": {
+        "tags": [
+          "Make"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMeterMakeDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMeterMakeDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMeterMakeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Make/meter-makes/Delete": {
+      "delete": {
+        "tags": [
+          "Make"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Meter/meters/GetAll": {
+      "get": {
+        "tags": [
+          "Meter"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Meter/meters/GetById": {
+      "get": {
+        "tags": [
+          "Meter"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Meter/meters/Create": {
+      "post": {
+        "tags": [
+          "Meter"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMeterDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMeterDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMeterDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Meter/meters/Update": {
+      "put": {
+        "tags": [
+          "Meter"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMeterDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMeterDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMeterDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Meter/meters/Delete": {
+      "delete": {
+        "tags": [
+          "Meter"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/MeterParameter/GetAll": {
+      "get": {
+        "tags": [
+          "MeterParameter"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/MeterParameter/GetById": {
+      "get": {
+        "tags": [
+          "MeterParameter"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/MeterParameter/Create": {
+      "post": {
+        "tags": [
+          "MeterParameter"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMeterParameterDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMeterParameterDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMeterParameterDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/MeterParameter/Update": {
+      "put": {
+        "tags": [
+          "MeterParameter"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMeterParameterDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMeterParameterDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMeterParameterDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/MeterParameter/Delete": {
+      "delete": {
+        "tags": [
+          "MeterParameter"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/MeterProfile/GetAll": {
+      "get": {
+        "tags": [
+          "MeterProfile"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/MeterProfile/GetById": {
+      "get": {
+        "tags": [
+          "MeterProfile"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/MeterProfile/Create": {
+      "post": {
+        "tags": [
+          "MeterProfile"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMeterProfileDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMeterProfileDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMeterProfileDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/MeterProfile/Update": {
+      "put": {
+        "tags": [
+          "MeterProfile"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMeterProfileDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMeterProfileDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMeterProfileDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/MeterProfile/Delete": {
+      "delete": {
+        "tags": [
+          "MeterProfile"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Model/gateway-models/GetAll": {
+      "get": {
+        "tags": [
+          "Model"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Model/gateway-models/GetById": {
+      "get": {
+        "tags": [
+          "Model"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Model/gateway-models/Create": {
+      "post": {
+        "tags": [
+          "Model"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateGatewayModelDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateGatewayModelDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateGatewayModelDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Model/gateway-models/Update": {
+      "put": {
+        "tags": [
+          "Model"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateGatewayModelDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateGatewayModelDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateGatewayModelDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Model/gateway-models/Delete": {
+      "delete": {
+        "tags": [
+          "Model"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Model/meter-models/GetAll": {
+      "get": {
+        "tags": [
+          "Model"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Model/meter-models/GetById": {
+      "get": {
+        "tags": [
+          "Model"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Model/meter-models/Create": {
+      "post": {
+        "tags": [
+          "Model"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMeterModelDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMeterModelDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMeterModelDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Model/meter-models/Update": {
+      "put": {
+        "tags": [
+          "Model"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMeterModelDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMeterModelDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMeterModelDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Model/meter-models/Delete": {
+      "delete": {
+        "tags": [
+          "Model"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/ParameterMaster/GetAll": {
+      "get": {
+        "tags": [
+          "ParameterMaster"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/ParameterMaster/GetById": {
+      "get": {
+        "tags": [
+          "ParameterMaster"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/ParameterMaster/Create": {
+      "post": {
+        "tags": [
+          "ParameterMaster"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateParameterMasterDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateParameterMasterDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateParameterMasterDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/ParameterMaster/Update": {
+      "put": {
+        "tags": [
+          "ParameterMaster"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateParameterMasterDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateParameterMasterDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateParameterMasterDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/ParameterMaster/Delete": {
+      "delete": {
+        "tags": [
+          "ParameterMaster"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CreateChannelDto": {
+        "type": "object",
+        "properties": {
+          "channelName": {
+            "type": "string",
+            "nullable": true
+          },
+          "gatewayId": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateGatewayDto": {
+        "type": "object",
+        "properties": {
+          "deviceName": {
+            "type": "string",
+            "nullable": true
+          },
+          "serialNo": {
+            "type": "string",
+            "nullable": true
+          },
+          "gatewayMakeId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "gatewayModelId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "ipAddress": {
+            "type": "string",
+            "nullable": true
+          },
+          "macAddress": {
+            "type": "string",
+            "nullable": true
+          },
+          "channelCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "firmwareVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "keepaliveTime": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "wifi_SSID": {
+            "type": "string",
+            "nullable": true
+          },
+          "wifi_Port": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateGatewayMakeDto": {
+        "type": "object",
+        "properties": {
+          "gatewayMakeName": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateGatewayModelDto": {
+        "type": "object",
+        "properties": {
+          "gatewayModelName": {
+            "type": "string",
+            "nullable": true
+          },
+          "gatewayMakeId": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateMeterDto": {
+        "type": "object",
+        "properties": {
+          "serialNo": {
+            "type": "string",
+            "nullable": true
+          },
+          "customName": {
+            "type": "string",
+            "nullable": true
+          },
+          "channelId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "slaveId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "deviceProfileId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "meterMakeId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "meterModelId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "baudRate": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "parityBit": {
+            "type": "string",
+            "nullable": true
+          },
+          "stopBit": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "dataBit": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateMeterMakeDto": {
+        "type": "object",
+        "properties": {
+          "meterMakeName": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateMeterModelDto": {
+        "type": "object",
+        "properties": {
+          "meterModelName": {
+            "type": "string",
+            "nullable": true
+          },
+          "meterMakeId": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateMeterParameterDto": {
+        "type": "object",
+        "properties": {
+          "meterProfileId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "parameterMasterId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "address": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "dataType": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "multiplier": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateMeterProfileDto": {
+        "type": "object",
+        "properties": {
+          "profileVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "makeId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "modelId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "addressOffest": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "holdingRegister": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "byteOrder": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateParameterMasterDto": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "nullable": true
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "categoryId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "unit": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "EnerlinkChannelDto": {
+        "type": "object",
+        "properties": {
+          "channel_id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "meters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EnerlinkMeterDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "EnerlinkCommandDto": {
+        "type": "object",
+        "properties": {
+          "cmd": {
+            "type": "string",
+            "nullable": true
+          },
+          "device_id": {
+            "type": "string",
+            "nullable": true
+          },
+          "profiles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EnerlinkProfileDto"
+            },
+            "nullable": true
+          },
+          "channels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EnerlinkChannelDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "EnerlinkMeterDto": {
+        "type": "object",
+        "properties": {
+          "serial_number": {
+            "type": "string",
+            "nullable": true
+          },
+          "slave_id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "profile_id": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "EnerlinkParameterDto": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "nullable": true
+          },
+          "display_name": {
+            "type": "string",
+            "nullable": true
+          },
+          "address": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "data_type": {
+            "type": "string",
+            "nullable": true
+          },
+          "byte_order": {
+            "type": "string",
+            "nullable": true
+          },
+          "register_address": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "unit": {
+            "type": "string",
+            "nullable": true
+          },
+          "multiplier": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "EnerlinkProfileDto": {
+        "type": "object",
+        "properties": {
+          "profile_id": {
+            "type": "string",
+            "nullable": true
+          },
+          "address_offset": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "baud_rate": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "parity": {
+            "type": "string",
+            "nullable": true
+          },
+          "data_bits": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "stop_bit": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "parameters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EnerlinkParameterDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateChannelDto": {
+        "type": "object",
+        "properties": {
+          "channelName": {
+            "type": "string",
+            "nullable": true
+          },
+          "gatewayId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateGatewayDto": {
+        "type": "object",
+        "properties": {
+          "deviceName": {
+            "type": "string",
+            "nullable": true
+          },
+          "serialNo": {
+            "type": "string",
+            "nullable": true
+          },
+          "gatewayMakeId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "gatewayModelId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "ipAddress": {
+            "type": "string",
+            "nullable": true
+          },
+          "macAddress": {
+            "type": "string",
+            "nullable": true
+          },
+          "channelCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "firmwareVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "keepaliveTime": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "wifi_SSID": {
+            "type": "string",
+            "nullable": true
+          },
+          "wifi_Port": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateGatewayMakeDto": {
+        "type": "object",
+        "properties": {
+          "gatewayMakeName": {
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateGatewayModelDto": {
+        "type": "object",
+        "properties": {
+          "gatewayModelName": {
+            "type": "string",
+            "nullable": true
+          },
+          "gatewayMakeId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateMeterDto": {
+        "type": "object",
+        "properties": {
+          "serialNo": {
+            "type": "string",
+            "nullable": true
+          },
+          "customName": {
+            "type": "string",
+            "nullable": true
+          },
+          "channelId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "slaveId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "deviceProfileId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "meterMakeId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "meterModelId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "baudRate": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "parityBit": {
+            "type": "string",
+            "nullable": true
+          },
+          "stopBit": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "dataBit": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateMeterMakeDto": {
+        "type": "object",
+        "properties": {
+          "meterMakeName": {
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateMeterModelDto": {
+        "type": "object",
+        "properties": {
+          "meterModelName": {
+            "type": "string",
+            "nullable": true
+          },
+          "meterMakeId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateMeterParameterDto": {
+        "type": "object",
+        "properties": {
+          "meterProfileId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "parameterMasterId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "address": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "dataType": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "multiplier": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateMeterProfileDto": {
+        "type": "object",
+        "properties": {
+          "profileVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "makeId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "modelId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "addressOffest": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "holdingRegister": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "byteOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateParameterMasterDto": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "nullable": true
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "categoryId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "unit": {
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  }
+}

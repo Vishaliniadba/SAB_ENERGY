@@ -1,339 +1,429 @@
-# SaB Energy — Industrial IoT & Energy Management System (EMS)
+# SaB Energy — Industrial IoT & SCADA Energy Management System (EMS)
 
-An enterprise-grade, high-performance web dashboard for monitoring industrial energy telemetry, configuring SCADA/edge gateways, managing Modbus meter profiles, mapping electrical assets, and diagnostic hardware testing.
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue.svg)](https://www.typescriptlang.org/)
+[![React](https://img.shields.io/badge/React-19.3-61dafb.svg)](https://react.dev/)
+[![Vite](https://img.shields.io/badge/Vite-8.3-646cff.svg)](https://vitejs.dev/)
+[![TailwindCSS](https://img.shields.io/badge/TailwindCSS-v4.0-38bdf8.svg)](https://tailwindcss.com/)
+[![ASP.NET Core](https://img.shields.io/badge/Backend-ASP.NET%20Core%208-512bd4.svg)](https://dotnet.microsoft.com/)
+[![MQTT](https://img.shields.io/badge/Telemetry-MQTT%20Broker-red.svg)](https://mqtt.org/)
+
+An enterprise-grade, full-stack **Industrial IoT (IIoT) & SCADA Energy Management System (EMS)** designed for real-time factory power monitoring, multi-drop Modbus meter polling, edge gateway management, CT/PT asset mapping, tariff accounting, and hardware diagnostic testing.
+
+---
+
+## 📑 Table of Contents
+
+1. [Executive Summary](#-executive-summary)
+2. [End-to-End System Architecture](#-end-to-end-system-architecture)
+3. [Deep-Dive Business Logic & Engineering Rules](#-deep-dive-business-logic--engineering-rules)
+   - [3.1 Enterprise Hierarchy (Concern → Location → Service Connection)](#31-enterprise-hierarchy)
+   - [3.2 Hardware Topology (Gateway → RS-485 Channel → Multi-Drop Slave IDs)](#32-hardware-topology)
+   - [3.3 Modbus Register Decoding & Byte Endianness](#33-modbus-register-decoding--byte-endianness)
+   - [3.4 CT / PT Multiplication Factor (MF) Formula](#34-ct--pt-multiplication-factor-mf-formula)
+   - [3.5 Commercial Utility Tariffs, Maximum Demand (MD) & Power Factor (PF) Penalties](#35-commercial-utility-tariffs-maximum-demand-md--power-factor-pf-penalties)
+   - [3.6 Communication Timing Rules (Polling vs. Publish)](#36-communication-timing-rules)
+4. [Technology Stack](#-technology-stack)
+5. [Repository Structure](#-repository-structure)
+6. [API Specifications & Service Contracts](#-api-specifications--service-contracts)
+   - [6.1 Relational Master Data API (ASP.NET Core / SQL Server)](#61-relational-master-data-api)
+   - [6.2 Enerlink Edge Telemetry API (MQTT / localhost:5114)](#62-enerlink-edge-telemetry-api)
+7. [Environment Configuration](#-environment-configuration)
+8. [Developer Setup & Deployment Guide](#-developer-setup--deployment-guide)
+9. [Hardware Telemetry Diagnostic Terminal](#-hardware-telemetry-diagnostic-terminal)
+10. [Frontend Development Invariants](#-frontend-development-invariants)
 
 ---
 
 ## 📌 Executive Summary
 
-**SaB Energy** is an Industrial IoT (IIoT) Energy Monitoring & Device Management web application built with **React 19** and **Vite**. It adopts the **ThingsBoard** device and telemetry architectural pattern, enabling power engineers, plant operators, and system integrators to configure hardware communication, maintain meter register dictionaries, test live field devices, and link physical meters to plant assets (transformers, feeders, chillers, solar arrays).
+**SaB Energy** bridges industrial electrical infrastructure with modern web engineering. In high-power industrial facilities, electricity bills often reach millions of rupees per month. Facilities face severe financial penalties if their **Maximum Demand (kVA)** exceeds contract limits or if their **Power Factor (PF)** drops below utility thresholds.
+
+This platform provides:
+- **Sub-second edge telemetry ingestion** from multi-vendor digital energy meters (Elmeasure, Schneider, Selec, Socomec).
+- **Proactive utility penalty avoidance** (Maximum Demand shaving and APFC capacitor bank health monitoring).
+- **Comprehensive Master Data Management (MDM)** for enterprise hierarchies, edge hardware, Modbus profiles, and single-line feeder circuits.
+- **Hardware-in-the-loop diagnostics** allowing field engineers to test RS-485 frames and verify physical wiring before commissioning.
+
+---
+
+## 🏗️ End-to-End System Architecture
+
+```mermaid
+flowchart TD
+    subgraph FIELD["1. Physical Substation / Plant Floor"]
+        M1["Meter 1 (Slave #1: NavaNala EB Meter)"]
+        M2["Meter 2 (Slave #2: NavaNala UPS Meter)"]
+        Mn["Meter n (Slave #n: Feeder/Asset Meter)"]
+        BUS["RS-485 2-Wire Shielded Bus (Daisy-Chain, 120Ω Terminated)"]
+        M1 --- BUS
+        M2 --- BUS
+        Mn --- BUS
+    end
+
+    subgraph EDGE["2. Edge Hardware Gateway"]
+        CH1["RS-485 Port (Channel 1)<br/>Baud: 9600-8-N-1"]
+        BUS --> CH1
+        GW["Edge Gateway [MAC: 441BF6D37C80]<br/>(Modbus RTU Master Engine)"]
+        CH1 --> GW
+    end
+
+    subgraph BROKER["3. Ingestion & Communication Layer"]
+        MQTT["MQTT Broker (:1883)<br/>Topic: enerlink/441BF6D37C80/telemetry"]
+        GW -- "MQTT Publish (JSON Packets)" --> MQTT
+        ENERLINK["Enerlink Ingestion Service (:5114)<br/>Edge Stream Ingestion & Telemetry Cache"]
+        MQTT --> ENERLINK
+    end
+
+    subgraph BACKEND["4. Enterprise Backend & Database"]
+        DB[(Microsoft SQL Server)]
+        API["ASP.NET Core 8 Web API (:8007)<br/>EF Core Master Data & Asset Hierarchy"]
+        API <--> DB
+    end
+
+    subgraph CLIENT["5. Web Application (React 19 + TypeScript)"]
+        VITE["Vite Dev / Reverse Proxy (:5173)"]
+        VITE -- "/api/Enerlink/*" --> ENERLINK
+        VITE -- "/api/*" --> API
+        UI["SaB Energy SCADA Dashboard<br/>(Live Gauges, Diagnostic Terminal, Master Data)"]
+        VITE --> UI
+    end
+```
+
+---
+
+## 🧠 Deep-Dive Business Logic & Engineering Rules
+
+### 3.1 Enterprise Hierarchy
+The platform organizes enterprise power metering using a strict 3-tier hierarchy:
+```
+Concern (e.g., NavaNala CON-67)
+└── Location (e.g., Main Substation / LT Panel Room)
+    └── Service Connection (e.g., SC-EB-01 - NavaNala EB Incomer)
+        └── Physical Meter Mapping (e.g., NavaNala_EB_Meter, Slave ID #1)
+```
+
+1. **Concern**: The top-level corporate entity, manufacturing plant, or billing organization.
+2. **Location**: The physical site, substation, transformer yard, or building floor.
+3. **Service Connection (Service No)**: The official commercial Electricity Board (EB) utility consumer identifier. Contains contractual metadata:
+   - **Sanctioned Demand ($kW / kVA$)**: Contracted capacity with the power utility.
+   - **Tariff Category**: HT-1A Industrial, Commercial, or Time-of-Day (ToD).
+   - **Target Power Factor**: Billing baseline (typically `0.98` or `0.95`).
+
+---
+
+### 3.2 Hardware Topology
+
+```
+Gateway [441BF6D37C80]
+├── Channel 1 (RS-485 Port 1) ─── Max 32 Multi-Drop Nodes
+│   ├── Slave #1 (NavaNala EB Incomer Meter - LG+5310)
+│   ├── Slave #2 (NavaNala UPS Backup Meter - LG+5310)
+│   └── Slave #3 (Compressor Panel Meter)
+└── Channel 2 (RS-485 Port 2)
+    └── Slave #1 (Solar Farm Generation Inverter)
+```
+
+- **Physical Bus Rules**: Meters are daisy-chained in a linear bus using shielded twisted-pair cabling (A/+, B/-, Shield grounded at Gateway only). Star topologies are prohibited to prevent waveform distortion.
+- **Node Address (Slave ID)**: Every meter on the **same physical channel must have a unique Modbus Slave ID (1–247)**.
+- **Port Matching**: All meters sharing a channel must operate on identical baud rates (e.g., `9600`), data bits (`8`), parity (`None`), and stop bits (`1`).
+
+---
+
+### 3.3 Modbus Register Decoding & Byte Endianness
+
+Industrial meters store electrical parameters in 16-bit registers (Function Code `03` Holding Registers or `04` Input Registers).
+
+| Parameter | Standard Register | Data Type | Byte Order | Scaling / Unit |
+| :--- | :--- | :--- | :--- | :--- |
+| **Voltage L-N (R, Y, B)** | 30001, 30003, 30005 | `Float32` (2 registers) | `CDAB` (Word Swapped) | `Volts (V)` |
+| **Voltage L-L (RY, YB, BR)** | 30007, 30009, 30011 | `Float32` | `CDAB` | `Volts (V)` |
+| **Current (R, Y, B, Avg)** | 30013, 30015, 30017, 30019 | `Float32` | `CDAB` | `Amperes (A)` |
+| **Total Active Power ($P$)** | 30021 | `Float32` | `CDAB` | `Kilowatts (kW)` |
+| **Total Reactive Power ($Q$)** | 30023 | `Float32` | `CDAB` | `kVAR` |
+| **Total Apparent Power ($S$)** | 30025 | `Float32` | `CDAB` | `kVA` |
+| **Power Factor ($PF$)** | 30027 | `Float32` | `CDAB` | Dimensionless (0.00 – 1.00) |
+| **Frequency ($f$)** | 30029 | `Float32` | `CDAB` | `Hertz (Hz)` |
+| **Active Energy Import** | 30031 | `Int32` / `Float32` | `CDAB` | `kWh` |
+
+> [!NOTE]
+> Different manufacturers use different endianness. Elmeasure meters typically format 32-bit floats as `CDAB` (Little-Endian Word Swap), whereas Schneider meters default to `ABCD` (Big-Endian). The **Meter Profile Master** allows per-model register byte swap configuration.
+
+---
+
+### 3.4 CT / PT Multiplication Factor (MF) Formula
+
+Because meters cannot tolerate high plant currents (e.g., 400A or 800A), external **Current Transformers (CTs)** and **Potential Transformers (PTs)** step down raw electrical signals.
+
+$$\text{Overall Multiplying Factor (MF)} = \left(\frac{\text{CT Primary}}{\text{CT Secondary}}\right) \times \left(\frac{\text{PT Primary}}{\text{PT Secondary}}\right) \times \text{Meter Scale Factor}$$
+
+#### Example:
+- **CT Specification**: `400 / 5 A` $\rightarrow \frac{400}{5} = 80$
+- **PT Specification**: Direct Low Tension ($415V$) $\rightarrow \frac{1}{1} = 1$
+- **Meter Register Value**: `2.95 kW`
+$$\text{True Feeder Power} = 2.95 \times 80 = \mathbf{236.0\text{ kW}}$$
+
+The **Asset Mapping Engine** automatically applies this multiplier to all raw readings before rendering graphs and calculating consumption metrics.
+
+---
+
+### 3.5 Commercial Utility Tariffs, Maximum Demand (MD) & Power Factor (PF) Penalties
+
+The platform exists to protect industrial facilities from three critical commercial utility charges:
+
+```mermaid
+graph TD
+    TELEMETRY["Live Incomer Telemetry (Slave #1 / SC-EB-01)"] --> MD["1. Maximum Demand Monitoring"]
+    TELEMETRY --> PF["2. Power Factor Health"]
+    TELEMETRY --> ENERGY["3. Energy Accounting"]
+
+    MD --> MD_CHECK{"Apparent Power (kVA) > Sanctioned Demand?"}
+    MD_CHECK -- Yes --> MD_ALERT["🚨 Trigger Load Shedding Alarm<br/>Avoid 2x Demand Surcharge"]
+    MD_CHECK -- No --> MD_OK["✅ Within Contract Capacity"]
+
+    PF --> PF_CHECK{"Power Factor < 0.90 Target?"}
+    PF_CHECK -- Yes --> PF_ALERT["⚠️ APFC Penalty Warning<br/>Utility Levying 1% - 5% Surcharge"]
+    PF_CHECK -- No --> PF_OK["✅ Unity / Incentive Zone (≥ 0.98)"]
+
+    ENERGY --> BILL["Compute Real-Time Cost:<br/>Current Month kWh × Tariff Rate (₹8.50)"]
+```
+
+---
+
+### 3.6 Communication Timing Rules
+
+The system enforces strict operational constraints between the Edge Hardware and Cloud/Local Server:
+
+1. **Device Polling Interval**:
+   - Minimum: **30 seconds** (configured on the edge gateway).
+   - The Gateway executes round-robin polling over the RS-485 bus:
+     $$\text{Poll Slave \#1} \longrightarrow \text{Wait 150ms} \longrightarrow \text{Poll Slave \#2} \longrightarrow \text{Wait 150ms} \longrightarrow \text{Poll Slave \#3}$$
+2. **MQTT Publish Interval**:
+   - **Constraint**: $\text{MQTT Publish Interval} \ge \text{Device Polling Interval}$.
+   - The Gateway bundles all collected meter readings into a unified JSON frame and transmits it over MQTT.
+   - Setting a publish interval lower than the polling interval is blocked by validation logic.
 
 ---
 
 ## 🛠️ Technology Stack
 
-| Layer | Technologies / Packages |
-| :--- | :--- |
-| **Framework** | React 19.3.1 (Modern Hooks, Context API) |
-| **Bundler & Tooling** | Vite 8.3.4, Oxlint |
-| **Iconography** | Lucide React (v1.59.0) |
-| **Styling & Design System** | Custom Vanilla CSS Design System with CSS variables |
-| **Themes Supported** | **Enterprise Light** (Charcoal & WP-Admin Blue) & **SCADA Dark** (Midnight Slate & Cyan Glow) |
-| **State & Persistence** | React Context (`EnergyDataContext`) with LocalStorage backup & preloaded mock dataset |
+### Frontend Application
+- **Runtime & UI**: React 19.3.1, TypeScript 5.9.3, Vite 8.3.4
+- **CSS Architecture**: Custom Tokenized CSS Design System + Tailwind CSS v4.0
+- **Visualizations**: Custom SVG Radial Concentric Progress Gauges, Capsule Donut Charts, Recharts line & bar series
+- **Icons**: Lucide React
+- **HTTP Client**: Native Fetch API client with automatic token attachment, unified error parsing, and multi-endpoint fallback
+
+### Backend & Edge Ingestion
+- **Relational Enterprise API**: ASP.NET Core 8 Web API, Entity Framework Core, Microsoft SQL Server
+- **Edge Telemetry Service**: Enerlink Ingestion Bridge (Port `5114`), MQTT Protocol (Broker port `1883`)
 
 ---
 
-## 📂 Project Architecture
+## 📂 Repository Structure
 
 ```
 vishalini-SaB Energy/
-├── public/                 # Static assets
+├── public/                          # Static assets and icons
 ├── src/
-│   ├── assets/             # Images and design assets
-│   ├── components/
-│   │   ├── common/         # Reusable UI controls (StatCard, Badge, Modal, etc.)
-│   │   └── layout/         # Header (Theme switcher, breadcrumbs, clock) & Sidebar (Hierarchical navigation)
+│   ├── components/                  # Global shared UI components
+│   │   ├── common/                  # Modals, Select2, PageHeader, LoadingScreen, Combobox
+│   │   └── layout/                  # Navigation Header, Breadcrumbs, Theme Switcher
 │   ├── context/
-│   │   └── EnergyDataContext.jsx   # Centralized state management & persistent CRUD operations
-│   ├── mock/
-│   │   └── initialData.js  # Industrial equipment fixtures (Gateways, Meters, Profiles, Channels)
-│   ├── views/
-│   │   ├── config/         # Communication & Polling Interval Configuration
-│   │   ├── dashboard/      # Live Telemetry KPI Dashboard
-│   │   ├── mapping/        # Asset-to-Meter Mapping with Multipliers
-│   │   ├── masters/        # Unified Gateway & Channel & Meter Management, Gateway Make/Model Masters
-│   │   └── profiles/       # Meter Profiles (Modbus Mapping, CSV/JSON Import/Export, Reg Test), Make/Model Masters, Parameter Dictionary
-│   ├── App.css             # Base application layout styling
-│   ├── App.jsx             # Main routing & tab rendering hub
-│   ├── index.css           # Global design system, theme tokens (Light/Dark), table & form styles
-│   └── main.jsx            # React root DOM mounting
-├── index.html              # HTML shell & Google Fonts (Inter, JetBrains Mono)
-├── package.json            # Scripts & project dependencies
-└── vite.config.js          # Vite build configuration
+│   │   └── EnergyDataContext.tsx    # Central state provider, fleet cache, master data synchronization
+│   ├── modules/                     # Modular domain-driven architecture
+│   │   ├── asset-mapping/           # CT/PT calculation formulas, equipment allocation
+│   │   ├── comm-configuration/      # Device ID, Polling & MQTT interval push (/api/Enerlink/configuration)
+│   │   ├── energy-dashboard/        # Real-time dashboard, multi-ring voltage gauge, capsule donut charts
+│   │   │   ├── components/          # MeterTelemetryCard, EnergyDistributionPieChart, FilterToolbar
+│   │   │   └── pages/               # EnergyDashboardPage.tsx
+│   │   ├── gateways-devices/        # Gateway inventory, RS-485 channels, meters, diagnostic terminal
+│   │   │   ├── api/                 # gatewayApi.ts, channelApi.ts, meterApi.ts
+│   │   │   └── pages/               # GatewaysDevicesPage.tsx
+│   │   └── masters/                 # Enterprise master data tables
+│   │       ├── gateway-master/      # Gateway Make & Model Masters
+│   │       ├── meter-master/        # Meter Make & Model, Parameter Dictionary, Meter Profiles
+│   │       └── service-master/      # Concerns, Locations, EB Service Connections (Service Master)
+│   ├── services/
+│   │   ├── client.ts                # Resilient HTTP request client with fallback candidates
+│   │   ├── enerlinkApi.ts           # Interface to localhost:5114 (telemetry, test-connection, configuration)
+│   │   └── idHelper.ts              # Integer ID normalization for ASP.NET / EF Core compliance
+│   ├── styles/                      # Global theme variables (Light/Dark mode)
+│   ├── App.tsx                      # Root component & module view switcher
+│   ├── main.tsx                     # React root DOM mounting
+│   └── vite.config.ts               # Vite proxy configuration (/api & /api/Enerlink)
+├── .env.development                 # Development environment endpoint variables
+├── package.json                     # Node.js dependencies and run scripts
+└── tsconfig.json                    # Strict TypeScript compilation rules
 ```
 
 ---
 
-## ✅ Completed Work (What Is Done in UI)
+## 🔌 API Specifications & Service Contracts
 
-### 1. 🎨 Design System & Layout Foundation
-- [x] **Dual Theme Architecture**:
-  - **Enterprise Light Theme**: Clean charcoal sidebar (`#1d2327`), crisp white cards, flat admin borders (`#c3c4c7`), and industrial blue accents (`#2271b1`).
-  - **SCADA Dark Theme**: High-contrast dark midnight background (`#090e1a`), navy surfaces (`#111a2e`), and vibrant neon cyan accents (`#38bdf8`).
-  - Instant theme persistence across page refreshes via `localStorage` (`sab_theme_mode`).
-- [x] **Global Top Header (`Header.jsx`)**:
-  - Contextual dynamic breadcrumb navigation reflecting active screen.
-  - Live ticking digital 12/24-hour clock.
-  - System status indicators (Local State DB / ThingsBoard Telemetry link).
-  - One-click Theme Switcher button (Sun / Moon toggle).
-- [x] **Hierarchical Collapsible Sidebar Navigation (`Sidebar.jsx`)**:
-  - Top-level direct modules: **Dashboard**, **Gateway**, **Asset Mapping**, **Meter Profile**, **Communication Config**.
-  - Multi-tier expandable accordion sub-menus:
-    - **Meter Master**: Make, Model, Parameter Dictionary.
-    - **Gateway Master**: Make, Model.
-  - Active state highlighting with distinct hover states and icon alignment.
+### 6.1 Relational Master Data API
+Interfaced at `http://192.23.1.7:8007/api/*` (Proxied via Vite to `/api/*`):
 
----
+#### 1. Gateways (`/api/Gateway/gateways`)
+- `GET /GetAll`: Retrieves all registered hardware gateways.
+- `POST /Create`: Provision new edge gateway (`deviceName`, `serialNo`, `macAddress`, `ipAddress`, `keepaliveTime`).
+- `PUT /Update?id={id}`: Update gateway configuration.
+- `DELETE /Delete?id={id}`: Remove gateway.
 
-### 2. ⚡ Real-Time Telemetry Dashboard (`DashboardView.jsx`)
-- [x] **KPI Summary Stat Cards**:
-  - Active Gateways count vs. Total nodes.
-  - Active Meters count vs. Total meters.
-  - Monitored Plant Assets with operational percentages.
-  - Verified Asset-to-Meter Mappings.
-- [x] **Simulated Live Telemetry Stream**:
-  - Periodic background fluctuation simulation for **Active Power (kW)**, **Daily Generation (kWh)**, **Daily Consumption (kWh)**, **Power Factor (PF)**, and **Grid Frequency (Hz)**.
-  - Real-time device health and network status indicators.
+#### 2. Channels (`/api/Channel/channels`)
+- `GET /GetAll`: Retrieves RS-485 and TCP communication channels.
+- `POST /Create`: Bind port to gateway (`channelNo`, `baudRate`, `parity`, `gatewayId`).
 
----
-
-### 3. 🌐 Unified Gateway & Device Master (`DeviceMasterView.jsx`)
-- [x] **Gateway Inventory Table**:
-  - View all gateways with IP addresses, MAC addresses, serial numbers, firmware versions, and assigned makes/models.
-  - Real-time dynamic connection status (Online / Intermittent / Offline) derived from comparing `last_communicate_time` with `keep_alive_seconds`.
-  - Filter by status (**All**, **Online**, **Offline**) and instantaneous full-text search across all fields.
-- [x] **Gateway Management Modal/Form**:
-  - Create new edge gateways with auto-generated serial keys and IP validation.
-  - Edit existing gateway configurations, models, port bindings, and keep-alive parameters.
-  - Automatic channel capacity assignment based on Gateway Model specifications (e.g. 4-channel, 8-channel).
-- [x] **Multi-Channel RS-485 / Ethernet Architecture**:
-  - View all physical/virtual channels per gateway (Slot #1 through #8).
-  - Configure Channel protocols (**Modbus RTU**, **Modbus TCP**, **MQTT**, **OPC-UA**).
-  - Serial port settings: Baud rate (9600, 19200, 38400, 115200), Parity, Data Bits, Stop Bits, and COM port assignment.
-- [x] **Meter Provisioning per Channel**:
-  - Add, edit, and detach slave meters within specific gateway channels.
-  - Assign Slave IDs (1–247), select Meter Profiles, Makes, Models, and configure primary CT/PT ratios.
-- [x] **In-Depth Diagnostic Testing Engine**:
-  - **Test Connection Modal**: Simulates sending Modbus query packets and receiving hex responses.
-  - Mode selector: **Auto Mode**, **Force Pass**, or **Force Failure**.
-  - Live console logs detailing baud rate negotiation, slave ID polling, register read attempts, packet loss, and latency measurement in milliseconds.
-  - Automatic status promotion: successful test automatically marks the meter as **Active**.
-  - **Quick Inline Test**: Instant one-click connection verification directly from the meter row.
+#### 3. Meters (`/api/Meter/meters`)
+- `GET /GetAll`: Returns all configured multi-drop meters.
+- `POST /Create`: Create meter under channel:
+  ```json
+  {
+    "serialNo": "ELM-EB-001",
+    "customName": "NavaNala EB Meter",
+    "channelId": 1,
+    "slaveId": 1,
+    "deviceProfileId": 1,
+    "meterMakeId": 1,
+    "meterModelId": 1,
+    "status": "Active",
+    "baudRate": 3,
+    "parityBit": "None",
+    "stopBit": 1,
+    "dataBit": 8,
+    "isActive": true
+  }
+  ```
 
 ---
 
-### 4. 🎛️ Meter Profile & Register Mapping (`MeterProfileView.jsx`)
-- [x] **Dual-Mode User Flow**:
-  - **List Mode**: Overview table displaying existing meter profiles with parameter counts, makes, models, and actions.
-  - **Create / Edit View**: Comprehensive full-page workbench for register configuration without restrictive modals.
-- [x] **Modbus Register Mapping Engine**:
-  - Map individual registers with:
-    - **Register Address** (e.g., 30001, 40001)
-    - **Parameter Key & Display Name** (Voltage, Current, Active Power, Frequency, etc.)
-    - **Register Type** (Holding Register, Input Register)
-    - **Function Code** (FC 03, FC 04)
-    - **Data Type** (Float32, Int16, Int32, UInt16, UInt32, Double64)
-    - **Multiplier / Scale Factor** (e.g., 0.1, 0.01, 1.0, 10)
-    - **Offset**, **Unit** (V, A, kW, kWh, Hz, kVAR, PF)
-    - **Word & Byte Endianness** (AB CD Big Endian, CD AB Little Endian / Word Swapped)
-    - **Polling Interval** (seconds)
-- [x] **Parameter Dictionary Integration**:
-  - Quick auto-fill drawer populated from the global Parameter Dictionary.
-- [x] **Profile Import & Export**:
-  - Download template and export profile to **CSV / Excel** format.
-  - Upload & parse CSV files directly into the register grid.
-  - **JSON Export & Import** for quick backup and cross-environment deployment.
-  - Duplicate / Clone existing profiles with one click.
-- [x] **Live Modbus Polling & Register Diagnostic Console**:
-  - Live hex byte frame inspection (e.g. `[TX] 01 03 75 31 00 02 95 CB` -> `[RX] 01 03 04 43 66 66 66 23 45`).
-  - Real-time conversion to human-readable engineering values (e.g. Voltage = 230.4 V).
+### 6.2 Enerlink Edge Telemetry API
+Interfaced at `http://localhost:5114/api/Enerlink/*` (Proxied via Vite to `/api/Enerlink/*`):
+
+#### 1. Hardware Connection Test
+- **Endpoint**: `POST /api/Enerlink/test-connection`
+- **Payload**: `{ "cmd": "test", "device_id": "441BF6D37C80" }`
+- **Response**: `{ "isSuccess": true, "connected": "YES", "deviceId": "441BF6D37C80" }`
+
+#### 2. Fetch Latest Telemetry
+- **Endpoint**: `GET /api/Enerlink/devices/{deviceId}/telemetry/latest?slaveId={slaveId}`
+- **Response**:
+  ```json
+  {
+    "device_id": "441BF6D37C80",
+    "channel": 1,
+    "slave_id": 1,
+    "meter_name": "NavaNala EB Meter",
+    "timestamp_ms": 1731817252000,
+    "values": [
+      {
+        "total_active_power": 2950.0,
+        "line_to_line_voltage": 396.1,
+        "line_to_neutral_voltage": 229.9,
+        "average_current": 4.50,
+        "frequency": 50.09,
+        "power_factor": 0.98,
+        "active_energy": 4445200.0
+      }
+    ]
+  }
+  ```
+
+#### 3. Communication Configuration
+- **Endpoint**: `GET /api/Enerlink/configuration?deviceId={deviceId}`
+- **Endpoint**: `POST /api/Enerlink/configuration`
+- **Payload**:
+  ```json
+  {
+    "device_id": "441BF6D37C80",
+    "deviceId": "441BF6D37C80",
+    "cmd": "set_comm_config",
+    "polling_time": 30,
+    "MQTT_publish": 300
+  }
+  ```
 
 ---
 
-### 5. 🏢 Comprehensive Master Data Modules
-- [x] **Meter Make Master (`MakeMasterView.jsx`)**:
-  - Manage meter manufacturers (Schneider, Rishabh, Secure Meters, Selec, Socomec, Elmeasure, etc.).
-  - Duplicate prevention, search, validation, and linked model counter.
-- [x] **Meter Model Master (`ModelMasterView.jsx`)**:
-  - Manage meter models mapped under their respective parent Make.
-  - Filter by manufacturer, search by model name, create, edit, delete.
-- [x] **Gateway Make Master (`GatewayMakeMasterView.jsx`)**:
-  - Manage hardware edge gateway manufacturers (SaB Systems, Advantech, Siemens, Wago).
-- [x] **Gateway Model Master (`GatewayModelMasterView.jsx`)**:
-  - **Two-Stage Configuration**:
-    - **Stage 1 (Gateway Details)**: Manufacturer, Model Name, Channel count (1–32 slots), and Firmware version.
-    - **Stage 2 (Channels & Ports)**: Gateway summary, channel names, and RS-485 port settings (baud rate, parity, slave ID).
-  - Validation, duplicate prevention, and state preservation across steps.
-- [x] **Parameter Dictionary (`ParameterDictionaryView.jsx`)**:
-  - Standardized enterprise dictionary of electrical parameters.
-  - Standard parameter keys (e.g. `v_r`, `v_y`, `v_b`, `v_ry`, `i_r`, `active_power_total`, `energy_active_import`, `power_factor_avg`, `thd_v_avg`).
-  - Predefined display names and engineering units.
-  - **Real-Time Duplicate Detection**: Live visual warning badge, alert panel, red focus ring, and submission prevention when an existing parameter key or display name is entered.
-  - Catalog-wide duplicate key tracking indicator in toolbar and table rows.
+## ⚙️ Environment Configuration
+
+Configuration variables are managed in `.env.development`:
+
+```ini
+# Local Vite Development Host
+VITE_UI_HOST=http://localhost:5173
+
+# ASP.NET Core Master Data API Backend
+VITE_BACKEND_URL=http://192.23.1.7:8007
+
+# Enerlink Real-Time Edge Telemetry & MQTT Service
+VITE_ENERLINK_URL=http://localhost:5114
+```
+
+Vite proxies incoming frontend requests:
+- `/api/Enerlink` $\longrightarrow$ `http://localhost:5114`
+- `/api` $\longrightarrow$ `http://192.23.1.7:8007`
 
 ---
 
-### 6. 🔗 Asset-to-Meter Mapping (`AssetMappingView.jsx`)
-- [x] **Industrial Asset Hierarchy**:
-  - Link physical meters to enterprise assets (Main Incomer Transformer, Chiller Plant, DG Generator, Solar Farm Inverter, HVAC Air Compressor).
-- [x] **Calculation Multipliers**:
-  - Set multiplication factors for Overall Multiplier = Meter Multiplier × (External CT Ratio / PT Ratio).
-- [x] **Lifecycle & Validity Ranges**:
-  - `effective_from` and `effective_to` date boundaries.
-  - Active / Inactive switch toggle with immediate recalculation.
-
----
-
-### 7. ⚙️ Communication Configuration (`CommunicationConfigView.jsx`)
-- [x] **Flexible Polling Interval**:
-  - Configurable in either **Seconds** or **Minutes** unit.
-- [x] **Fine-Tuned Communication Parameters**:
-  - Fast cycle telemetry rate for critical alarms (default 2s).
-  - Background database logging rate (default 15m).
-  - Modbus response timeout threshold (ms) and auto-retry count (1–10).
-  - Gateway Keep-Alive ping interval (s).
-  - MQTT Broker connection URL and REST API endpoint paths.
-
----
-
-### 8. 💾 Centralized Data Context (`EnergyDataContext.jsx`)
-- [x] Single source of truth for all entities.
-- [x] Seamless local persistence via `localStorage` with automated schema fallbacks.
-- [x] Realistic mock baseline in `src/mock/initialData.js` allowing immediate offline development and demonstration.
-
----
-
-## ⏳ Pending Work & Upgrade Roadmap (Next Steps)
-
-To transition this frontend from a high-fidelity prototype / local-first application to an enterprise production platform, the following features and upgrades are planned:
-
-### 🚀 Phase 1: Real Backend & REST / WebSocket API Integration
-- [ ] **HTTP API Client Integration**:
-  - Replace `localStorage` operations in `EnergyDataContext` with a centralized Axios or Fetch API client.
-  - Add request/response interceptors, centralized error handling, and offline caching.
-  - Create standard API service files:
-    - `src/services/gatewayService.js`
-    - `src/services/meterService.js`
-    - `src/services/profileService.js`
-    - `src/services/assetService.js`
-    - `src/services/telemetryService.js`
-- [ ] **WebSocket / Server-Sent Events (SSE)**:
-  - Connect to a live MQTT broker or backend WebSocket server for genuine real-time telemetry streaming and live gateway heartbeat pings.
-- [ ] **Backend Database Connectivity**:
-  - Connect with PostgreSQL / TimescaleDB (for time-series energy data) or MongoDB / MySQL for metadata masters.
-  - Or direct integration with ThingsBoard Community / Professional REST APIs.
-
----
-
-### 🔐 Phase 2: Authentication, Authorization & User Management
-- [ ] **Authentication Flow**:
-  - Login, Register, Forgot Password, and Refresh Token rotation via JWT / OAuth2.
-- [ ] **Role-Based Access Control (RBAC)**:
-  - Roles: **Super Admin**, **Plant Engineer**, **Operator**, and **Auditor / Viewer**.
-  - Permission gating for sensitive operations (e.g., modifying meter register profiles, changing baud rates, or altering communication config should require Engineer/Admin privileges).
-- [ ] **Multi-Tenant / Multi-Plant Support**:
-  - Facility / Factory / Building site switcher in the top navigation.
-
----
-
-### 📊 Phase 3: Analytics, Energy Charts & Reporting
-- [ ] **Interactive Visualizations (Recharts / ECharts / Chart.js)**:
-  - **Live Power Curve**: Dynamic time-series line chart for kW and kVA demand.
-  - **Energy Consumption Trend**: Bar charts showing shift-wise, daily, weekly, and monthly kWh consumption.
-  - **Power Quality & Harmonics**: Voltage & current THD spectrum charts, phasor diagrams, and phase imbalance visualization.
-  - **Load Profile & Heatmaps**: Peak demand vs. off-peak demand heatmaps.
-- [ ] **Automated Energy Reports**:
-  - Shift-wise, Daily, and Monthly energy accounting reports.
-  - Export capabilities in **PDF** (with company letterhead), **Excel (.xlsx)**, and **CSV**.
-  - Scheduled automated report emails.
-- [ ] **Tariff & Cost Calculator**:
-  - Time-of-Day (ToD) tariff structure engine (Peak, Normal, Off-Peak pricing).
-  - Carbon footprint and CO2 emission equivalency calculators.
-
----
-
-### 🚨 Phase 4: Alarms, Thresholds & Notification Engine
-- [ ] **Alarm Rules Configuration View**:
-  - Set condition rules (e.g., Voltage > 250V, Power Factor < 0.85, kW > Maximum Demand limit, Gateway Offline > 2 mins).
-- [ ] **Live Notification Center**:
-  - Top header notification bell with real-time audio/visual alert badges.
-  - Critical, Warning, and Info severity levels.
-- [ ] **Alarm Acknowledgment & History Audit**:
-  - Operator acknowledge log with timestamp, operator remarks, and resolution status.
-  - Multi-channel notification delivery: Email, SMS, WhatsApp, and Webhooks.
-
----
-
-### 🗺️ Phase 5: Single-Line Diagram (SLD) & Facility Floor Map
-- [ ] **Interactive SLD (Electrical Single Line Diagram)**:
-  - Interactive SVG / Canvas schematic of the plant power distribution network.
-  - Visual breakers showing open/closed state with live voltage, current, and active power tooltips on feeders.
-- [ ] **Geographical / GIS Plant Map**:
-  - Map view showing physical gateway locations across different factory sheds, substations, or remote solar plants.
-
----
-
-### 🛠️ Phase 6: Code Quality, Testing & Infrastructure
-- [ ] **URL-Based Routing**:
-  - Upgrade state-based navigation (`activeTab`) to `react-router-dom` (v6 or v7) for deep URL linking (e.g. `/devices/:id`, `/profiles/:id/edit`), browser back/forward history, and query parameter search.
-- [ ] **Form Validation Framework**:
-  - Integrate **React Hook Form** with **Zod** schema validation for cleaner error handling and form resets.
-- [ ] **Automated Testing Suite**:
-  - Unit tests with **Vitest**.
-  - Component and user interaction tests with **React Testing Library**.
-  - End-to-end integration tests using **Playwright** or **Cypress**.
-- [ ] **Docker & Production Deployment**:
-  - Multi-stage `Dockerfile` (Node.js build -> Nginx Alpine reverse proxy).
-  - Docker Compose configuration for local or on-premise SCADA deployment.
-  - CI/CD pipeline script (GitHub Actions / GitLab CI).
-
----
-
-## 🚀 Getting Started
+## 🚀 Developer Setup & Deployment Guide
 
 ### Prerequisites
-- Node.js `v18.0.0` or higher
-- npm `v9.0.0` or higher
+- **Node.js**: `v20.0.0` or higher
+- **npm**: `v10.0.0` or higher
+- **Edge Ingestion Service**: Enerlink service running on `http://localhost:5114`
+- **Database Server**: Access to ASP.NET Core backend at `http://192.23.1.7:8007`
 
-### Installation
+### 1. Installation
 ```bash
 # Clone the repository
-git clone <repo-url>
+git clone <repository-url>
 cd vishalini-SaB-Energy
 
-# Install dependencies
+# Install all npm dependencies
 npm install
 ```
 
-### Running the Local Development Server
+### 2. Run Development Server
 ```bash
 npm run dev
 ```
-The application will launch at: `http://localhost:5173`
+The application will launch with Hot Module Replacement (HMR) at:
+👉 `http://localhost:5173`
 
-### Building for Production
+### 3. Production Compilation & Verification
 ```bash
+# Typecheck and compile production bundle
 npm run build
 ```
-Build artifacts will be compiled into the `dist/` directory.
-
-### Code Linting
-```bash
-npm run lint
-```
+Build output compiles into `dist/` in under 3 seconds.
 
 ---
 
-## 💡 Quick Summary Checklist
+## 🔬 Hardware Telemetry Diagnostic Terminal
 
-| Module | Status | Next Milestone |
-| :--- | :---: | :--- |
-| **Theme System (Light/Dark)** | ✅ Completed | System preference auto-detection |
-| **Header & Sidebar Navigation** | ✅ Completed | React Router URL routes (`react-router-dom`) |
-| **Dashboard Telemetry KPIs** | ✅ Completed | Interactive Recharts historical graphs |
-| **Gateway Master (CRUD & Channels)** | ✅ Completed | Live REST API & ThingsBoard synchronization |
-| **Meter Provisioning per Channel** | ✅ Completed | Live Modbus RTU / TCP polling integration |
-| **Diagnostic Test Engine** | ✅ Completed | Real socket-level Modbus frame exchange |
-| **Meter Profile & Register Mapping** | ✅ Completed | Server-side profile storage & validation |
-| **CSV / JSON Profile Import & Export** | ✅ Completed | Bulk batch validation against dictionary |
-| **Make & Model Masters (Gateway & Meter)** | ✅ Completed | Server CRUD endpoints |
-| **Parameter Dictionary** | ✅ Completed | Custom formula parameters (calculated registers) |
-| **Asset-to-Meter Mapping** | ✅ Completed | Tree-based asset hierarchy (Parent-Child) |
-| **Communication Settings** | ✅ Completed | Gateway remote OTA configuration push |
-| **Authentication & RBAC** | ⏳ Pending | JWT login, role permissions, protected routes |
-| **Alarming & Notification Hub** | ⏳ Pending | Real-time threshold alerts & audit logs |
-| **Electrical Single-Line Diagram (SLD)** | ⏳ Pending | Interactive vector schematic view |
+The application includes an integrated **Hardware Diagnostic Console** under `Gateways & Devices` &rarr; `Channel 1` &rarr; `Test`:
+
+1. **Handshake Verification**: Sends a probe command to the gateway over network/MQTT to measure round-trip ping latency.
+2. **RX Hardware Frame Verification**: Queries the meter on the RS-485 bus via Modbus RTU using its specific Slave ID (`#1`, `#2`).
+3. **Automated Status Promotion**:
+   - **On Success**: Automatically updates meter status to **`● Active`** in the local database and dashboard.
+   - **On Timeout**: Flags an RX timeout error, alerts that the physical line or meter is unacknowledged, and marks status as **`● Offline`**.
 
 ---
 
-*Authored for the SaB Energy Development Team.*
+## 🛡️ Frontend Development Invariants
+
+When contributing to this codebase, the following invariants must be strictly preserved:
+
+1. **`dist/web.config` Invariant**:
+   - `dist/web.config` must **NEVER** exist in the repository or build output. IIS web configs outside designated production packages cause deployment collision errors.
+2. **Clean Typing & Foreign Keys**:
+   - Primary and foreign keys communicated to the ASP.NET Core backend must be normalized to 32-bit positive integers using `resolveIntegerId` in `src/services/idHelper.ts`.
+3. **Reactive Polling Without Loops**:
+   - Real-time components use interval-driven lifecycle updates or event streams. Infinite re-render cascades are guarded using `useRef` snapshots.
+4. **Resilient Local Fallback**:
+   - If the remote backend is temporarily unreachable during plant maintenance, master data operates smoothly via `EnergyDataContext` local storage persistence.
+
+---
+
+*Authored by the SaB Energy Full-Stack Engineering Team.*

@@ -1,0 +1,1704 @@
+/* ── Geolocation Module Styles ── */
+.geolocation-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  background-color: var(--bg-app, #F4F7F5);
+  gap: 8px;
+}
+
+/* ── Top Search Header ── */
+.geolocation-header {
+  background-color: var(--card-bg, #FFFFFF);
+  border: 1px solid var(--border-color, #E2E8E5);
+  border-radius: 10px;
+  padding: 8px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: var(--card-shadow, 0 1px 3px rgba(15, 23, 42, 0.04));
+  flex-shrink: 0;
+}
+
+.geolocation-search-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.geolocation-search-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  align-items: center;
+}
+
+.geolocation-search-input {
+  width: 100%;
+  height: 38px;
+  padding-left: 36px;
+  padding-right: 36px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-primary, #1F2937);
+  background-color: var(--input-bg, #F8FAF9);
+  border: 1.5px solid var(--border-color, #CBD5E1);
+  border-radius: 9999px;
+  transition: all 0.18s ease;
+  outline: none;
+}
+
+.geolocation-search-input:focus,
+.geolocation-search-input:focus-visible {
+  border-color: var(--border-medium, #CBD5E1);
+  background-color: #FFFFFF;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.geolocation-suggestions-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--card-bg, #FFFFFF);
+  border: 1px solid var(--border-color, #E2E8E5);
+  border-radius: 8px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  max-height: 220px;
+  overflow-y: auto;
+  z-index: 50;
+}
+
+.geolocation-suggestion-item {
+  padding: 7px 12px;
+  font-size: 0.78rem;
+  color: var(--text-primary, #1F2937);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+  transition: background-color 0.12s ease;
+}
+
+.geolocation-suggestion-item:hover {
+  background-color: var(--hover-bg, #EAF6EE);
+  color: #11643A;
+}
+
+/* ── Main Body: Responsive Map (Left) + Meter Details Panel (Right) ── */
+.geolocation-main-grid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 10px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+@media (max-width: 1120px) {
+  .geolocation-main-grid {
+    grid-template-columns: 1fr 310px;
+  }
+}
+
+@media (max-width: 900px) {
+  .geolocation-main-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: 400px auto;
+    overflow-y: auto;
+  }
+}
+
+/* ── Map Card ── */
+.geolocation-map-card {
+  background: var(--card-bg, #FFFFFF);
+  border: 1px solid var(--border-color, #E2E8E5);
+  border-radius: 10px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  box-shadow: var(--card-shadow, 0 1px 3px rgba(15, 23, 42, 0.04));
+  height: 100%;
+  min-height: 350px;
+  isolation: isolate;
+}
+
+.geolocation-map-toolbar {
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border-color, #E2E8E5);
+  display: flex;
+  align-items: center;
+  justifyContent: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  background: var(--card-bg, #FFFFFF);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 20;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.geolocation-map-frame-wrapper {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  min-height: 0;
+  background-color: #E2E8F0;
+  overflow: hidden;
+}
+
+.geolocation-map-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+}
+
+/* ── Floating Office Badge & Dropdown Hover Card ── */
+.geolocation-office-floating-pill {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 25;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  border: 1px solid #CBD5E1;
+  border-radius: 8px;
+  padding: 5px 10px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
+  cursor: pointer;
+  transition: all 0.18s ease;
+  pointer-events: auto;
+}
+
+.geolocation-office-floating-pill:hover {
+  background: #FFFFFF;
+  border-color: #A7F3D0;
+  box-shadow: 0 6px 16px rgba(22, 131, 74, 0.18);
+}
+
+.geolocation-pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #16834A;
+  box-shadow: 0 0 0 3px rgba(22, 131, 74, 0.25);
+  animation: greenPulse 2s infinite ease-out;
+}
+
+@keyframes greenPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(22, 131, 74, 0.6);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(22, 131, 74, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(22, 131, 74, 0);
+  }
+}
+
+.geolocation-office-hover-card {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  width: 250px;
+  background: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  border-radius: 10px;
+  box-shadow: 0 14px 34px -4px rgba(15, 23, 42, 0.28), 0 4px 8px -2px rgba(15, 23, 42, 0.08);
+  overflow: hidden;
+  animation: cardFadeDown 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: auto;
+  z-index: 35;
+}
+
+/* Upward arrow pointer */
+.geolocation-office-hover-card::after {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: 20px;
+  transform: rotate(45deg);
+  width: 12px;
+  height: 12px;
+  background: #FFFFFF;
+  border-left: 1px solid #CBD5E1;
+  border-top: 1px solid #CBD5E1;
+}
+
+@keyframes cardFadeDown {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.geolocation-hover-card-img-wrapper {
+  position: relative;
+  width: 100%;
+  height: 110px;
+  background-color: #0F172A;
+  overflow: hidden;
+}
+
+.geolocation-hover-card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.geolocation-office-marker-container:hover .geolocation-hover-card-img {
+  transform: scale(1.05);
+}
+
+.geolocation-hover-card-badge {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  background: rgba(22, 131, 74, 0.92);
+  backdrop-filter: blur(4px);
+  color: #FFFFFF;
+  font-size: 0.60rem;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 4px;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.geolocation-hover-card-body {
+  padding: 9px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.geolocation-hover-card-title {
+  font-size: 0.92rem;
+  font-weight: 850;
+  color: #0F172A;
+  line-height: 1.2;
+}
+
+.geolocation-hover-card-subtitle {
+  font-size: 0.70rem;
+  font-weight: 600;
+  color: #64748B;
+  margin-top: -1px;
+}
+
+.geolocation-hover-card-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 4px;
+  padding-top: 5px;
+  border-top: 1px solid #F1F5F9;
+}
+
+.geolocation-hover-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.67rem;
+  color: #334155;
+  font-weight: 500;
+}
+
+.geolocation-hover-meters-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 5px;
+}
+
+.geolocation-hover-meter-pill {
+  font-size: 0.60rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background-color: #E8F5EC;
+  color: #166534;
+  border: 1px solid #BBF7D0;
+}
+
+/* ── Right Panel: Meter Details & Location Placement ── */
+.geolocation-meters-panel {
+  background: var(--card-bg, #FFFFFF);
+  border: 1px solid var(--border-color, #E2E8E5);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  box-shadow: var(--card-shadow, 0 1px 3px rgba(15, 23, 42, 0.04));
+  padding: 12px;
+  gap: 10px;
+  height: 100%;
+}
+
+.geolocation-meter-card {
+  border: 1px solid var(--border-color, #E2E8E5);
+  border-radius: 8px;
+  padding: 10px;
+  background-color: #FFFFFF;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: all 0.18s ease;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+.geolocation-meter-card:hover {
+  border-color: #BD621F !important;
+  box-shadow: 0 4px 14px rgba(189, 98, 31, 0.18) !important;
+  transform: translateY(-1px);
+}
+
+.geolocation-meter-card.active-selected {
+  border: 1.5px solid #BD621F !important;
+  border-top: 2.5px solid #BD621F !important;
+  background-color: rgba(189, 98, 31, 0.04) !important;
+  box-shadow: 0 4px 14px rgba(189, 98, 31, 0.16) !important;
+}
+
+.geolocation-meter-card.active-selected:hover {
+  border-color: #BD621F !important;
+  box-shadow: 0 4px 18px rgba(189, 98, 31, 0.24) !important;
+}
+
+/* ── Live On-Map Meter Display Card (Open by default directly above location pin) ── */
+.geolocation-onmap-meter-card {
+  width: 250px;
+  background: #FFFFFF;
+  border: 1.5px solid #CBD5E1;
+  border-radius: 10px;
+  box-shadow: 0 16px 36px -4px rgba(12, 30, 54, 0.35), 0 4px 10px -2px rgba(12, 30, 54, 0.12);
+  z-index: 25;
+  animation: cardFadeIn 0.22s ease-out;
+  pointer-events: auto;
+  overflow: visible;
+}
+
+/* ── Custom Center Meter Pin Marker ── */
+.geolocation-custom-center-pin {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -100%);
+  z-index: 22;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: auto;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.geolocation-custom-center-pin:hover {
+  transform: translate(-50%, -108%) scale(1.15);
+}
+
+.geolocation-green-pin-icon {
+  color: #0C1E36;
+  fill: #BD621F;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5));
+}
+
+.geolocation-custom-pin-pulse {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: rgba(189, 98, 31, 0.5);
+  box-shadow: 0 0 0 4px rgba(200, 106, 36, 0.25);
+  animation: rustPinPulse 2s infinite ease-out;
+  pointer-events: none;
+}
+
+@keyframes rustPinPulse {
+  0% {
+    transform: translateX(-50%) scale(0.6);
+    opacity: 1;
+  }
+  70% {
+    transform: translateX(-50%) scale(2.4);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(-50%) scale(2.4);
+    opacity: 0;
+  }
+}
+
+/* Position Above Pin: Directly Above Center Location Marker */
+.geolocation-onmap-meter-card.position-above-pin {
+  position: absolute;
+  left: 50%;
+  top: calc(50% - 24px);
+  transform: translate(-50%, -100%);
+}
+
+/* Downward arrow pointer pointing directly to the location pin */
+.geolocation-onmap-meter-card.position-above-pin::after {
+  content: '';
+  position: absolute;
+  bottom: -7px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 14px;
+  height: 14px;
+  background: #FFFFFF;
+  border-right: 1.5px solid #CBD5E1;
+  border-bottom: 1.5px solid #CBD5E1;
+  box-shadow: 3px 3px 6px rgba(15, 23, 42, 0.14);
+  z-index: 10;
+}
+
+/* Position Corner: Docked to top-left corner */
+.geolocation-onmap-meter-card.position-corner {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  overflow: hidden;
+}
+
+@keyframes cardFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.geolocation-onmap-meter-card.position-corner {
+  animation: cardFadeInCorner 0.2s ease-out;
+}
+
+@keyframes cardFadeInCorner {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Interactive Pin Hotspot Trigger (Shown when on-map card is hidden) ── */
+.geolocation-onmap-pin-hotspot {
+  position: absolute;
+  left: 50%;
+  top: calc(50% - 24px);
+  transform: translate(-50%, -100%);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  animation: pinDropBounce 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.geolocation-pin-beacon-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #FFFFFF;
+  border: 1.5px solid #16834A;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 750;
+  color: #1F2937;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  white-space: nowrap;
+  transition: all 0.18s ease;
+  position: relative;
+}
+
+.geolocation-onmap-pin-hotspot:hover .geolocation-pin-beacon-label {
+  background: #16834A;
+  color: #FFFFFF;
+  transform: scale(1.05);
+}
+
+.geolocation-onmap-pin-hotspot:hover .geolocation-pin-beacon-label svg {
+  color: #FFFFFF !important;
+}
+
+.geolocation-pin-beacon-label::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 8px;
+  height: 8px;
+  background: #FFFFFF;
+  border-right: 1.5px solid #16834A;
+  border-bottom: 1.5px solid #16834A;
+}
+
+.geolocation-onmap-pin-hotspot:hover .geolocation-pin-beacon-label::after {
+  background: #16834A;
+}
+
+.geolocation-pin-beacon-pulse {
+  position: absolute;
+  bottom: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: rgba(22, 131, 74, 0.3);
+  animation: pinPulseRing 1.8s infinite ease-out;
+  pointer-events: none;
+}
+
+@keyframes pinPulseRing {
+  0% {
+    transform: translateX(-50%) scale(0.6);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-50%) scale(2.4);
+    opacity: 0;
+  }
+}
+
+@keyframes pinDropBounce {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -120%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -100%);
+  }
+}
+
+.geolocation-onmap-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 8px;
+  background: #F8FAFC;
+  border-bottom: 1px solid #E2E8F0;
+  border-top-left-radius: 9px;
+  border-top-right-radius: 9px;
+}
+
+.geolocation-onmap-meter-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.geolocation-onmap-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  font-size: 0.68rem;
+  font-weight: 750;
+  border-radius: 5px;
+  border: 1px solid #E2E8F0;
+  background: #FFFFFF;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.geolocation-onmap-tab-btn:hover {
+  background: #F1F5F9;
+  color: #1E293B;
+}
+
+.geolocation-onmap-tab-btn.active.green {
+  background: #E8F5EC;
+  border-color: #86EFAC;
+  color: #166534;
+}
+
+.geolocation-onmap-tab-btn.active.blue {
+  background: #EFF6FF;
+  border-color: #93C5FD;
+  color: #1E40AF;
+}
+
+.geolocation-onmap-minimize-btn {
+  background: transparent;
+  border: none;
+  color: #64748B;
+  padding: 3px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.geolocation-onmap-minimize-btn:hover {
+  background: #E2E8F0;
+  color: #0F172A;
+}
+
+.geolocation-onmap-img-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100px;
+  background-color: #0F172A;
+  overflow: hidden;
+}
+
+.geolocation-onmap-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.geolocation-onmap-meter-card:hover .geolocation-onmap-img {
+  transform: scale(1.03);
+}
+
+.geolocation-onmap-badge {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  backdrop-filter: blur(4px);
+  color: #FFFFFF;
+  font-size: 0.60rem;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 4px;
+  letter-spacing: 0.3px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+
+.geolocation-onmap-badge.green {
+  background: rgba(22, 131, 74, 0.92);
+}
+
+.geolocation-onmap-badge.blue {
+  background: rgba(29, 52, 97, 0.92);
+}
+
+.geolocation-onmap-body {
+  padding: 8px 10px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  background: #FFFFFF;
+  border-bottom-left-radius: 9px;
+  border-bottom-right-radius: 9px;
+}
+
+.geolocation-onmap-title {
+  font-size: 0.88rem;
+  font-weight: 850;
+  color: #0F172A;
+  line-height: 1.2;
+}
+
+.geolocation-onmap-subtitle {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #64748B;
+}
+
+.geolocation-onmap-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 4px;
+  padding-top: 5px;
+  border-top: 1px solid #F1F5F9;
+}
+
+/* ── Minimized Floating Pill Above Pin vs Corner ── */
+.geolocation-office-floating-pill.position-above-pin {
+  position: absolute;
+  left: calc(50% + 29px);
+  top: calc(50% - 8px);
+  transform: translate(-50%, -100%);
+  z-index: 25;
+}
+
+.geolocation-office-floating-pill.position-above-pin::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 10px;
+  height: 10px;
+  background: #FFFFFF;
+  border-right: 1px solid #CBD5E1;
+  border-bottom: 1px solid #CBD5E1;
+}
+
+.geolocation-office-floating-pill.position-corner {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 25;
+}
+
+/* ── Meter Configurator Switcher & Toast ── */
+.geolocation-meter-tabs-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.geolocation-meter-tab-pill {
+  flex: 1;
+  min-width: 130px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  font-size: 0.70rem;
+  font-weight: 700;
+  border-radius: 6px;
+  border: 1px solid #CBD5E1;
+  background: #FFFFFF;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.geolocation-meter-tab-pill:hover {
+  background: #F1F5F9;
+  border-color: #94A3B8;
+}
+
+.geolocation-meter-tab-pill.active.theme-green {
+  background: #E8F5EC;
+  border-color: #16834A;
+  color: #166534;
+  box-shadow: 0 0 0 2px rgba(22, 131, 74, 0.15);
+}
+
+.geolocation-meter-tab-pill.active.theme-blue {
+  background: #EFF6FF;
+  border-color: #1D3461;
+  color: #1E40AF;
+  box-shadow: 0 0 0 2px rgba(29, 52, 97, 0.15);
+}
+
+.geolocation-tab-indicator {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.geolocation-tab-indicator.green {
+  background-color: #16834A;
+}
+
+.geolocation-tab-indicator.blue {
+  background-color: #1D3461;
+}
+
+.geolocation-auto-save-toast {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  margin-bottom: 6px;
+  background-color: #DCFCE7;
+  border: 1px solid #86EFAC;
+  border-radius: 6px;
+  font-size: 0.68rem;
+  font-weight: 750;
+  color: #15803D;
+  animation: fadeIn 0.2s ease-in;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.geolocation-show-on-map-btn:hover {
+  background-color: #11643A !important;
+  box-shadow: 0 3px 8px rgba(22, 131, 74, 0.35) !important;
+  transform: translateY(-1px);
+}
+
+.geolocation-show-on-map-btn:active {
+  transform: translateY(0);
+}
+
+/* ── Card Configure Button & Indicators ── */
+.geolocation-card-config-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  background-color: #F8FAFC;
+  border: 1px solid #CBD5E1;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.geolocation-card-config-btn:hover {
+  background-color: rgba(189, 98, 31, 0.12);
+  border-color: #BD621F;
+  color: #BD621F;
+}
+
+/* ── Geolocation & Asset Pin Configuration Modal ── */
+.geolocation-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: modalFadeIn 0.18s ease-out;
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.geolocation-modal-dialog {
+  background: #FFFFFF;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 620px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 40px -10px rgba(15, 23, 42, 0.25), 0 1px 3px rgba(0, 0, 0, 0.08);
+  border: 1px solid #CBD5E1;
+  overflow: hidden;
+  animation: modalSlideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalSlideUp {
+  from {
+    transform: translateY(12px) scale(0.99);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+.geolocation-modal-header {
+  padding: 14px 20px;
+  border-bottom: 1px solid #E2E8F0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #FFFFFF;
+  flex-shrink: 0;
+}
+
+.geolocation-modal-icon-badge {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: rgba(189, 98, 31, 0.12);
+  color: #BD621F;
+  border: 1px solid rgba(217, 162, 107, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.geolocation-modal-close-btn {
+  background: transparent;
+  border: none;
+  color: #64748B;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.geolocation-modal-close-btn:hover {
+  background-color: #F1F5F9;
+  color: #0F172A;
+}
+
+.geolocation-modal-body {
+  padding: 16px 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+}
+
+.geolocation-modal-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.geolocation-modal-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.geolocation-modal-section-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #1E293B;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+
+.geolocation-modal-label {
+  font-size: 0.70rem;
+  font-weight: 600;
+  color: #475569;
+  display: block;
+  margin-bottom: 3px;
+}
+
+.geolocation-modal-coords-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.geolocation-modal-quick-presets {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.geolocation-modal-preset-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  background: #F8FAFC;
+  border: 1px solid #CBD5E1;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.geolocation-modal-preset-btn:hover {
+  background: #F1F5F9;
+  border-color: #94A3B8;
+  color: #0F172A;
+}
+
+.geolocation-modal-preset-btn.active {
+  background: #E8F5EC;
+  border-color: #16834A;
+  color: #166534;
+}
+
+.geolocation-modal-input {
+  width: 100%;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid #CBD5E1;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  color: #1E293B;
+  background: #FFFFFF;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.geolocation-modal-input:focus {
+  outline: none;
+  border-color: #16834A;
+  box-shadow: 0 0 0 3px rgba(22, 131, 74, 0.15);
+}
+
+.geolocation-modal-picker-wrapper {
+  position: relative;
+  width: 100%;
+  height: 220px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #CBD5E1;
+  background-color: #0F172A;
+  margin-top: 4px;
+}
+
+.geolocation-modal-hint {
+  font-size: 0.68rem;
+  color: #64748B;
+  line-height: 1.3;
+}
+
+.geolocation-picker-coord-badge {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  z-index: 30;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border: 1px solid #16834A;
+  color: #166534;
+  padding: 3px 8px;
+  border-radius: 5px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  font-family: monospace;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  pointer-events: none;
+}
+
+.geolocation-modal-photo-card {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  background-color: #F8FAFC;
+  border-radius: 8px;
+  border: 1px solid #E2E8F0;
+}
+
+.geolocation-modal-photo-thumb {
+  width: 84px;
+  height: 60px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid #CBD5E1;
+  flex-shrink: 0;
+  background: #0F172A;
+}
+
+.geolocation-modal-photo-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.geolocation-modal-photo-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.geolocation-modal-photo-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.geolocation-modal-upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1px solid #16834A;
+  background: #FFFFFF;
+  color: #16834A;
+  font-size: 0.74rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.geolocation-modal-upload-btn:hover {
+  background: #E8F5EC;
+  border-color: #15803D;
+}
+
+.geolocation-modal-reset-btn {
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid #CBD5E1;
+  background: #FFFFFF;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #64748B;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.geolocation-modal-reset-btn:hover {
+  background: #F1F5F9;
+  color: #1E293B;
+  border-color: #94A3B8;
+}
+
+.geolocation-modal-photo-help {
+  font-size: 0.67rem;
+  color: #64748B;
+  margin: 0;
+  line-height: 1.35;
+}
+
+/* ── Sticky Modal Footer (Pinned with clean buttons) ── */
+.geolocation-modal-footer {
+  padding: 12px 20px;
+  background: #F8FAFC;
+  border-top: 1px solid #E2E8F0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.geolocation-modal-cancel-btn {
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 6px;
+  border: 1px solid #CBD5E1;
+  background: #FFFFFF;
+  color: #475569;
+  font-size: 0.80rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.geolocation-modal-cancel-btn:hover {
+  background: #F1F5F9;
+  border-color: #94A3B8;
+  color: #0F172A;
+}
+
+.geolocation-modal-save-btn {
+  height: 36px;
+  padding: 0 18px;
+  border-radius: 6px;
+  border: none;
+  background: linear-gradient(135deg, #BD621F 0%, #C86A24 100%);
+  color: #FFFFFF;
+  font-size: 0.80rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 6px rgba(189, 98, 31, 0.30);
+}
+
+.geolocation-modal-save-btn:hover {
+  background: linear-gradient(135deg, #C86A24 0%, #BD621F 100%);
+  box-shadow: 0 4px 10px rgba(189, 98, 31, 0.40);
+  transform: translateY(-1px);
+}
+
+.geolocation-modal-save-btn:active {
+  transform: translateY(0);
+}
+
+/* ── Leaflet Popup Custom Styling (Compact, Clean & Responsive) ── */
+.custom-leaflet-popup-wrapper .leaflet-popup-content-wrapper {
+  padding: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 16px 36px -4px rgba(15, 23, 42, 0.4), 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 1.5px solid #CBD5E1;
+  background: #FFFFFF;
+}
+
+.custom-leaflet-popup-wrapper .leaflet-popup-content {
+  margin: 0 !important;
+  width: 310px !important;
+  line-height: normal;
+}
+
+.custom-leaflet-popup-wrapper .leaflet-popup-tip {
+  background: #FFFFFF;
+  border-right: 1.5px solid #CBD5E1;
+  border-bottom: 1.5px solid #CBD5E1;
+  box-shadow: 2px 2px 5px rgba(15, 23, 42, 0.12);
+}
+
+.custom-leaflet-popup-wrapper a.leaflet-popup-close-button {
+  color: #64748B !important;
+  top: 8px !important;
+  right: 8px !important;
+  z-index: 25;
+  font-size: 14px !important;
+  width: 20px !important;
+  height: 20px !important;
+  background: #F1F5F9 !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: 1px solid #CBD5E1 !important;
+  text-decoration: none !important;
+  transition: all 0.15s ease !important;
+}
+
+.custom-leaflet-popup-wrapper a.leaflet-popup-close-button:hover {
+  background: #EF4444 !important;
+  color: #FFFFFF !important;
+  border-color: #EF4444 !important;
+  transform: scale(1.08) !important;
+}
+
+.geolocation-leaflet-popup-card.compact-horizontal {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  width: 310px;
+  height: 116px;
+  font-family: inherit;
+  background: #FFFFFF;
+}
+
+.geolocation-leaflet-popup-card.compact-horizontal .geolocation-popup-img-wrap {
+  width: 96px;
+  height: 116px;
+  position: relative;
+  flex-shrink: 0;
+  background-color: #0F172A;
+  overflow: hidden;
+}
+
+.geolocation-leaflet-popup-card.compact-horizontal .geolocation-popup-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+
+.geolocation-leaflet-popup-card.compact-horizontal .geolocation-popup-badge {
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+  color: #FFFFFF;
+  font-size: 0.60rem;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  letter-spacing: 0.2px;
+  max-width: 84px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.geolocation-leaflet-popup-card.compact-horizontal .geolocation-popup-body {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px 10px 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: #FFFFFF;
+}
+
+.geolocation-leaflet-popup-card.compact-horizontal .geolocation-popup-header-box {
+  padding-right: 22px;
+}
+
+.geolocation-leaflet-popup-card.compact-horizontal .geolocation-popup-place {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #0F172A;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+}
+
+.geolocation-leaflet-popup-card.compact-horizontal .geolocation-popup-sub {
+  font-size: 0.64rem;
+  font-weight: 600;
+  color: #64748B;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 1px;
+}
+
+.geolocation-leaflet-popup-card.compact-horizontal .geolocation-popup-meta {
+  font-size: 0.65rem;
+  color: #334155;
+  font-family: monospace;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.geolocation-leaflet-popup-card.compact-horizontal .geolocation-popup-config-btn {
+  margin-top: 5px;
+  width: 100%;
+  padding: 5px 8px;
+  border: none;
+  border-radius: 6px;
+  color: #FFFFFF;
+  font-size: 0.72rem;
+  font-weight: 750;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+  transition: all 0.15s ease;
+}
+
+.geolocation-leaflet-popup-card.compact-horizontal .geolocation-popup-config-btn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+/* ── Highly Responsive Leaflet Pin Marker Styles (Safe from Leaflet Transform Glitch) ── */
+.custom-main-meter-pin {
+  cursor: pointer !important;
+  user-select: none;
+  -webkit-user-select: none;
+  pointer-events: auto !important;
+  background: transparent !important;
+  border: none !important;
+}
+
+.custom-main-meter-pin.active-pin {
+  z-index: 2000 !important;
+}
+
+.custom-main-meter-pin:hover {
+  z-index: 2500 !important;
+}
+
+/* Transform is ONLY applied to the inner element, NEVER to Leaflet's outer .custom-main-meter-pin container! */
+.custom-main-meter-pin .main-pin-inner {
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.18s ease;
+  transform-origin: 50% 100%;
+  will-change: transform;
+}
+
+.custom-main-meter-pin:hover .main-pin-inner {
+  transform: scale(1.12) translateY(-4px);
+  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.45));
+}
+
+.custom-main-meter-pin:active .main-pin-inner {
+  transform: scale(0.96) translateY(0);
+}
+
+.custom-interactive-leaflet-pin {
+  cursor: grab !important;
+  user-select: none;
+  -webkit-user-select: none;
+  pointer-events: auto !important;
+  background: transparent !important;
+  border: none !important;
+}
+
+.custom-interactive-leaflet-pin .modal-pin-inner {
+  transition: transform 0.15s ease;
+  transform-origin: 50% 100%;
+}
+
+.custom-interactive-leaflet-pin:hover .modal-pin-inner {
+  transform: scale(1.08) translateY(-2px);
+}
+
+.custom-interactive-leaflet-pin:active {
+  cursor: grabbing !important;
+}
+
+/* Mobile Responsiveness Enhancements */
+@media (max-width: 640px) {
+  .geolocation-header {
+    padding: 6px 10px;
+    gap: 6px;
+  }
+  .geolocation-search-row {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .geolocation-search-wrapper {
+    max-width: 100%;
+  }
+  .geolocation-map-toolbar {
+    padding: 6px 8px;
+    gap: 6px;
+  }
+  .geolocation-map-card {
+    min-height: 280px;
+  }
+}
+
+/* ── Geofence Radius Circle & Tooltip Styling (Green as requested) ── */
+.geolocation-radius-geofence-circle {
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  filter: drop-shadow(0 0 8px rgba(22, 163, 74, 0.55));
+  pointer-events: auto;
+}
+
+.geolocation-radius-tooltip {
+  background: rgba(12, 30, 54, 0.94) !important;
+  color: #FFFFFF !important;
+  border: 1.5px solid #16A34A !important;
+  border-radius: 6px !important;
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  padding: 4px 10px !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35) !important;
+  pointer-events: none !important;
+}
+
+.geolocation-radius-tooltip::before {
+  border-top-color: rgba(12, 30, 54, 0.94) !important;
+}
+
+/* ── Top Concern Filter & Toggle Switcher ── */
+.geolocation-concern-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.geolocation-concern-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #FFFFFF;
+  border: 1.5px solid #CBD5E1;
+  padding: 5px 12px;
+  border-radius: 9999px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: all 0.15s ease;
+}
+
+.geolocation-concern-box:focus-within {
+  border-color: #1D3461;
+  box-shadow: 0 0 0 3px rgba(29, 52, 97, 0.15);
+}
+
+.geolocation-concern-select {
+  border: none;
+  background: transparent;
+  font-size: 0.82rem;
+  font-weight: 750;
+  color: #0C1E36;
+  outline: none;
+  cursor: pointer;
+  padding-right: 4px;
+}
+
+.geolocation-concern-pills {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.geolocation-concern-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1.5px solid #CBD5E1;
+  background: #FFFFFF;
+  color: #0C1E36;
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+}
+
+.geolocation-concern-pill-btn:hover {
+  border-color: #1D3461;
+  background: #EFF6FF;
+  color: #1D3461;
+  transform: translateY(-1px);
+}
+
+.geolocation-concern-pill-btn.active {
+  background: linear-gradient(135deg, #1D3461 0%, #0C1E36 100%);
+  color: #FFFFFF;
+  border-color: #0C1E36;
+  box-shadow: 0 3px 10px rgba(29, 52, 97, 0.35);
+}
+
+.geolocation-concern-pill-btn.active:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(29, 52, 97, 0.45);
+}
+
+.geolocation-active-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #FFFFFF;
+  box-shadow: 0 0 6px #FFFFFF;
+  display: inline-block;
+}
+
+/* ── Live Map Navigation Flight Overlay & Animation ── */
+.geolocation-flight-hud-overlay {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  pointer-events: none;
+  animation: flightHudPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes flightHudPop {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -15px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
+.geolocation-flight-hud-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(12, 30, 54, 0.94);
+  color: #FFFFFF;
+  backdrop-filter: blur(8px);
+  padding: 8px 18px;
+  border-radius: 9999px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4), 0 0 15px rgba(29, 52, 97, 0.5);
+  border: 1.5px solid rgba(29, 52, 97, 0.7);
+}
+
+.geolocation-flight-spinner {
+  animation: flightSpin 1.4s linear infinite;
+  color: #38BDF8;
+  flex-shrink: 0;
+}
+
+@keyframes flightSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.geolocation-flight-info {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.geolocation-flight-title {
+  font-size: 0.78rem;
+  font-weight: 750;
+  color: #FFFFFF;
+}
+
+.geolocation-flight-coords {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #94A3B8;
+  font-family: monospace;
+}
+
+/* ── Animated Flight Path Trajectory ── */
+@keyframes flightTrajectoryDash {
+  to {
+    stroke-dashoffset: -40;
+  }
+}
+
+.geolocation-flight-path {
+  stroke-dasharray: 10, 10;
+  animation: flightTrajectoryDash 1.2s linear infinite;
+  filter: drop-shadow(0 0 8px rgba(29, 52, 97, 0.8));
+}
+
+/* ── Custom Blue Location Pin Pulse ── */
+.geolocation-custom-pin-pulse {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: rgba(29, 52, 97, 0.5);
+  box-shadow: 0 0 0 4px rgba(29, 52, 97, 0.25);
+  animation: navyPinPulse 2s infinite ease-out;
+  pointer-events: none;
+}
+
+@keyframes navyPinPulse {
+  0% {
+    transform: translateX(-50%) scale(0.6);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-50%) scale(2.6);
+    opacity: 0;
+  }
+}
+
+

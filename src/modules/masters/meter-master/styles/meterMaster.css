@@ -1,0 +1,7 @@
+/* Styles for Meter Master Module */
+.meter-master-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+

@@ -1,0 +1,42 @@
+/* Styles for Comm Configuration Module */
+.comm-config-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.comm-config-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 24px;
+}
+
+/* Light Rust Orange Button */
+.btn-rust-light {
+  background-color: rgba(189, 98, 31, 0.10) !important;
+  border: 1px solid rgba(189, 98, 31, 0.38) !important;
+  color: #BD621F !important;
+  font-weight: 650;
+  transition: all 0.18s ease;
+}
+
+.btn-rust-light:hover:not(:disabled) {
+  background-color: rgba(189, 98, 31, 0.18) !important;
+  border-color: #BD621F !important;
+  color: #9A3412 !important;
+  box-shadow: 0 2px 6px rgba(189, 98, 31, 0.20);
+}
+
+.btn-rust-light:active:not(:disabled) {
+  background-color: rgba(189, 98, 31, 0.24) !important;
+  transform: translateY(1px);
+}
+
+.btn-rust-light:disabled {
+  opacity: 0.55 !important;
+  cursor: not-allowed !important;
+  border-color: rgba(189, 98, 31, 0.20) !important;
+}
+
+
