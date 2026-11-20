@@ -20,9 +20,9 @@ export interface PowerTrendLineGraphProps {
 }
 
 /* ═════════════════════════════════════════════════════════════════════
-   ApexCharts Official Spline Area Palette (Exact Match to User UI):
-   • Series 1 (Voltage - Left Partition):  #008FFB (Vibrant Sky Blue)
-   • Series 2 (Current - Right Partition): #00E396 (Vibrant Emerald Teal)
+   ApexCharts Official Spline Area Palette:
+   • Series 1 (Voltage - Left Axis):   #008FFB (Vibrant Sky Blue)
+   • Series 2 (Current - Right Axis):  #00E396 (Vibrant Emerald Teal)
    ═════════════════════════════════════════════════════════════════════ */
 const COLOR_VOLTAGE = '#008FFB';
 const COLOR_CURRENT = '#00E396';
@@ -137,15 +137,18 @@ export const PowerTrendLineGraph: React.FC<PowerTrendLineGraphProps> = ({
 
   const subPeriodLabels = useMemo(() => getSubPeriodLabels(), []);
 
-  // ── Synchronized Hover Tracker Across Both Partitions ──
+  // ── Series Visibility Toggles ──
+  const [showVoltage, setShowVoltage] = useState<boolean>(true);
+  const [showCurrent, setShowCurrent] = useState<boolean>(true);
+
+  // ── Synchronized Hover Tracker Across Dual Axes ──
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
   // ── ApexCharts Menu State ──
   const [showMenu, setShowMenu] = useState<boolean>(false);
 
   const menuRef = useRef<HTMLDivElement>(null);
-  const voltSvgRef = useRef<SVGSVGElement>(null);
-  const currSvgRef = useRef<SVGSVGElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Close hamburger menu on outside click
@@ -283,7 +286,7 @@ export const PowerTrendLineGraph: React.FC<PowerTrendLineGraphProps> = ({
         });
       });
     } else if (tf === 'daily') {
-      // 14 continuous days matching the iconic rolling wave from Image 2
+      // 14 continuous days matching the iconic rolling wave
       const days = ['01 Jun', '02 Jun', '03 Jun', '04 Jun', '05 Jun', '06 Jun', '07 Jun', '08 Jun', '09 Jun', '10 Jun', '11 Jun', '12 Jun', '13 Jun', '14 Jun'];
       const vFactors = [0.975, 1.025, 1.045, 0.960, 1.050, 1.080, 1.060, 0.970, 1.015, 1.075, 1.095, 1.055, 1.025, 1.050];
       const cFactors = [0.72, 0.95, 0.68, 1.10, 0.94, 0.76, 1.05, 1.18, 0.92, 0.74, 1.02, 1.14, 0.82, 0.96];
@@ -352,21 +355,22 @@ export const PowerTrendLineGraph: React.FC<PowerTrendLineGraphProps> = ({
   }, [tf, sub, voltBase, currBase, livePulse]);
 
   /* ═════════════════════════════════════════════════════════════════════
-     PARTITION GEOMETRIES & HARMONIC ROUND SCALES
+     UNIFIED DUAL-AXIS SVG GEOMETRY
+     • Left Y-Axis:  Voltage (V)
+     • Right Y-Axis: Current (A)
+     • Shared X-Axis: Time / Period
      ═════════════════════════════════════════════════════════════════════ */
-  const VW = 480;
-  const VH = 205;
-  const PT = 16;
-  const PB = 30;
-  const PL_V = 48; // Left padding for Voltage ticks (e.g. 430 V)
-  const PL_C = 42; // Left padding for Current ticks (e.g. 24 A)
-  const PR = 16;
-  const PW_V = VW - PL_V - PR;
-  const PW_C = VW - PL_C - PR;
+  const VW = 860;
+  const VH = 220;
+  const PT = 18;
+  const PB = 34; // Clean space for bottom X-axis time marks
+  const PL = 54; // Left space for Voltage (V) ticks (e.g. 440 V)
+  const PR = 48; // Right space for Current (A) ticks (e.g. 30 A)
+  const PW = VW - PL - PR;
   const PH = VH - PT - PB;
   const baseY = PT + PH;
 
-  // 1. Voltage Scale (Clean harmonic 15V or 20V steps with headroom)
+  // 1. Voltage Scale (Left Axis: Clean harmonic 15V or 20V steps with headroom)
   const { minV, maxV, vTicks, avgV } = useMemo(() => {
     let lo = 9999, hi = 0, sum = 0;
     chartPoints.forEach((d) => {
@@ -375,7 +379,6 @@ export const PowerTrendLineGraph: React.FC<PowerTrendLineGraphProps> = ({
       sum += d.voltage;
     });
 
-    // Clean harmonic bounds (e.g. 370V, 385V, 400V, 415V, 430V, 445V)
     const range = hi - lo;
     const pad = Math.max(10, range * 0.18);
     const minVal = Math.floor((lo - pad) / 10) * 10;
@@ -388,12 +391,10 @@ export const PowerTrendLineGraph: React.FC<PowerTrendLineGraphProps> = ({
       maxV: maxVal,
       vTicks: ticks,
       avgV: +(sum / (chartPoints.length || 1)).toFixed(1),
-      minVData: lo,
-      maxVData: hi,
     };
   }, [chartPoints]);
 
-  // 2. Current Scale (Starts at 0A with dynamic peak headroom so emerald wave has full amplitude)
+  // 2. Current Scale (Right Axis: Starts at 0A with dynamic peak headroom)
   const { minC, maxC, cTicks, avgC } = useMemo(() => {
     let lo = 9999, hi = 0, sum = 0;
     chartPoints.forEach((d) => {
@@ -413,33 +414,30 @@ export const PowerTrendLineGraph: React.FC<PowerTrendLineGraphProps> = ({
       maxC: maxVal,
       cTicks: ticks,
       avgC: +(sum / (chartPoints.length || 1)).toFixed(1),
-      minCData: lo,
-      maxCData: hi,
     };
   }, [chartPoints]);
 
-  // Screen Coordinates for Spline Curves
+  // Screen Coordinates for Spline Curves (Shared X-Step across both series)
   const n = chartPoints.length;
-  const xStepV = PW_V / Math.max(1, n - 1);
-  const xStepC = PW_C / Math.max(1, n - 1);
+  const xStep = PW / Math.max(1, n - 1);
 
   const voltPts = useMemo(() => {
     return chartPoints.map((d, i) => {
-      const x = PL_V + i * xStepV;
+      const x = PL + i * xStep;
       const frac = (d.voltage - minV) / (maxV - minV || 1);
       const y = baseY - frac * PH;
       return { x, y, val: d.voltage };
     });
-  }, [chartPoints, PL_V, xStepV, minV, maxV, baseY, PH]);
+  }, [chartPoints, PL, xStep, minV, maxV, baseY, PH]);
 
   const currPts = useMemo(() => {
     return chartPoints.map((d, i) => {
-      const x = PL_C + i * xStepC;
+      const x = PL + i * xStep;
       const frac = (d.current - minC) / (maxC - minC || 1);
       const y = baseY - frac * PH;
       return { x, y, val: d.current };
     });
-  }, [chartPoints, PL_C, xStepC, minC, maxC, baseY, PH]);
+  }, [chartPoints, PL, xStep, minC, maxC, baseY, PH]);
 
   // Spline & Area SVG Paths
   const voltSpline = useMemo(() => getSplinePath(voltPts), [voltPts]);
@@ -447,30 +445,17 @@ export const PowerTrendLineGraph: React.FC<PowerTrendLineGraphProps> = ({
   const currSpline = useMemo(() => getSplinePath(currPts), [currPts]);
   const currArea = useMemo(() => getAreaPath(currPts, baseY), [currPts, baseY]);
 
-  // ── Synchronized Hover Handlers ──
-  const handleMouseMoveV = (e: React.MouseEvent<SVGSVGElement>) => {
-    if (!voltSvgRef.current) return;
-    const rect = voltSvgRef.current.getBoundingClientRect();
+  // ── Unified Interactive Crosshair Handler ──
+  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (!svgRef.current) return;
+    const rect = svgRef.current.getBoundingClientRect();
     const mouseX = ((e.clientX - rect.left) / rect.width) * VW;
-    if (mouseX < PL_V || mouseX > VW - PR) {
+    if (mouseX < PL || mouseX > VW - PR) {
       setHoveredIdx(null);
       return;
     }
-    const relX = mouseX - PL_V;
-    const idx = Math.min(n - 1, Math.max(0, Math.round(relX / xStepV)));
-    setHoveredIdx(idx);
-  };
-
-  const handleMouseMoveC = (e: React.MouseEvent<SVGSVGElement>) => {
-    if (!currSvgRef.current) return;
-    const rect = currSvgRef.current.getBoundingClientRect();
-    const mouseX = ((e.clientX - rect.left) / rect.width) * VW;
-    if (mouseX < PL_C || mouseX > VW - PR) {
-      setHoveredIdx(null);
-      return;
-    }
-    const relX = mouseX - PL_C;
-    const idx = Math.min(n - 1, Math.max(0, Math.round(relX / xStepC)));
+    const relX = mouseX - PL;
+    const idx = Math.min(n - 1, Math.max(0, Math.round(relX / xStep)));
     setHoveredIdx(idx);
   };
 
@@ -480,12 +465,10 @@ export const PowerTrendLineGraph: React.FC<PowerTrendLineGraphProps> = ({
 
   // ── ApexCharts Export Menu Handlers ──
   const exportSVG = () => {
-    if (!voltSvgRef.current || !currSvgRef.current) return;
+    if (!svgRef.current) return;
     const serializer = new XMLSerializer();
-    const vStr = serializer.serializeToString(voltSvgRef.current);
-    const cStr = serializer.serializeToString(currSvgRef.current);
-    const combined = `<svg xmlns="http://www.w3.org/2000/svg" width="960" height="250"><g>${vStr}</g><g transform="translate(480, 0)">${cStr}</g></svg>`;
-    const blob = new Blob([combined], { type: 'image/svg+xml;charset=utf-8' });
+    const svgStr = serializer.serializeToString(svgRef.current);
+    const blob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -496,42 +479,31 @@ export const PowerTrendLineGraph: React.FC<PowerTrendLineGraphProps> = ({
   };
 
   const exportPNG = () => {
-    if (!voltSvgRef.current || !currSvgRef.current) return;
+    if (!svgRef.current) return;
     const serializer = new XMLSerializer();
-    const vStr = serializer.serializeToString(voltSvgRef.current);
-    const cStr = serializer.serializeToString(currSvgRef.current);
+    const svgStr = serializer.serializeToString(svgRef.current);
+    const img = new Image();
+    const svgBlob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(svgBlob);
 
-    const canvas = document.createElement('canvas');
-    canvas.width = 1600;
-    canvas.height = 420;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    const imgV = new Image();
-    const imgC = new Image();
-    const blobV = new Blob([vStr], { type: 'image/svg+xml;charset=utf-8' });
-    const blobC = new Blob([cStr], { type: 'image/svg+xml;charset=utf-8' });
-    const urlV = URL.createObjectURL(blobV);
-    const urlC = URL.createObjectURL(blobC);
-
-    imgV.onload = () => {
-      ctx.drawImage(imgV, 20, 20, 760, 380);
-      imgC.onload = () => {
-        ctx.drawImage(imgC, 820, 20, 760, 380);
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 1720;
+      canvas.height = 440;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         const pngUrl = canvas.toDataURL('image/png');
         const link = document.createElement('a');
         link.href = pngUrl;
         link.download = `voltage_current_profile_${tf}_${sub}.png`;
         link.click();
-        URL.revokeObjectURL(urlV);
-        URL.revokeObjectURL(urlC);
-      };
-      imgC.src = urlC;
+      }
+      URL.revokeObjectURL(url);
     };
-    imgV.src = urlV;
+    img.src = url;
     setShowMenu(false);
   };
 
@@ -544,18 +516,17 @@ export const PowerTrendLineGraph: React.FC<PowerTrendLineGraphProps> = ({
     const encoded = encodeURI(csvContent);
     const link = document.createElement('a');
     link.href = encoded;
-    link.download = `voltage_current_profile_${tf}_${sub}.csv`;
+    link.download = `voltage_current_data_${tf}_${sub}.csv`;
     link.click();
     setShowMenu(false);
   };
 
-  // Distinct X-Axis Labels for Weekly Mode (Centers labels under each week)
-  const renderXLabels = (xStep: number, pl: number, color: string) => {
+  // Clean, centered X-Axis Labels
+  const renderXLabels = (xStep: number, pl: number) => {
     if (tf === 'weekly') {
-      // 4 clean major week labels placed at the center of each week segment (4 points per week)
       const weekLabels = ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
       return weekLabels.map((wLabel, wIdx) => {
-        const centerIndex = wIdx * 4 + 1.5; // Exactly midway between points of that week
+        const centerIndex = wIdx * 4 + 1.5;
         const x = pl + centerIndex * xStep;
         const isHovered = hoveredIdx !== null && Math.floor(hoveredIdx / 4) === wIdx;
 
@@ -566,7 +537,7 @@ export const PowerTrendLineGraph: React.FC<PowerTrendLineGraphProps> = ({
             y={baseY + 18}
             textAnchor="middle"
             fontSize={isHovered ? '10' : '9.5'}
-            fill={isHovered ? color : COLOR_AXIS}
+            fill={isHovered ? '#0F172A' : COLOR_AXIS}
             fontWeight={isHovered ? 700 : 500}
           >
             {wLabel}
@@ -575,12 +546,10 @@ export const PowerTrendLineGraph: React.FC<PowerTrendLineGraphProps> = ({
       });
     }
 
-    // Default label rendering for Daily, Hourly, Monthly, Yearly
     return chartPoints.map((d, i) => {
       const x = pl + i * xStep;
       const isHovered = hoveredIdx === i;
 
-      // Filter non-major ticks if too dense
       if (n > 10 && !d.isMajorTick && !isHovered && i !== 0 && i !== n - 1) {
         return null;
       }
@@ -592,7 +561,7 @@ export const PowerTrendLineGraph: React.FC<PowerTrendLineGraphProps> = ({
           y={baseY + 18}
           textAnchor="middle"
           fontSize={isHovered ? '10' : '9.5'}
-          fill={isHovered ? color : COLOR_AXIS}
+          fill={isHovered ? '#0F172A' : COLOR_AXIS}
           fontWeight={isHovered ? 700 : 500}
         >
           {d.label}
@@ -620,7 +589,7 @@ export const PowerTrendLineGraph: React.FC<PowerTrendLineGraphProps> = ({
       {/* ══ HEADER: Title, Select2 Filters & Apex Toolbar ════ */}
       <div
         style={{
-          padding: '8px 14px',
+          padding: '10px 18px',
           borderBottom: `1px solid ${BORDER_COLOR}`,
           display: 'flex',
           alignItems: 'center',
@@ -632,7 +601,7 @@ export const PowerTrendLineGraph: React.FC<PowerTrendLineGraphProps> = ({
           flexShrink: 0,
         }}
       >
-        {/* Left: Card Title & Meter Info */}
+        {/* Left: Card Title & Icon */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
           <div
             style={{
@@ -660,7 +629,7 @@ export const PowerTrendLineGraph: React.FC<PowerTrendLineGraphProps> = ({
                 lineHeight: 1.2,
               }}
             >
-              Voltage &amp; Current Profile
+              Voltage & Current Profile
             </div>
           </div>
         </div>
@@ -740,527 +709,445 @@ export const PowerTrendLineGraph: React.FC<PowerTrendLineGraphProps> = ({
                   zIndex: 100,
                 }}
               >
-                  <button
-                    type="button"
-                    onClick={exportSVG}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                      width: '100%',
-                      padding: '8px 12px',
-                      fontSize: '0.78rem',
-                      color: '#334155',
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      transition: 'background 0.15s ease',
-                    }}
-                    onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = '#F8FAFC')}
-                    onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = 'none')}
-                  >
-                    <Code2 size={14} color="#008FFB" />
-                    Download SVG
-                  </button>
-                  <button
-                    type="button"
-                    onClick={exportPNG}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                      width: '100%',
-                      padding: '8px 12px',
-                      fontSize: '0.78rem',
-                      color: '#334155',
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      transition: 'background 0.15s ease',
-                    }}
-                    onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = '#F8FAFC')}
-                    onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = 'none')}
-                  >
-                    <ImageIcon size={14} color="#00E396" />
-                    Download PNG
-                  </button>
-                  <button
-                    type="button"
-                    onClick={exportCSV}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                      width: '100%',
-                      padding: '8px 12px',
-                      fontSize: '0.78rem',
-                      color: '#334155',
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      transition: 'background 0.15s ease',
-                    }}
-                    onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = '#F8FAFC')}
-                    onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = 'none')}
-                  >
-                    <FileSpreadsheet size={14} color="#10B981" />
-                    Download CSV
-                  </button>
-                </div>
-              )}
-            </div>
+                <button
+                  type="button"
+                  onClick={exportSVG}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    width: '100%',
+                    padding: '8px 12px',
+                    fontSize: '0.78rem',
+                    color: '#334155',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    transition: 'background 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = '#F8FAFC')}
+                  onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = 'none')}
+                >
+                  <Code2 size={14} color="#008FFB" />
+                  Download SVG
+                </button>
+                <button
+                  type="button"
+                  onClick={exportPNG}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    width: '100%',
+                    padding: '8px 12px',
+                    fontSize: '0.78rem',
+                    color: '#334155',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    transition: 'background 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = '#F8FAFC')}
+                  onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = 'none')}
+                >
+                  <ImageIcon size={14} color="#00E396" />
+                  Download PNG
+                </button>
+                <button
+                  type="button"
+                  onClick={exportCSV}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    width: '100%',
+                    padding: '8px 12px',
+                    fontSize: '0.78rem',
+                    color: '#334155',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    transition: 'background 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = '#F8FAFC')}
+                  onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = 'none')}
+                >
+                  <FileSpreadsheet size={14} color="#10B981" />
+                  Download CSV
+                </button>
+              </div>
+            )}
           </div>
         </div>
+      </div>
 
-      {/* ══ DUAL PARTITIONS: Voltage Profile (Left) | Current Profile (Right) ══ */}
+      {/* ══ COMBINED DUAL-AXIS SVG GRAPH ══════════════════════ */}
       <div
-        className="trend-dual-container"
         style={{
-          padding: '6px 12px 8px 12px',
+          flex: 1,
+          width: '100%',
+          minHeight: 0,
+          position: 'relative',
+          overflow: 'hidden',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '6px 12px 2px 12px',
         }}
       >
-        {/* ── PARTITION 1 (LEFT): VOLTAGE PROFILE ── */}
-        <div className="trend-subpanel-left">
-          {/* Subpanel Header */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: 4,
-              paddingBottom: 4,
-              borderBottom: '1px dashed var(--border-color, #E2E8E5)',
-              flexShrink: 0,
-            }}
+        <svg
+          ref={svgRef}
+          viewBox={`0 0 ${VW} ${VH}`}
+          width="100%"
+          height="100%"
+          preserveAspectRatio="xMidYMid meet"
+          style={{
+            display: 'block',
+            cursor: 'crosshair',
+          }}
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
+        >
+          <defs>
+            {/* Voltage Sky Blue Gradient Fill */}
+            <linearGradient id="voltGradCombined" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={COLOR_VOLTAGE} stopOpacity="0.38" />
+              <stop offset="60%" stopColor={COLOR_VOLTAGE} stopOpacity="0.14" />
+              <stop offset="100%" stopColor={COLOR_VOLTAGE} stopOpacity="0.01" />
+            </linearGradient>
+
+            {/* Current Emerald Green Gradient Fill */}
+            <linearGradient id="currGradCombined" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={COLOR_CURRENT} stopOpacity="0.38" />
+              <stop offset="60%" stopColor={COLOR_CURRENT} stopOpacity="0.14" />
+              <stop offset="100%" stopColor={COLOR_CURRENT} stopOpacity="0.01" />
+            </linearGradient>
+
+            {/* Soft Glow Shadow Filters */}
+            <filter id="voltGlow" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor={COLOR_VOLTAGE} floodOpacity="0.28" />
+            </filter>
+            <filter id="currGlow" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor={COLOR_CURRENT} floodOpacity="0.28" />
+            </filter>
+          </defs>
+
+          {/* Horizontal Gridlines & Left Voltage Y-Axis Ticks */}
+          {vTicks.map((val) => {
+            const frac = (val - minV) / (maxV - minV || 1);
+            const y = baseY - frac * PH;
+            return (
+              <g key={`v-grid-${val}`}>
+                <line
+                  x1={PL}
+                  y1={y}
+                  x2={VW - PR}
+                  y2={y}
+                  stroke={COLOR_GRID}
+                  strokeWidth={1}
+                  strokeDasharray="3 3"
+                />
+                <text
+                  x={PL - 8}
+                  y={y + 3.5}
+                  textAnchor="end"
+                  fontSize="9.5"
+                  fill={COLOR_AXIS}
+                  fontWeight={500}
+                >
+                  {val} V
+                </text>
+              </g>
+            );
+          })}
+
+          {/* Right Current Y-Axis Ticks */}
+          {cTicks.map((val) => {
+            const frac = (val - minC) / (maxC - minC || 1);
+            const y = baseY - frac * PH;
+            return (
+              <g key={`c-tick-${val}`}>
+                <text
+                  x={VW - PR + 8}
+                  y={y + 3.5}
+                  textAnchor="start"
+                  fontSize="9.5"
+                  fill={COLOR_AXIS}
+                  fontWeight={500}
+                >
+                  {val} A
+                </text>
+              </g>
+            );
+          })}
+
+          {/* Rotated Axis Titles */}
+          <text
+            transform="rotate(-90)"
+            x={-(PT + PH / 2)}
+            y={14}
+            textAnchor="middle"
+            fontSize="9.5"
+            fill={COLOR_AXIS}
+            fontWeight={600}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span
-                style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: '50%',
-                  backgroundColor: COLOR_VOLTAGE,
-                  display: 'inline-block',
-                  flexShrink: 0,
-                }}
-              />
-              <span style={{ fontSize: '0.76rem', fontWeight: 700, color: COLOR_TEXT }}>
-                Voltage (V)
-              </span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <span style={{ fontSize: '0.68rem', color: COLOR_AXIS }}>Avg:</span>
-              <span
-                style={{
-                  fontSize: '0.72rem',
-                  fontWeight: 700,
-                  color: COLOR_VOLTAGE,
-                  backgroundColor: 'rgba(0, 143, 251, 0.10)',
-                  padding: '1px 6px',
-                  borderRadius: 4,
-                }}
-              >
-                {avgV} V
-              </span>
-            </div>
-          </div>
-
-          {/* Voltage SVG Chart (Clean Spline Area without idle clutter dots) */}
-          <div
-            style={{
-              flex: 1,
-              width: '100%',
-              minHeight: 0,
-              position: 'relative',
-              overflow: 'hidden',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
+            Voltage (V)
+          </text>
+          <text
+            transform="rotate(90)"
+            x={PT + PH / 2}
+            y={-(VW - 13)}
+            textAnchor="middle"
+            fontSize="9.5"
+            fill={COLOR_AXIS}
+            fontWeight={600}
           >
-            <svg
-              ref={voltSvgRef}
-              viewBox={`0 0 ${VW} ${VH}`}
-              width="100%"
-              height="100%"
-              preserveAspectRatio="xMidYMid meet"
-              style={{
-                display: 'block',
-                cursor: 'crosshair',
-              }}
-              onMouseMove={handleMouseMoveV}
-              onMouseLeave={handleMouseLeave}
-            >
-              <defs>
-                {/* Voltage Sky Blue Gradient Fill */}
-                <linearGradient id="voltGradDual" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={COLOR_VOLTAGE} stopOpacity="0.42" />
-                  <stop offset="60%" stopColor={COLOR_VOLTAGE} stopOpacity="0.12" />
-                  <stop offset="100%" stopColor={COLOR_VOLTAGE} stopOpacity="0.01" />
-                </linearGradient>
-                <filter id="voltGlow" x="-20%" y="-20%" width="140%" height="140%">
-                  <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor={COLOR_VOLTAGE} floodOpacity="0.25" />
-                </filter>
-              </defs>
+            Current (A)
+          </text>
 
-              {/* Horizontal Gridlines & Y-Axis Voltage Ticks */}
-              {vTicks.map((val) => {
-                const frac = (val - minV) / (maxV - minV || 1);
-                const y = baseY - frac * PH;
-                return (
-                  <g key={`v-grid-${val}`}>
-                    <line
-                      x1={PL_V}
-                      y1={y}
-                      x2={VW - PR}
-                      y2={y}
-                      stroke={COLOR_GRID}
-                      strokeWidth={1}
-                      strokeDasharray="3 3"
-                    />
-                    <text
-                      x={PL_V - 8}
-                      y={y + 3.5}
-                      textAnchor="end"
-                      fontSize="9.5"
-                      fill={COLOR_AXIS}
-                      fontWeight={500}
-                    >
-                      {val} V
-                    </text>
-                  </g>
-                );
-              })}
+          {/* Baseline Axis */}
+          <line
+            x1={PL}
+            y1={baseY}
+            x2={VW - PR}
+            y2={baseY}
+            stroke="#CBD5E1"
+            strokeWidth={1}
+          />
 
-              {/* Baseline Axis */}
+          {/* 1. Voltage Fluid Area & Spline Wave (Sky Blue) */}
+          {showVoltage && voltArea && <path d={voltArea} fill="url(#voltGradCombined)" />}
+          {showVoltage && voltSpline && (
+            <path
+              d={voltSpline}
+              fill="none"
+              stroke={COLOR_VOLTAGE}
+              strokeWidth={2.8}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              filter="url(#voltGlow)"
+            />
+          )}
+
+          {/* 2. Current Fluid Area & Spline Wave (Emerald Teal) */}
+          {showCurrent && currArea && <path d={currArea} fill="url(#currGradCombined)" />}
+          {showCurrent && currSpline && (
+            <path
+              d={currSpline}
+              fill="none"
+              stroke={COLOR_CURRENT}
+              strokeWidth={2.8}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              filter="url(#currGlow)"
+            />
+          )}
+
+          {/* X-Axis Date / Timestamp Labels */}
+          {renderXLabels(xStep, PL)}
+
+          {/* ── Interactive Crosshair Guide, Dual Glowing Dots & Unified Tooltip ── */}
+          {hoveredIdx !== null && (
+            <g pointerEvents="none">
+              {/* Vertical Guide Line */}
               <line
-                x1={PL_V}
-                y1={baseY}
-                x2={VW - PR}
+                x1={voltPts[hoveredIdx].x}
+                y1={PT}
+                x2={voltPts[hoveredIdx].x}
                 y2={baseY}
-                stroke="#CBD5E1"
-                strokeWidth={1}
+                stroke="#94A3B8"
+                strokeWidth={1.2}
+                strokeDasharray="3 3"
               />
 
-              {/* Smooth Fluid Area Under Curve */}
-              {voltArea && <path d={voltArea} fill="url(#voltGradDual)" />}
-
-              {/* Smooth Flowing Spline Curve (Pure & Seamless Line) */}
-              {voltSpline && (
-                <path
-                  d={voltSpline}
-                  fill="none"
-                  stroke={COLOR_VOLTAGE}
-                  strokeWidth={2.8}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+              {/* Voltage Glowing Marker */}
+              {showVoltage && voltPts[hoveredIdx] && (
+                <circle
+                  cx={voltPts[hoveredIdx].x}
+                  cy={voltPts[hoveredIdx].y}
+                  r={5.5}
+                  fill={COLOR_VOLTAGE}
+                  stroke="#FFFFFF"
+                  strokeWidth={2.4}
                   filter="url(#voltGlow)"
                 />
               )}
 
-              {/* X-Axis Date / Timestamp Labels (Centered & Harmonious) */}
-              {renderXLabels(xStepV, PL_V, COLOR_VOLTAGE)}
-
-              {/* Synchronized Hover Crosshair, Glowing Dot & Floating Tooltip */}
-              {hoveredIdx !== null && voltPts[hoveredIdx] && (
-                <g>
-                  {/* Vertical Guide Line */}
-                  <line
-                    x1={voltPts[hoveredIdx].x}
-                    y1={PT}
-                    x2={voltPts[hoveredIdx].x}
-                    y2={baseY}
-                    stroke="#94A3B8"
-                    strokeWidth={1.2}
-                    strokeDasharray="3 3"
-                  />
-
-                  {/* Active Glowing Marker */}
-                  <circle
-                    cx={voltPts[hoveredIdx].x}
-                    cy={voltPts[hoveredIdx].y}
-                    r={5.5}
-                    fill={COLOR_VOLTAGE}
-                    stroke="#FFFFFF"
-                    strokeWidth={2.4}
-                    filter="url(#voltGlow)"
-                  />
-
-                  {/* Floating Tooltip Pill inside SVG */}
-                  {(() => {
-                    const hp = voltPts[hoveredIdx];
-                    const tooltipW = 104;
-                    const tooltipH = 34;
-                    let tx = hp.x - tooltipW / 2;
-                    let ty = hp.y - tooltipH - 8;
-                    if (tx < PL_V) tx = PL_V + 2;
-                    if (tx + tooltipW > VW - PR) tx = VW - PR - tooltipW - 2;
-                    if (ty < PT) ty = hp.y + 10;
-
-                    return (
-                      <g>
-                        <rect
-                          x={tx}
-                          y={ty}
-                          width={tooltipW}
-                          height={tooltipH}
-                          rx={5}
-                          fill="#0F172A"
-                          fillOpacity="0.94"
-                          stroke={COLOR_VOLTAGE}
-                          strokeWidth={1}
-                        />
-                        <text
-                          x={tx + tooltipW / 2}
-                          y={ty + 13}
-                          textAnchor="middle"
-                          fontSize="9"
-                          fill="#94A3B8"
-                          fontWeight={500}
-                        >
-                          {chartPoints[hoveredIdx].label}
-                        </text>
-                        <text
-                          x={tx + tooltipW / 2}
-                          y={ty + 27}
-                          textAnchor="middle"
-                          fontSize="11"
-                          fill="#38BDF8"
-                          fontWeight={700}
-                        >
-                          {hp.val} V
-                        </text>
-                      </g>
-                    );
-                  })()}
-                </g>
-              )}
-            </svg>
-          </div>
-        </div>
-
-        {/* ── PARTITION 2 (RIGHT): CURRENT PROFILE ── */}
-        <div className="trend-subpanel-right">
-          {/* Subpanel Header */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: 4,
-              paddingBottom: 4,
-              borderBottom: '1px dashed var(--border-color, #E2E8E5)',
-              flexShrink: 0,
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span
-                style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: '50%',
-                  backgroundColor: COLOR_CURRENT,
-                  display: 'inline-block',
-                  flexShrink: 0,
-                }}
-              />
-              <span style={{ fontSize: '0.76rem', fontWeight: 700, color: COLOR_TEXT }}>
-                Current (A)
-              </span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <span style={{ fontSize: '0.68rem', color: COLOR_AXIS }}>Avg:</span>
-              <span
-                style={{
-                  fontSize: '0.72rem',
-                  fontWeight: 700,
-                  color: '#059669',
-                  backgroundColor: 'rgba(0, 227, 150, 0.12)',
-                  padding: '1px 6px',
-                  borderRadius: 4,
-                }}
-              >
-                {avgC} A
-              </span>
-            </div>
-          </div>
-
-          {/* Current SVG Chart (Clean Spline Area without idle clutter dots) */}
-          <div
-            style={{
-              flex: 1,
-              width: '100%',
-              minHeight: 0,
-              position: 'relative',
-              overflow: 'hidden',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <svg
-              ref={currSvgRef}
-              viewBox={`0 0 ${VW} ${VH}`}
-              width="100%"
-              height="100%"
-              preserveAspectRatio="xMidYMid meet"
-              style={{
-                display: 'block',
-                cursor: 'crosshair',
-              }}
-              onMouseMove={handleMouseMoveC}
-              onMouseLeave={handleMouseLeave}
-            >
-              <defs>
-                {/* Current Emerald Green Gradient Fill */}
-                <linearGradient id="currGradDual" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={COLOR_CURRENT} stopOpacity="0.45" />
-                  <stop offset="60%" stopColor={COLOR_CURRENT} stopOpacity="0.14" />
-                  <stop offset="100%" stopColor={COLOR_CURRENT} stopOpacity="0.01" />
-                </linearGradient>
-                <filter id="currGlow" x="-20%" y="-20%" width="140%" height="140%">
-                  <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor={COLOR_CURRENT} floodOpacity="0.25" />
-                </filter>
-              </defs>
-
-              {/* Horizontal Gridlines & Y-Axis Current Ticks */}
-              {cTicks.map((val) => {
-                const frac = (val - minC) / (maxC - minC || 1);
-                const y = baseY - frac * PH;
-                return (
-                  <g key={`c-grid-${val}`}>
-                    <line
-                      x1={PL_C}
-                      y1={y}
-                      x2={VW - PR}
-                      y2={y}
-                      stroke={COLOR_GRID}
-                      strokeWidth={1}
-                      strokeDasharray="3 3"
-                    />
-                    <text
-                      x={PL_C - 8}
-                      y={y + 3.5}
-                      textAnchor="end"
-                      fontSize="9.5"
-                      fill={COLOR_AXIS}
-                      fontWeight={500}
-                    >
-                      {val} A
-                    </text>
-                  </g>
-                );
-              })}
-
-              {/* Baseline Axis */}
-              <line
-                x1={PL_C}
-                y1={baseY}
-                x2={VW - PR}
-                y2={baseY}
-                stroke="#CBD5E1"
-                strokeWidth={1}
-              />
-
-              {/* Smooth Fluid Area Under Curve */}
-              {currArea && <path d={currArea} fill="url(#currGradDual)" />}
-
-              {/* Smooth Flowing Spline Curve (Pure & Seamless Line) */}
-              {currSpline && (
-                <path
-                  d={currSpline}
-                  fill="none"
-                  stroke={COLOR_CURRENT}
-                  strokeWidth={2.8}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+              {/* Current Glowing Marker */}
+              {showCurrent && currPts[hoveredIdx] && (
+                <circle
+                  cx={currPts[hoveredIdx].x}
+                  cy={currPts[hoveredIdx].y}
+                  r={5.5}
+                  fill={COLOR_CURRENT}
+                  stroke="#FFFFFF"
+                  strokeWidth={2.4}
                   filter="url(#currGlow)"
                 />
               )}
 
-              {/* X-Axis Date / Timestamp Labels (Centered & Harmonious) */}
-              {renderXLabels(xStepC, PL_C, '#059669')}
+              {/* Unified Floating Tooltip Card */}
+              {(() => {
+                const xPos = voltPts[hoveredIdx].x;
+                const tooltipW = 142;
+                const tooltipH = 58;
+                let tx = xPos - tooltipW / 2;
+                if (tx < PL) tx = PL + 4;
+                if (tx + tooltipW > VW - PR) tx = VW - PR - tooltipW - 4;
+                const ty = PT + 6;
 
-              {/* Synchronized Hover Crosshair, Glowing Dot & Floating Tooltip */}
-              {hoveredIdx !== null && currPts[hoveredIdx] && (
-                <g>
-                  {/* Vertical Guide Line */}
-                  <line
-                    x1={currPts[hoveredIdx].x}
-                    y1={PT}
-                    x2={currPts[hoveredIdx].x}
-                    y2={baseY}
-                    stroke="#94A3B8"
-                    strokeWidth={1.2}
-                    strokeDasharray="3 3"
-                  />
+                return (
+                  <g>
+                    <rect
+                      x={tx}
+                      y={ty}
+                      width={tooltipW}
+                      height={tooltipH}
+                      rx={6}
+                      fill="#0F172A"
+                      fillOpacity="0.94"
+                      stroke="#334155"
+                      strokeWidth={1}
+                    />
+                    <text
+                      x={tx + 10}
+                      y={ty + 16}
+                      fontSize="9.5"
+                      fill="#94A3B8"
+                      fontWeight={600}
+                    >
+                      {chartPoints[hoveredIdx].label}
+                    </text>
 
-                  {/* Active Glowing Marker */}
-                  <circle
-                    cx={currPts[hoveredIdx].x}
-                    cy={currPts[hoveredIdx].y}
-                    r={5.5}
-                    fill={COLOR_CURRENT}
-                    stroke="#FFFFFF"
-                    strokeWidth={2.4}
-                    filter="url(#currGlow)"
-                  />
+                    {/* Voltage Reading Row */}
+                    <circle cx={tx + 15} cy={ty + 31} r={3.5} fill={COLOR_VOLTAGE} />
+                    <text x={tx + 24} y={ty + 34} fontSize="10" fill="#CBD5E1" fontWeight={500}>
+                      Voltage:
+                    </text>
+                    <text x={tx + tooltipW - 10} y={ty + 34} textAnchor="end" fontSize="10.5" fill="#38BDF8" fontWeight={700}>
+                      {chartPoints[hoveredIdx].voltage} V
+                    </text>
 
-                  {/* Floating Tooltip Pill inside SVG */}
-                  {(() => {
-                    const hp = currPts[hoveredIdx];
-                    const tooltipW = 104;
-                    const tooltipH = 34;
-                    let tx = hp.x - tooltipW / 2;
-                    let ty = hp.y - tooltipH - 8;
-                    if (tx < PL_C) tx = PL_C + 2;
-                    if (tx + tooltipW > VW - PR) tx = VW - PR - tooltipW - 2;
-                    if (ty < PT) ty = hp.y + 10;
+                    {/* Current Reading Row */}
+                    <circle cx={tx + 15} cy={ty + 46} r={3.5} fill={COLOR_CURRENT} />
+                    <text x={tx + 24} y={ty + 49} fontSize="10" fill="#CBD5E1" fontWeight={500}>
+                      Current:
+                    </text>
+                    <text x={tx + tooltipW - 10} y={ty + 49} textAnchor="end" fontSize="10.5" fill="#34D399" fontWeight={700}>
+                      {chartPoints[hoveredIdx].current} A
+                    </text>
+                  </g>
+                );
+              })()}
+            </g>
+          )}
+        </svg>
+      </div>
 
-                    return (
-                      <g>
-                        <rect
-                          x={tx}
-                          y={ty}
-                          width={tooltipW}
-                          height={tooltipH}
-                          rx={5}
-                          fill="#0F172A"
-                          fillOpacity="0.94"
-                          stroke={COLOR_CURRENT}
-                          strokeWidth={1}
-                        />
-                        <text
-                          x={tx + tooltipW / 2}
-                          y={ty + 13}
-                          textAnchor="middle"
-                          fontSize="9"
-                          fill="#94A3B8"
-                          fontWeight={500}
-                        >
-                          {chartPoints[hoveredIdx].label}
-                        </text>
-                        <text
-                          x={tx + tooltipW / 2}
-                          y={ty + 27}
-                          textAnchor="middle"
-                          fontSize="11"
-                          fill="#34D399"
-                          fontWeight={700}
-                        >
-                          {hp.val} A
-                        </text>
-                      </g>
-                    );
-                  })()}
-                </g>
-              )}
-            </svg>
-          </div>
-        </div>
+      {/* ══ BOTTOM INTERACTIVE LEGEND (ApexCharts Style) ════ */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 24,
+          padding: '4px 16px 6px 16px',
+          borderTop: '1px solid #F8FAFC',
+          flexShrink: 0,
+        }}
+      >
+        {/* Voltage Series Toggle */}
+        <button
+          type="button"
+          onClick={() => setShowVoltage((prev) => !prev)}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 8,
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            opacity: showVoltage ? 1 : 0.45,
+            padding: '2px 8px',
+            borderRadius: 6,
+            transition: 'all 0.15s ease',
+          }}
+          title="Click to toggle Voltage series"
+        >
+          <span
+            style={{
+              width: 10,
+              height: 10,
+              borderRadius: '50%',
+              backgroundColor: COLOR_VOLTAGE,
+              display: 'inline-block',
+              flexShrink: 0,
+            }}
+          />
+          <span style={{ fontSize: '0.78rem', fontWeight: 650, color: COLOR_TEXT }}>
+            Voltage
+          </span>
+          <span
+            style={{
+              fontSize: '0.72rem',
+              fontWeight: 700,
+              color: COLOR_VOLTAGE,
+              backgroundColor: 'rgba(0, 143, 251, 0.10)',
+              padding: '1px 6px',
+              borderRadius: 4,
+            }}
+          >
+            Avg: {avgV} V
+          </span>
+        </button>
+
+        {/* Current Series Toggle */}
+        <button
+          type="button"
+          onClick={() => setShowCurrent((prev) => !prev)}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 8,
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            opacity: showCurrent ? 1 : 0.45,
+            padding: '2px 8px',
+            borderRadius: 6,
+            transition: 'all 0.15s ease',
+          }}
+          title="Click to toggle Current series"
+        >
+          <span
+            style={{
+              width: 10,
+              height: 10,
+              borderRadius: '50%',
+              backgroundColor: COLOR_CURRENT,
+              display: 'inline-block',
+              flexShrink: 0,
+            }}
+          />
+          <span style={{ fontSize: '0.78rem', fontWeight: 650, color: COLOR_TEXT }}>
+            Current
+          </span>
+          <span
+            style={{
+              fontSize: '0.72rem',
+              fontWeight: 700,
+              color: '#059669',
+              backgroundColor: 'rgba(0, 227, 150, 0.12)',
+              padding: '1px 6px',
+              borderRadius: 4,
+            }}
+          >
+            Avg: {avgC} A
+          </span>
+        </button>
       </div>
     </div>
   );
